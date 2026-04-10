@@ -1,5 +1,273 @@
 export default async function handler(req, res) {
   try {
+    let params = req.query.params;
+    if (!params) return res.status(400).send("Missing ID");
+    if (!Array.isArray(params)) params = [params];
+
+    const tmdbId = params[0];
+    const season = params[1];
+    const episode = params[2];
+
+    const type = season && episode ? "series" : "movie";
+
+    // 🔗 ADDON URL (JSON ONLY)
+    const addonUrl =
+      type === "movie"
+        ? `https://hdhub.thevolecitor.qzz.io/eyJ0b3Jib3giOiJ1bnNldCIsInF1YWxpdGllcyI6IjIxNjBwLDEwODBwLDcyMHAiLCJzb3J0IjoiZGVzYyJ9/stream/movie/tmdb:${tmdbId}.json`
+        : `https://hdhub.thevolecitor.qzz.io/eyJ0b3Jib3giOiJ1bnNldCIsInF1YWxpdGllcyI6IjIxNjBwLDEwODBwLDcyMHAiLCJzb3J0IjoiZGVzYyJ9/stream/series/tmdb:${tmdbId}:${season}:${episode}.json`;
+
+    // 📡 FETCH ADDON (LIGHT)
+    const response = await fetch(addonUrl);
+    if (!response.ok) return res.status(500).send("Addon failed");
+
+    const data = await response.json();
+
+    if (!data.streams || data.streams.length === 0) {
+      return res.status(404).send("No streams");
+    }
+
+    // ✅ NO RESOLVING (IMPORTANT)
+    const streams = data.streams.map((s) => ({
+      quality: s.title || "Auto",
+      url: s.url,
+    }));
+
+    // 🎬 TMDB (LIGHT)
+    let meta = {};
+    try {
+      const TMDB_KEY = "YOUR_TMDB_API_KEY";
+
+      const tmdbUrl =
+        type === "movie"
+          ? `https://api.themoviedb.org/3/movie/${tmdbId}?api_key=${TMDB_KEY}`
+          : `https://api.themoviedb.org/3/tv/${tmdbId}?api_key=${TMDB_KEY}`;
+
+      const tmdb = await fetch(tmdbUrl).then((r) => r.json());
+
+      meta = {
+        title: tmdb.title || tmdb.name,
+        poster: tmdb.poster_path
+          ? `https://image.tmdb.org/t/p/original${tmdb.poster_path}`
+          : "",
+      };
+    } catch {}
+
+    // 📦 API MODE
+    if (req.headers.accept?.includes("application/json")) {
+      return res.json({
+        success: true,
+        type,
+        ...meta,
+        streams,
+        default: streams[0].url,
+      });
+    }
+
+    // 🎨 UI MODE
+    res.setHeader("Content-Type", "text/html");
+
+    res.send(`
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>${meta.title || "Player"}</title>
+
+<link rel="stylesheet" href="https://unpkg.com/artplayer/dist/artplayer.css">
+
+<style>
+body { margin:0; background:black; color:white; font-family:sans-serif; }
+
+#intro {
+  position:fixed;
+  inset:0;
+  background:black;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+}
+
+#intro img {
+  max-width:220px;
+  border-radius:12px;
+}
+
+#title {
+  margin-top:15px;
+  font-size:18px;
+}
+
+.loading-spinner-container img {
+  width:60px;
+  margin-top:20px;
+  animation:spin 1s linear infinite;
+}
+
+@keyframes spin {
+  100% { transform: rotate(360deg); }
+}
+
+#player {
+  width:100vw;
+  height:100vh;
+}
+</style>
+</head>
+
+<body>
+
+<div id="intro">
+  <img src="${meta.poster}">
+  <div id="title">${meta.title || ""}</div>
+
+  <div class="loading-spinner-container">
+    <img src="https://assets.nflxext.com/en_us/pages/wiplayer/site-spinner.png"
+    onerror="this.src='https://placehold.co/64x64?text=Loading'">
+  </div>
+</div>
+
+<div id="player"></div>
+
+<script src="https://unpkg.com/artplayer/dist/artplayer.js"></script>
+
+<script>
+const streams = ${JSON.stringify(streams)};
+const videoUrl = streams[0].url;
+
+setTimeout(() => {
+  document.getElementById("intro").style.display = "none";
+
+  new Artplayer({
+    container: '#player',
+    url: videoUrl,
+    autoplay: true,
+    fullscreen: true,
+    setting: true,
+    playbackRate: true,
+    aspectRatio: true,
+    hotkey: true,
+    pip: true,
+
+    controls: [
+      {
+        position: 'right',
+        html: 'Quality',
+        click: function () {
+          let list = streams.map(s => s.quality).join("\\n");
+          let choice = prompt("Select Quality:\\n" + list);
+          let found = streams.find(s => s.quality == choice);
+          if (found) this.player.switchUrl(found.url);
+        }
+      }
+    ]
+  });
+
+}, 1500);
+</script>
+
+</body>
+</html>
+`);
+  } catch (err) {
+    res.status(500).send("Error: " + err.message);
+  }
+}#intro {
+  position:fixed;
+  inset:0;
+  background:black;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+}
+
+#intro img {
+  max-width:220px;
+  border-radius:12px;
+}
+
+#title {
+  margin-top:15px;
+  font-size:18px;
+}
+
+.loading-spinner-container img {
+  width:60px;
+  margin-top:20px;
+  animation:spin 1s linear infinite;
+}
+
+@keyframes spin {
+  100% { transform: rotate(360deg); }
+}
+
+#player {
+  width:100vw;
+  height:100vh;
+}
+</style>
+</head>
+
+<body>
+
+<div id="intro">
+  <img src="${meta.poster}">
+  <div id="title">${meta.title || ""}</div>
+
+  <div class="loading-spinner-container">
+    <img src="https://assets.nflxext.com/en_us/pages/wiplayer/site-spinner.png"
+    onerror="this.src='https://placehold.co/64x64?text=Loading'">
+  </div>
+</div>
+
+<div id="player"></div>
+
+<script src="https://unpkg.com/artplayer/dist/artplayer.js"></script>
+
+<script>
+const streams = ${JSON.stringify(streams)};
+const videoUrl = streams[0].url;
+
+setTimeout(() => {
+  document.getElementById("intro").style.display = "none";
+
+  new Artplayer({
+    container: '#player',
+    url: videoUrl,
+    autoplay: true,
+    fullscreen: true,
+    setting: true,
+    playbackRate: true,
+    aspectRatio: true,
+    hotkey: true,
+    pip: true,
+
+    controls: [
+      {
+        position: 'right',
+        html: 'Quality',
+        click: function () {
+          let list = streams.map(s => s.quality).join("\\n");
+          let choice = prompt("Select Quality:\\n" + list);
+          let found = streams.find(s => s.quality == choice);
+          if (found) this.player.switchUrl(found.url);
+        }
+      }
+    ]
+  });
+
+}, 1500);
+</script>
+
+</body>
+</html>
+`);
+  } catch (err) {
+    res.status(500).send("Error: " + err.message);
+  }
+} default async function handler(req, res) {
+  try {
     // ✅ SAFE PARAM PARSE
     let params = req.query.params;
     if (!params) return res.status(400).send("Missing ID");
