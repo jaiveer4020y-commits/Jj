@@ -4,37 +4,164 @@ export default async function handler(req, res) {
     if (!params) return res.status(400).send("Missing ID");
     if (!Array.isArray(params)) params = [params];
 
-    const tmdbId = params[0];
+    const id = params[0];
     const season = params[1];
     const episode = params[2];
 
-    const type = season && episode ? "series" : "movie";
+    const isSeries = season && episode;
 
-    // 🔗 ADDON URL (JSON ONLY)
-    const addonUrl =
-      type === "movie"
-        ? `https://hdhub.thevolecitor.qzz.io/eyJ0b3Jib3giOiJ1bnNldCIsInF1YWxpdGllcyI6IjIxNjBwLDEwODBwLDcyMHAiLCJzb3J0IjoiZGVzYyJ9/stream/movie/tmdb:${tmdbId}.json`
-        : `https://hdhub.thevolecitor.qzz.io/eyJ0b3Jib3giOiJ1bnNldCIsInF1YWxpdGllcyI6IjIxNjBwLDEwODBwLDcyMHAiLCJzb3J0IjoiZGVzYyJ9/stream/series/tmdb:${tmdbId}:${season}:${episode}.json`;
+    // 🔗 YOUR OPTIMIZED ADDON URL (IMDb + 1080/720)
+    const base =
+      "https://hdhub.thevolecitor.qzz.io/eyJ0b3Jib3giOiJ1bnNldCIsInF1YWxpdGllcyI6IjEwODBwLDcyMHAiLCJzb3J0IjoiZGVzYyJ9";
 
-    // 📡 FETCH ADDON (LIGHT)
-    const response = await fetch(addonUrl);
-    if (!response.ok) return res.status(500).send("Addon failed");
+    const url = isSeries
+      ? `${base}/stream/series/${id}:${season}:${episode}.json`
+      : `${base}/stream/movie/${id}.json`;
 
-    const data = await response.json();
+    const r = await fetch(url);
+    if (!r.ok) return res.status(500).send("Source failed");
 
+    const data = await r.json();
     if (!data.streams || data.streams.length === 0) {
       return res.status(404).send("No streams");
     }
 
-    // ✅ NO RESOLVING (IMPORTANT)
-    const streams = data.streams.map((s) => ({
-      quality: s.title || "Auto",
+    const streams = data.streams;
+
+    // 🎯 CASTLE (HLS)
+    const hls = streams.filter(
+      (s) =>
+        s.url.includes(".m3u8") &&
+        s.name.toLowerCase().includes("castle")
+    );
+
+    // 🔁 FSL / FSLv2
+    const fsl = streams.filter(
+      (s) =>
+        s.name.toLowerCase().includes("fsl")
+    );
+
+    // ✅ FINAL STREAMS
+    let finalStreams = hls.length ? hls : fsl;
+
+    // 🎬 FORMAT STREAMS
+    let formatted = finalStreams.map((s) => ({
+      quality: s.name.includes("1080") ? "1080p" : "720p",
       url: s.url,
+      subtitles: s.subtitles || []
     }));
 
-    // 🎬 TMDB (LIGHT)
-    let meta = {};
-    try {
+    // 🔥 SORT (1080 first)
+    formatted.sort((a, b) => b.quality.localeCompare(a.quality));
+
+    const defaultStream = formatted[0];
+
+    // 📦 JSON MODE
+    if (req.headers.accept?.includes("application/json")) {
+      return res.json({
+        success: true,
+        streams: formatted,
+        default: defaultStream.url
+      });
+    }
+
+    // 🎨 HTML PLAYER
+    res.setHeader("Content-Type", "text/html");
+
+    res.send(`
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Player</title>
+
+<link rel="stylesheet" href="https://unpkg.com/artplayer/dist/artplayer.css">
+
+<style>
+body { margin:0; background:black; color:white; font-family:sans-serif; }
+
+#loader {
+  position:fixed;
+  inset:0;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  background:black;
+  z-index:10;
+}
+
+#loader img {
+  width:70px;
+  animation:spin 1s linear infinite;
+}
+
+@keyframes spin {
+  100% { transform: rotate(360deg); }
+}
+
+#player {
+  width:100vw;
+  height:100vh;
+}
+</style>
+</head>
+
+<body>
+
+<div id="loader">
+  <img src="https://assets.nflxext.com/en_us/pages/wiplayer/site-spinner.png">
+</div>
+
+<div id="player"></div>
+
+<script src="https://unpkg.com/artplayer/dist/artplayer.js"></script>
+
+<script>
+const streams = ${JSON.stringify(formatted)};
+const defaultUrl = streams[0].url;
+
+setTimeout(() => {
+  document.getElementById("loader").style.display = "none";
+
+  const art = new Artplayer({
+    container: '#player',
+    url: defaultUrl,
+    autoplay: true,
+    fullscreen: true,
+    setting: true,
+    hotkey: true,
+    pip: true,
+    playbackRate: true
+  });
+
+  // 🎯 QUALITY SELECTOR
+  art.setting.add({
+    html: 'Quality',
+    selector: streams.map(s => ({
+      html: s.quality,
+      url: s.url
+    })),
+    onSelect: function(item) {
+      art.switchUrl(item.url);
+      return item.html;
+    }
+  });
+
+  // 🎬 SUBTITLES AUTO LOAD
+  if (streams[0].subtitles.length > 0) {
+    art.subtitle.switch(streams[0].subtitles[0].url);
+  }
+
+}, 1000);
+</script>
+
+</body>
+</html>
+`);
+  } catch (e) {
+    res.status(500).send("Crash: " + e.message);
+  }
+}    try {
       const TMDB_KEY = "YOUR_TMDB_API_KEY";
 
       const tmdbUrl =
