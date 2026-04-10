@@ -6,17 +6,18 @@ export default function handler(req, res) {
   if (!Array.isArray(params)) params = [params];
 
   const id = params[0];
-  const season = params[1];
-  const episode = params[2];
+  const season = params[1] || null;
+  const episode = params[2] || null;
 
-  const isSeries = season && episode;
+  const isSeries = season !== null && episode !== null;
 
   const base =
     "https://hdhub.thevolecitor.qzz.io/eyJ0b3Jib3giOiJ1bnNldCIsInF1YWxpdGllcyI6IjEwODBwLDcyMHAiLCJzb3J0IjoiZGVzYyJ9";
 
-  // ✅ SEPARATE URLS (IMPORTANT FIX)
   const movieUrl = `${base}/stream/movie/${id}.json`;
-  const seriesUrl = `${base}/stream/series/${id}:${season}:${episode}.json`;
+  const seriesUrl = isSeries
+    ? `${base}/stream/series/${id}:${season}:${episode}.json`
+    : null;
 
   const TMDB_API = "81f645c3d9ced06a366b0d829d844cfe";
   const tmdbUrl = `https://api.themoviedb.org/3/find/${id}?api_key=${TMDB_API}&external_source=imdb_id`;
@@ -27,18 +28,16 @@ export default function handler(req, res) {
 <html>
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <link rel="stylesheet" href="https://unpkg.com/artplayer/dist/artplayer.css">
+<script src="https://unpkg.com/artplayer/dist/artplayer.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
 
 <style>
 body { margin:0; background:black; }
 
-/* CLEAN PLAYER SIZE */
-#player {
-  width:100vw;
-  height:100vh;
-}
+#player { width:100vw; height:100vh; }
 
-/* LOADING */
 #loading {
   position:fixed;
   inset:0;
@@ -50,8 +49,26 @@ body { margin:0; background:black; }
   z-index:10;
 }
 
-#poster { width:180px; border-radius:10px; margin-bottom:15px; }
-#title { color:white; margin-bottom:10px; }
+#poster {
+  width:180px;
+  border-radius:10px;
+  margin-bottom:15px;
+}
+
+#title {
+  color:white;
+  margin-bottom:10px;
+  text-align:center;
+}
+
+.spinner {
+  width:60px;
+  animation:spin 1s linear infinite;
+}
+
+@keyframes spin {
+  100% { transform: rotate(360deg); }
+}
 
 #error {
   position:fixed;
@@ -66,7 +83,7 @@ body { margin:0; background:black; }
   overflow:auto;
 }
 
-/* SETTINGS SCROLL FIX */
+/* SCROLLABLE SETTINGS */
 .art-setting-panel {
   max-height:300px !important;
   overflow-y:auto !important;
@@ -79,12 +96,11 @@ body { margin:0; background:black; }
 <div id="loading">
   <img id="poster">
   <div id="title">Loading...</div>
+  <img class="spinner" src="https://assets.nflxext.com/en_us/pages/wiplayer/site-spinner.png">
 </div>
 
 <div id="player"></div>
 <div id="error"></div>
-
-<script src="https://unpkg.com/artplayer/dist/artplayer.js"></script>
 
 <script>
 
@@ -95,33 +111,28 @@ const isSeries = ${isSeries};
 const errorBox = document.getElementById("error");
 
 async function fetchStreams() {
-  let url = isSeries ? seriesUrl : movieUrl;
+  const url = isSeries ? seriesUrl : movieUrl;
+
+  const res = await fetch(url, {
+    headers: {
+      "User-Agent": "Mozilla/5.0",
+      "Accept": "application/json"
+    }
+  });
+
+  const text = await res.text();
 
   try {
-    const res = await fetch(url, {
-      headers: {
-        "User-Agent": "Mozilla/5.0",
-        "Accept": "application/json"
-      }
-    });
-
-    const text = await res.text();
-
-    try {
-      return JSON.parse(text);
-    } catch {
-      throw new Error("Blocked or invalid JSON (series often blocked)");
-    }
-
-  } catch (e) {
-    throw e;
+    return JSON.parse(text);
+  } catch {
+    throw new Error("Provider blocked or returned HTML");
   }
 }
 
 async function init() {
   try {
 
-    // 🎬 TMDB
+    // 🎬 TMDB DATA
     try {
       const t = await fetch("${tmdbUrl}");
       const d = await t.json();
@@ -137,29 +148,33 @@ async function init() {
 
     if (!data.streams) throw new Error("No streams");
 
-    const streams = data.streams;
-
-    // ✅ KEEP ALL IMPORTANT SOURCES
-    let valid = streams.filter(s =>
-      s.url &&
-      (
-        s.url.includes(".m3u8") || // HLS
-        s.name.toLowerCase().includes("fsl") ||
-        s.name.toLowerCase().includes("hubcdn") ||
-        s.name.toLowerCase().includes("hdhub")
-      )
-    );
+    const valid = data.streams.filter(s => s.url);
 
     if (!valid.length) throw new Error("No valid streams");
 
-    // 🎯 PRIORITY HLS
-    valid.sort((a, b) => b.url.includes(".m3u8") - a.url.includes(".m3u8"));
+    // 🎯 SORT HLS FIRST
+    valid.sort((a,b)=> b.url.includes(".m3u8") - a.url.includes(".m3u8"));
 
-    const sources = valid.map((s, i) => ({
-      name: s.name || ("Source " + (i+1)),
-      url: s.url,
-      subtitles: s.subtitles || []
-    }));
+    // 🎬 CLEAN SOURCES
+    const sources = valid.map((s,i)=>{
+
+      let quality = "Auto";
+      if (s.name.includes("2160")) quality = "4K";
+      else if (s.name.includes("1080")) quality = "1080p";
+      else if (s.name.includes("720")) quality = "720p";
+
+      let label = "Server";
+      if (s.name.toLowerCase().includes("fsl")) label = "FSL";
+      else if (s.name.toLowerCase().includes("hubcdn")) label = "HubCDN";
+      else if (s.name.toLowerCase().includes("hdhub")) label = "HdHub";
+      else if (s.url.includes(".m3u8")) label = "HLS";
+
+      return {
+        name: label + " • " + quality,
+        url: s.url,
+        subtitles: s.subtitles || []
+      };
+    });
 
     document.getElementById("loading").remove();
 
@@ -170,40 +185,63 @@ async function init() {
       fullscreen: true,
       setting: true,
       playbackRate: true,
-      aspectRatio: true,
-      pip: true,
-      mutex: true
+
+      customType: {
+        m3u8: function(video, url) {
+          if (Hls.isSupported()) {
+            const hls = new Hls();
+            hls.loadSource(url);
+            hls.attachMedia(video);
+          } else {
+            video.src = url;
+          }
+        }
+      }
     });
 
-    // 🎬 SOURCE SWITCH (SCROLLABLE)
+    // 🎬 SOURCE SWITCH
     art.setting.add({
-      html: 'Sources',
-      selector: sources.map(s => ({
-        html: s.name,
-        url: s.url
+      html: 'Source',
+      selector: sources.map(s=>({
+        html:s.name,
+        url:s.url
       })),
-      onSelect: function(item) {
+      onSelect(item){
         art.switchUrl(item.url);
         return item.html;
       }
     });
 
     // 💬 SUBTITLES
-    const subs = sources.find(s => s.subtitles.length)?.subtitles || [];
+    const subs = sources.find(s=>s.subtitles.length)?.subtitles || [];
 
-    if (subs.length) {
+    if(subs.length){
       art.setting.add({
-        html: 'Subtitles',
-        selector: subs.map(sub => ({
-          html: sub.lang,
-          url: sub.url
+        html:'Subtitles',
+        selector: subs.map(s=>({
+          html:s.lang,
+          url:s.url
         })),
-        onSelect: function(item) {
+        onSelect(item){
           art.subtitle.switch(item.url);
           return item.html;
         }
       });
     }
+
+    // 🔊 500% AUDIO BOOST
+    art.on('ready', () => {
+      const video = art.video;
+
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const source = ctx.createMediaElementSource(video);
+      const gainNode = ctx.createGain();
+
+      gainNode.gain.value = 5.0; // 🔥 500%
+
+      source.connect(gainNode);
+      gainNode.connect(ctx.destination);
+    });
 
   } catch (e) {
     errorBox.innerText = e.message;
@@ -216,4 +254,4 @@ init();
 
 </body>
 </html>`);
-           }
+        }
