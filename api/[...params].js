@@ -19,7 +19,6 @@ export default function handler(req, res) {
     : `${base}/stream/movie/${id}.json`;
 
   const TMDB_API = "81f645c3d9ced06a366b0d829d844cfe";
-
   const tmdbUrl = `https://api.themoviedb.org/3/find/${id}?api_key=${TMDB_API}&external_source=imdb_id`;
 
   res.setHeader("Content-Type", "text/html");
@@ -27,16 +26,11 @@ export default function handler(req, res) {
   res.send(`<!DOCTYPE html>
 <html>
 <head>
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="stylesheet" href="https://unpkg.com/artplayer/dist/artplayer.css">
 <style>
-body {
-  margin:0;
-  background:black;
-  overflow:hidden;
-}
+body { margin:0; background:black; overflow:hidden; }
 
-/* FORCE LANDSCAPE */
 #player {
   position:fixed;
   width:100vh;
@@ -44,10 +38,8 @@ body {
   top:50%;
   left:50%;
   transform:translate(-50%, -50%) rotate(90deg);
-  transform-origin:center;
 }
 
-/* LOADING SCREEN */
 #loading {
   position:fixed;
   inset:0;
@@ -56,29 +48,10 @@ body {
   flex-direction:column;
   justify-content:center;
   align-items:center;
-  z-index:10;
 }
 
-#poster {
-  width:220px;
-  border-radius:12px;
-  margin-bottom:20px;
-}
-
-#title {
-  color:white;
-  font-size:18px;
-  margin-bottom:20px;
-}
-
-.spinner {
-  width:60px;
-  animation:spin 1s linear infinite;
-}
-
-@keyframes spin {
-  100% { transform: rotate(360deg); }
-}
+#poster { width:200px; border-radius:10px; margin-bottom:15px; }
+#title { color:white; margin-bottom:10px; }
 
 #error {
   position:fixed;
@@ -98,7 +71,6 @@ body {
 <div id="loading">
   <img id="poster">
   <div id="title">Loading...</div>
-  <img class="spinner" src="https://assets.nflxext.com/en_us/pages/wiplayer/site-spinner.png">
 </div>
 
 <div id="player"></div>
@@ -128,7 +100,7 @@ async function init() {
       }
     } catch {}
 
-    // 🎥 STREAM FETCH
+    // 🎥 FETCH STREAMS
     const res = await fetch(apiUrl);
     const text = await res.text();
 
@@ -136,24 +108,26 @@ async function init() {
     try {
       data = JSON.parse(text);
     } catch {
-      throw new Error("Provider returned HTML (blocked or wrong URL)");
+      throw new Error("Invalid response (HTML instead of JSON)");
     }
 
     if (!data.streams || !data.streams.length) {
-      throw new Error("No streams found");
+      throw new Error("No streams from provider");
     }
 
     const streams = data.streams;
 
-    // 🎯 FILTER
-    const valid = streams.filter(s =>
-      s.url && (
-        s.url.includes(".m3u8") ||
-        s.name.toLowerCase().includes("fsl")
-      )
-    );
+    // ✅ ACCEPT ALL VALID STREAMS
+    let valid = streams.filter(s => s.url);
 
-    if (!valid.length) throw new Error("No playable streams");
+    if (!valid.length) throw new Error("No valid streams");
+
+    // 🎯 PRIORITY: HLS FIRST
+    valid.sort((a, b) => {
+      const aHls = a.url.includes(".m3u8") ? 1 : 0;
+      const bHls = b.url.includes(".m3u8") ? 1 : 0;
+      return bHls - aHls;
+    });
 
     const sources = valid.map((s, i) => ({
       name: s.name || ("Source " + (i+1)),
@@ -172,7 +146,7 @@ async function init() {
       playbackRate: true
     });
 
-    // 🎬 SOURCE SWITCH
+    // 🎬 SOURCE SWITCH (FIXED)
     art.setting.add({
       html: 'Source',
       selector: sources.map(s => ({
@@ -185,11 +159,13 @@ async function init() {
       }
     });
 
-    // 💬 SUBTITLE SWITCH
-    if (sources[0].subtitles.length) {
+    // 💬 SUBTITLES (DYNAMIC)
+    const subs = sources.find(s => s.subtitles.length)?.subtitles || [];
+
+    if (subs.length) {
       art.setting.add({
         html: 'Subtitles',
-        selector: sources[0].subtitles.map(sub => ({
+        selector: subs.map(sub => ({
           html: sub.lang,
           url: sub.url
         })),
