@@ -14,9 +14,9 @@ export default function handler(req, res) {
   const base =
     "https://hdhub.thevolecitor.qzz.io/eyJ0b3Jib3giOiJ1bnNldCIsInF1YWxpdGllcyI6IjEwODBwLDcyMHAiLCJzb3J0IjoiZGVzYyJ9";
 
-  const apiUrl = isSeries
-    ? `${base}/stream/series/${id}:${season}:${episode}.json`
-    : `${base}/stream/movie/${id}.json`;
+  // ✅ SEPARATE URLS (IMPORTANT FIX)
+  const movieUrl = `${base}/stream/movie/${id}.json`;
+  const seriesUrl = `${base}/stream/series/${id}:${season}:${episode}.json`;
 
   const TMDB_API = "81f645c3d9ced06a366b0d829d844cfe";
   const tmdbUrl = `https://api.themoviedb.org/3/find/${id}?api_key=${TMDB_API}&external_source=imdb_id`;
@@ -28,18 +28,17 @@ export default function handler(req, res) {
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="stylesheet" href="https://unpkg.com/artplayer/dist/artplayer.css">
-<style>
-body { margin:0; background:black; overflow:hidden; }
 
+<style>
+body { margin:0; background:black; }
+
+/* CLEAN PLAYER SIZE */
 #player {
-  position:fixed;
-  width:100vh;
-  height:100vw;
-  top:50%;
-  left:50%;
-  transform:translate(-50%, -50%) rotate(90deg);
+  width:100vw;
+  height:100vh;
 }
 
+/* LOADING */
 #loading {
   position:fixed;
   inset:0;
@@ -48,9 +47,10 @@ body { margin:0; background:black; overflow:hidden; }
   flex-direction:column;
   justify-content:center;
   align-items:center;
+  z-index:10;
 }
 
-#poster { width:200px; border-radius:10px; margin-bottom:15px; }
+#poster { width:180px; border-radius:10px; margin-bottom:15px; }
 #title { color:white; margin-bottom:10px; }
 
 #error {
@@ -62,6 +62,14 @@ body { margin:0; background:black; overflow:hidden; }
   background:#111;
   padding:10px;
   font-size:12px;
+  max-height:150px;
+  overflow:auto;
+}
+
+/* SETTINGS SCROLL FIX */
+.art-setting-panel {
+  max-height:300px !important;
+  overflow-y:auto !important;
 }
 </style>
 </head>
@@ -80,54 +88,72 @@ body { margin:0; background:black; overflow:hidden; }
 
 <script>
 
-const apiUrl = "${apiUrl}";
-const tmdbUrl = "${tmdbUrl}";
+const movieUrl = "${movieUrl}";
+const seriesUrl = "${seriesUrl}";
+const isSeries = ${isSeries};
+
 const errorBox = document.getElementById("error");
+
+async function fetchStreams() {
+  let url = isSeries ? seriesUrl : movieUrl;
+
+  try {
+    const res = await fetch(url, {
+      headers: {
+        "User-Agent": "Mozilla/5.0",
+        "Accept": "application/json"
+      }
+    });
+
+    const text = await res.text();
+
+    try {
+      return JSON.parse(text);
+    } catch {
+      throw new Error("Blocked or invalid JSON (series often blocked)");
+    }
+
+  } catch (e) {
+    throw e;
+  }
+}
 
 async function init() {
   try {
 
     // 🎬 TMDB
     try {
-      const t = await fetch(tmdbUrl);
+      const t = await fetch("${tmdbUrl}");
       const d = await t.json();
       const item = d.tv_results?.[0] || d.movie_results?.[0];
       if (item) {
-        document.getElementById("poster").src =
-          "https://image.tmdb.org/t/p/w500" + item.poster_path;
-        document.getElementById("title").innerText =
-          item.name || item.title;
+        poster.src = "https://image.tmdb.org/t/p/w500" + item.poster_path;
+        title.innerText = item.name || item.title;
       }
     } catch {}
 
-    // 🎥 FETCH STREAMS
-    const res = await fetch(apiUrl);
-    const text = await res.text();
+    // 🎥 STREAMS
+    const data = await fetchStreams();
 
-    let data;
-    try {
-      data = JSON.parse(text);
-    } catch {
-      throw new Error("Invalid response (HTML instead of JSON)");
-    }
-
-    if (!data.streams || !data.streams.length) {
-      throw new Error("No streams from provider");
-    }
+    if (!data.streams) throw new Error("No streams");
 
     const streams = data.streams;
 
-    // ✅ ACCEPT ALL VALID STREAMS
-    let valid = streams.filter(s => s.url);
+    // ✅ KEEP ALL IMPORTANT SOURCES
+    let valid = streams.filter(s =>
+      s.url &&
+      (
+        s.url.includes(".m3u8") || // HLS
+        s.name.toLowerCase().includes("fsl") ||
+        s.name.toLowerCase().includes("hubcdn") ||
+        s.name.toLowerCase().includes("hdhub")
+      )
+    );
 
     if (!valid.length) throw new Error("No valid streams");
 
-    // 🎯 PRIORITY: HLS FIRST
-    valid.sort((a, b) => {
-      const aHls = a.url.includes(".m3u8") ? 1 : 0;
-      const bHls = b.url.includes(".m3u8") ? 1 : 0;
-      return bHls - aHls;
-    });
+    // 🎯 PRIORITY HLS
+    valid.sort((a, b) => b.url.includes(".m3u8") - a.url.includes(".m3u8"));
 
     const sources = valid.map((s, i) => ({
       name: s.name || ("Source " + (i+1)),
@@ -143,12 +169,15 @@ async function init() {
       autoplay: true,
       fullscreen: true,
       setting: true,
-      playbackRate: true
+      playbackRate: true,
+      aspectRatio: true,
+      pip: true,
+      mutex: true
     });
 
-    // 🎬 SOURCE SWITCH (FIXED)
+    // 🎬 SOURCE SWITCH (SCROLLABLE)
     art.setting.add({
-      html: 'Source',
+      html: 'Sources',
       selector: sources.map(s => ({
         html: s.name,
         url: s.url
@@ -159,7 +188,7 @@ async function init() {
       }
     });
 
-    // 💬 SUBTITLES (DYNAMIC)
+    // 💬 SUBTITLES
     const subs = sources.find(s => s.subtitles.length)?.subtitles || [];
 
     if (subs.length) {
@@ -187,4 +216,4 @@ init();
 
 </body>
 </html>`);
-}
+           }
