@@ -1,5 +1,8 @@
 {
   "routes": [
-    { "src": "/(.*)", "dest": "/api/[...params].js" }
+    {
+      "src": "^/(.*)",
+      "dest": "/api/[...params]?params=$1"
+    }
   ]
 }
