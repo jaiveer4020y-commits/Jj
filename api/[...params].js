@@ -9,14 +9,19 @@ export default function handler(req, res) {
   const season = params[1];
   const episode = params[2];
 
-  const isSeries = season && episode;
+  // ✅ AUTO DETECT SERIES
+  const isSeries = params.length >= 3;
 
   const base =
     "https://hdhub.thevolecitor.qzz.io/eyJ0b3Jib3giOiJ1bnNldCIsInF1YWxpdGllcyI6IjEwODBwLDcyMHAiLCJzb3J0IjoiZGVzYyJ9";
 
-  const apiUrl = isSeries
+  const providerUrl = isSeries
     ? `${base}/stream/series/${id}:${season}:${episode}.json`
     : `${base}/stream/movie/${id}.json`;
+
+  const proxyUrl = `/api/proxy?url=${encodeURIComponent(providerUrl)}`;
+
+  const TMDB = "81f645c3d9ced06a366b0d829d844cfe";
 
   res.setHeader("Content-Type", "text/html");
 
@@ -32,18 +37,30 @@ export default function handler(req, res) {
 <style>
 body { margin:0; background:black; }
 
+/* PLAYER */
 #player { width:100vw; height:100vh; }
 
-.art-setting-panel {
-  max-height:400px !important;
-  overflow-y:auto !important;
+/* LOADING */
+#loading {
+  position:fixed;
+  inset:0;
+  background:black;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  align-items:center;
+  z-index:10;
 }
 
-/* BIGGER SOURCE LIST */
-.art-setting-panel .art-setting-item {
-  font-size:14px;
-  padding:10px;
+#poster { width:200px; border-radius:10px; margin-bottom:15px; }
+#title { color:white; margin-bottom:10px; }
+
+.spinner {
+  width:60px;
+  animation:spin 1s linear infinite;
 }
+
+@keyframes spin { 100% { transform: rotate(360deg); } }
 
 #error {
   position:fixed;
@@ -54,60 +71,107 @@ body { margin:0; background:black; }
   background:#111;
   padding:10px;
   font-size:12px;
+  max-height:150px;
+  overflow:auto;
+}
+
+.art-setting-panel {
+  max-height:400px !important;
+  overflow-y:auto !important;
 }
 </style>
 </head>
 
 <body>
 
+<div id="loading">
+  <img id="poster">
+  <div id="title">Loading...</div>
+  <img class="spinner" src="https://assets.nflxext.com/en_us/pages/wiplayer/site-spinner.png">
+</div>
+
 <div id="player"></div>
 <div id="error"></div>
 
 <script>
 
-const apiUrl = "${apiUrl}";
+const proxyUrl = "${proxyUrl}";
 const errorBox = document.getElementById("error");
+
+// 🎬 TMDB LOADER
+async function loadTMDB() {
+  try {
+    const res = await fetch(
+      "https://api.themoviedb.org/3/find/${id}?api_key=${TMDB}&external_source=imdb_id"
+    );
+    const d = await res.json();
+    const item = d.tv_results?.[0] || d.movie_results?.[0];
+
+    if (item) {
+      poster.src = "https://image.tmdb.org/t/p/w500" + item.poster_path;
+      title.innerText = item.name || item.title;
+    }
+  } catch {}
+}
+
+// 🎥 FETCH STREAMS (PROXY)
+async function getStreams() {
+  const res = await fetch(proxyUrl);
+  const text = await res.text();
+
+  try {
+    return JSON.parse(text);
+  } catch {
+    throw new Error("Provider blocked / invalid JSON");
+  }
+}
+
+// 🎯 EXTRACT REAL URL (FIX FSL / PIXELDRAIN)
+async function resolveUrl(url) {
+  try {
+    const res = await fetch(url, { method: "HEAD" });
+    return res.url || url;
+  } catch {
+    return url;
+  }
+}
 
 async function init() {
   try {
 
-    const res = await fetch(apiUrl);
-    const text = await res.text();
+    await loadTMDB();
 
-    let data;
-    try {
-      data = JSON.parse(text);
-    } catch {
-      throw new Error("Series blocked OR wrong slug");
+    const data = await getStreams();
+
+    if (!data.streams) throw new Error("No streams");
+
+    let streams = data.streams.filter(s => s.url);
+
+    // 🔥 RESOLVE URLS
+    for (let s of streams) {
+      s.url = await resolveUrl(s.url);
     }
 
-    const streams = data.streams || [];
-
-    if (!streams.length) throw new Error("No streams");
-
-    // 🎯 CLEAN + FORMAT
+    // 🎬 FORMAT SOURCES
     const sources = streams.map((s,i)=>{
 
       let quality = "Auto";
-      if (s.name.includes("2160")) quality = "4K";
-      else if (s.name.includes("1080")) quality = "1080p";
-      else if (s.name.includes("720")) quality = "720p";
+      if (s.name?.includes("2160")) quality = "4K";
+      else if (s.name?.includes("1080")) quality = "1080p";
+      else if (s.name?.includes("720")) quality = "720p";
 
       let size = "";
-      const match = s.description?.match(/(\\d+\\.?\\d*\\s?GB)/i);
-      if (match) size = match[1];
-
-      let label = "Server";
-      if (s.name?.toLowerCase().includes("fsl")) label = "FSL";
-      else if (s.name?.toLowerCase().includes("hubcdn")) label = "HubCDN";
-      else if (s.url.includes(".m3u8")) label = "HLS";
+      const m = s.description?.match(/(\\d+\\.?\\d*\\s?GB)/i);
+      if (m) size = m[1];
 
       return {
-        html: label + " • " + quality + (size ? " • " + size : ""),
+        html: quality + (size ? " • " + size : ""),
         url: s.url,
         default: i === 0
       };
     });
+
+    document.getElementById("loading").remove();
 
     const art = new Artplayer({
       container: '#player',
@@ -115,17 +179,16 @@ async function init() {
       autoplay: true,
       fullscreen: true,
       setting: true,
-
-      // ✅ QUALITY SWITCH (PROPER)
+      playbackRate: true,
+      aspectRatio: true,
+      pip: true,
+      mutex: true,
       quality: sources,
 
-      // ✅ HLS SUPPORT
       customType: {
         m3u8: function(video, url) {
           if (Hls.isSupported()) {
-            const hls = new Hls({
-              maxBufferLength: 30
-            });
+            const hls = new Hls();
             hls.loadSource(url);
             hls.attachMedia(video);
           } else {
@@ -135,26 +198,16 @@ async function init() {
       }
     });
 
-    // 🔊 MAX AUDIO BOOST (REAL LIMIT)
+    // 🔊 MAX AUDIO BOOST
     art.on('ready', () => {
-
-      const video = art.video;
-
       const ctx = new AudioContext();
-      const source = ctx.createMediaElementSource(video);
-
+      const source = ctx.createMediaElementSource(art.video);
       const gain = ctx.createGain();
-      const compressor = ctx.createDynamicsCompressor();
 
-      gain.gain.value = 10.0; // 🔥 1000%
-
-      compressor.threshold.setValueAtTime(-50, ctx.currentTime);
-      compressor.knee.setValueAtTime(40, ctx.currentTime);
-      compressor.ratio.setValueAtTime(12, ctx.currentTime);
+      gain.gain.value = 8.0;
 
       source.connect(gain);
-      gain.connect(compressor);
-      compressor.connect(ctx.destination);
+      gain.connect(ctx.destination);
     });
 
   } catch (e) {
@@ -168,4 +221,4 @@ init();
 
 </body>
 </html>`);
-           }
+}
