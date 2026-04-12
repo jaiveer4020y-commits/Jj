@@ -1,236 +1,227 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+<meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Ultra Cloud Player</title>
-<script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+<title>Ultimate Player</title>
+
+<link rel="stylesheet" href="https://unpkg.com/artplayer/dist/artplayer.css">
 
 <style>
-body { margin:0; background:black; color:white; font-family:sans-serif; }
-
-video {
-  width:100%;
-  height:100vh;
-  object-fit:contain;
+body {
+  margin: 0;
+  background: #000;
+  color: #fff;
+  font-family: Arial;
 }
 
-.overlay {
-  position:absolute;
-  inset:0;
-  display:flex;
-  flex-direction:column;
-  justify-content:space-between;
-  pointer-events:none;
+#loading {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  background: #000;
+  z-index: 10;
 }
 
-.topbar, .bottombar {
-  background:linear-gradient(to bottom, rgba(0,0,0,0.7), transparent);
-  padding:10px;
-  pointer-events:auto;
+#loading img {
+  width: 150px;
+  border-radius: 10px;
+  margin-bottom: 10px;
 }
 
-.bottombar {
-  background:linear-gradient(to top, rgba(0,0,0,0.7), transparent);
-  display:flex;
-  justify-content:space-around;
+#sources {
+  position: fixed;
+  bottom: 0;
+  width: 100%;
+  max-height: 40%;
+  overflow-y: auto;
+  background: rgba(0,0,0,0.9);
+  display: none;
+  padding: 10px;
 }
 
-.panel {
-  position:fixed;
-  top:0;
-  width:70%;
-  height:100%;
-  background:#111;
-  overflow:auto;
-  transform:translateX(-100%);
-  transition:0.3s;
+.source {
+  padding: 10px;
+  border-bottom: 1px solid #333;
+  cursor: pointer;
 }
 
-.panel.right {
-  right:0;
-  left:auto;
-  transform:translateX(100%);
+#error {
+  color: red;
+  padding: 10px;
 }
-
-.panel.active {
-  transform:translateX(0);
-}
-
-.item {
-  padding:12px;
-  border-bottom:1px solid #333;
-}
-
-.seek {
-  position:absolute;
-  top:50%;
-  font-size:30px;
-  opacity:0;
-  transition:0.2s;
-}
-
-.seek.show { opacity:1; }
-
-.left { left:20px; }
-.right { right:20px; }
 </style>
 </head>
 
 <body>
 
-<video id="video"></video>
-
-<div class="overlay">
-  <div class="topbar" id="title">Loading...</div>
-
-  <div class="bottombar">
-    <button onclick="openPanel('sources')">Source</button>
-    <button onclick="openPanel('audio')">Tracks</button>
-    <button onclick="openPanel('subs')">Subs</button>
-  </div>
+<div id="loading">
+  <img id="poster">
+  <div id="title">Loading...</div>
 </div>
 
-<div id="sources" class="panel"></div>
-<div id="audio" class="panel right"></div>
-<div id="subs" class="panel right"></div>
+<div id="player"></div>
+<div id="sources"></div>
+<div id="error"></div>
 
-<div id="seekL" class="seek left">⏪ 10s</div>
-<div id="seekR" class="seek right">10s ⏩</div>
+<script src="https://unpkg.com/artplayer/dist/artplayer.js"></script>
 
 <script>
 
-// ===== CONFIG =====
-const BASE = "https://hdhub.thevolecitor.qzz.io/eyJ0b3Jib3giOiJ1bnNldCIsInF1YWxpdGllcyI6IjEwODBwLDcyMHAiLCJzb3J0IjoiZGVzYyJ9";
+const TMDB_API = "YOUR_TMDB_API_KEY";
 
-const path = location.pathname.split("/").filter(Boolean);
-const imdb = path[0] || "tt0944947";
-const season = path[1];
-const episode = path[2];
+const params = new URLSearchParams(location.search);
+const id = params.get("id");
+const season = params.get("s");
+const episode = params.get("e");
 
 const isSeries = season && episode;
 
-const api = isSeries
- ? `${BASE}/stream/series/${imdb}:${season}:${episode}.json`
- : `${BASE}/stream/movie/${imdb}.json`;
+const providerBase = "https://hdhub.thevolecitor.qzz.io/eyJ0b3Jib3giOiJ1bnNldCIsInF1YWxpdGllcyI6IjEwODBwLDcyMHAiLCJzb3J0IjoiZGVzYyJ9";
 
-const video = document.getElementById("video");
-
-let hls;
-
-// ===== LOAD =====
-async function load(){
-  const res = await fetch(api);
-  const txt = await res.text();
-
-  if(txt.startsWith("<")){
-    alert("Blocked / invalid JSON");
-    return;
+function buildUrl() {
+  if (isSeries) {
+    return `${providerBase}/stream/series/${id}:${season}:${episode}.json`;
+  } else {
+    return `${providerBase}/stream/movie/${id}/1/1.json`;
   }
-
-  const data = JSON.parse(txt);
-
-  const streams = data.streams.filter(s =>
-    s.name.includes("Castle") ||
-    s.name.includes("FSL") ||
-    s.name.includes("Pixel")
-  );
-
-  renderSources(streams);
-  play(streams[0].url);
 }
 
-// ===== PLAY =====
-function play(src){
-  if(hls) hls.destroy();
+async function fetchJSON(url) {
+  try {
+    const res = await fetch(url, {
+      headers: {
+        "accept": "application/json",
+        "origin": location.origin,
+      }
+    });
 
-  hls = new Hls();
-  hls.loadSource(src);
-  hls.attachMedia(video);
+    const text = await res.text();
 
-  hls.on(Hls.Events.MANIFEST_PARSED, ()=>{
-    video.play();
+    if (text.startsWith("<")) {
+      throw new Error("HTML RESPONSE (WRONG URL OR BLOCKED)");
+    }
 
-    // BOOST
-    const ctx = new AudioContext();
-    const source = ctx.createMediaElementSource(video);
-    const gain = ctx.createGain();
-    gain.gain.value = 5;
-    source.connect(gain).connect(ctx.destination);
+    return JSON.parse(text);
 
-    renderTracks();
+  } catch (e) {
+    document.getElementById("error").innerText = "ERROR:\n" + e;
+    throw e;
+  }
+}
+
+async function loadTMDB() {
+  try {
+    const res = await fetch(`https://api.themoviedb.org/3/find/${id}?api_key=${TMDB_API}&external_source=imdb_id`);
+    const data = await res.json();
+
+    const item = data.movie_results[0] || data.tv_results[0];
+
+    if (item) {
+      document.getElementById("poster").src = "https://image.tmdb.org/t/p/w500" + item.poster_path;
+      document.getElementById("title").innerText = item.title || item.name;
+    }
+
+  } catch {}
+}
+
+function parseStreams(data) {
+  let list = [];
+
+  (data.streams || []).forEach(s => {
+    if (!s.url) return;
+
+    // Allow only specific servers
+    if (!/fsl|fslv2|castle|hubcdn|pixeldrain/i.test(s.name)) return;
+
+    list.push({
+      name: s.name + " • " + (s.quality || ""),
+      url: s.url
+    });
   });
+
+  return list;
 }
 
-// ===== PANELS =====
-function openPanel(id){
-  document.querySelectorAll(".panel").forEach(p=>p.classList.remove("active"));
-  document.getElementById(id).classList.add("active");
+function createPlayer(url, sources) {
+
+  const art = new Artplayer({
+    container: "#player",
+    url: url,
+    autoplay: true,
+    fullscreen: true,
+    autoOrientation: true,
+
+    settings: [
+      {
+        html: "Sources",
+        click: function () {
+          toggleSources();
+        }
+      }
+    ]
+  });
+
+  // 🔊 500% BOOST
+  const ctx = new AudioContext();
+  const source = ctx.createMediaElementSource(art.video);
+  const gain = ctx.createGain();
+  gain.gain.value = 5;
+  source.connect(gain).connect(ctx.destination);
+
+  window.art = art;
 }
 
-// ===== SOURCES =====
-function renderSources(list){
+function renderSources(list) {
   const box = document.getElementById("sources");
-  box.innerHTML = "<h3>Sources</h3>";
+  box.innerHTML = "";
 
-  list.forEach(s=>{
+  list.forEach((s, i) => {
     const div = document.createElement("div");
-    div.className="item";
+    div.className = "source";
     div.innerText = s.name;
-    div.onclick = ()=> play(s.url);
+
+    div.onclick = () => {
+      art.switchUrl(s.url);
+      box.style.display = "none";
+    };
+
     box.appendChild(div);
   });
 }
 
-// ===== TRACKS =====
-function renderTracks(){
-  const a = document.getElementById("audio");
-  const s = document.getElementById("subs");
-
-  a.innerHTML = "<h3>Audio</h3>";
-  s.innerHTML = "<h3>Subs</h3>";
-
-  hls.audioTracks.forEach((t,i)=>{
-    let d=document.createElement("div");
-    d.className="item";
-    d.innerText=t.name;
-    d.onclick=()=>hls.audioTrack=i;
-    a.appendChild(d);
-  });
-
-  hls.subtitleTracks.forEach((t,i)=>{
-    let d=document.createElement("div");
-    d.className="item";
-    d.innerText=t.name;
-    d.onclick=()=>hls.subtitleTrack=i;
-    s.appendChild(d);
-  });
+function toggleSources() {
+  const box = document.getElementById("sources");
+  box.style.display = box.style.display === "block" ? "none" : "block";
 }
 
-// ===== DOUBLE TAP SEEK =====
-let lastTap = 0;
+async function init() {
 
-video.addEventListener("click", (e)=>{
-  const now = Date.now();
-  if(now - lastTap < 300){
-    if(e.clientX < window.innerWidth/2){
-      video.currentTime -= 10;
-      flash("seekL");
-    } else {
-      video.currentTime += 10;
-      flash("seekR");
-    }
+  await loadTMDB();
+
+  const url = buildUrl();
+
+  let data = await fetchJSON(url);
+
+  let streams = parseStreams(data);
+
+  if (!streams.length) {
+    document.getElementById("error").innerText = "No streams found";
+    return;
   }
-  lastTap = now;
-});
 
-function flash(id){
-  const el = document.getElementById(id);
-  el.classList.add("show");
-  setTimeout(()=>el.classList.remove("show"),500);
+  renderSources(streams);
+
+  createPlayer(streams[0].url, streams);
+
+  document.getElementById("loading").style.display = "none";
 }
 
-// ===== INIT =====
-load();
+init();
 
 </script>
 
