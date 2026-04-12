@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ultra Player</title>
+
+<link rel="stylesheet" href="https://unpkg.com/artplayer/dist/artplayer.css">
+
+<style>
+body {
+  margin:0;
+  background:#000;
+  font-family:sans-serif;
+  color:white;
+}
+
+#loading {
+  position:fixed;
+  inset:0;
+  background:#000;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  z-index:999;
+}
+
+#poster {
+  width:200px;
+  border-radius:10px;
+  margin-bottom:10px;
+}
+
+#player {
+  width:100%;
+  height:100vh;
+}
+
+.controls {
+  position:fixed;
+  bottom:0;
+  width:100%;
+  background:rgba(0,0,0,0.8);
+  display:flex;
+  overflow-x:auto;
+  gap:10px;
+  padding:10px;
+}
+
+.btn {
+  background:#222;
+  padding:10px;
+  border-radius:6px;
+  white-space:nowrap;
+}
+
+#error {
+  color:red;
+  padding:10px;
+}
+</style>
+</head>
+
+<body>
+
+<div id="loading">
+  <img id="poster">
+  <div id="title">Loading...</div>
+</div>
+
+<div id="player"></div>
+<div class="controls" id="sources"></div>
+<div id="error"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+<script src="https://unpkg.com/artplayer/dist/artplayer.js"></script>
+
+<script>
+
+// ================= CONFIG =================
+const TMDB_KEY = "81f645c3d9ced06a366b0d829d844cfe";
+const BASE = "https://hdhub.thevolecitor.qzz.io/eyJ0b3Jib3giOiJ1bnNldCIsInF1YWxpdGllcyI6IjEwODBwLDcyMHAiLCJzb3J0IjoiZGVzYyJ9";
+
+// ===== DETECT URL =====
+// Example:
+// /tt0944947  -> movie
+// /tt0944947/1/1 -> series
+
+const path = location.pathname.split("/").filter(Boolean);
+
+const imdb = path[0] || "tt0944947";
+const season = path[1];
+const episode = path[2];
+
+const isSeries = season && episode;
+
+// FIXED SLUG
+let apiUrl = isSeries
+  ? `${BASE}/stream/series/${imdb}:${season}:${episode}.json`
+  : `${BASE}/stream/movie/${imdb}.json`;
+
+console.log("API:", apiUrl);
+
+// ================= TMDB =================
+async function loadTMDB() {
+  try {
+    const res = await fetch(`https://api.themoviedb.org/3/find/${imdb}?api_key=${TMDB_KEY}&external_source=imdb_id`);
+    const data = await res.json();
+    const item = data.movie_results[0] || data.tv_results[0];
+
+    if(item){
+      document.getElementById("poster").src =
+        "https://image.tmdb.org/t/p/w500" + item.poster_path;
+
+      document.getElementById("title").innerText =
+        item.title || item.name;
+    }
+  } catch(e){}
+}
+
+// ================= FETCH STREAMS =================
+async function loadStreams() {
+  try {
+    const res = await fetch(apiUrl);
+
+    const text = await res.text();
+
+    if(text.startsWith("<")){
+      throw new Error("Invalid JSON (HTML returned)");
+    }
+
+    const data = JSON.parse(text);
+
+    let streams = data.streams || [];
+
+    // FILTER ONLY WORKING SERVERS
+    streams = streams.filter(s =>
+      s.url &&
+      (
+        s.name.includes("Castle") ||
+        s.name.includes("FSL") ||
+        s.name.includes("Pixel")
+      )
+    );
+
+    if(!streams.length){
+      throw new Error("No streams found");
+    }
+
+    createUI(streams);
+
+  } catch(err){
+    document.getElementById("error").innerText =
+      "❌ " + err.message;
+  }
+}
+
+// ================= PLAYER =================
+let art;
+let gainNode;
+
+function play(url) {
+
+  if(art) art.destroy();
+
+  art = new Artplayer({
+    container: "#player",
+    url: url,
+    autoplay: true,
+    fullscreen: true,
+    setting: true,
+    playbackRate: true,
+    aspectRatio: true,
+    screenshot: true,
+    airplay: true,
+    hotkey: true,
+    controls: [
+      {
+        name:"Next",
+        position:"right",
+        html:"Next ▶",
+        click:()=>alert("Next Episode Logic")
+      }
+    ],
+    customType: {
+      m3u8: function(video, url){
+        if(Hls.isSupported()){
+          const hls = new Hls();
+          hls.loadSource(url);
+          hls.attachMedia(video);
+
+          // AUDIO BOOST
+          hls.on(Hls.Events.MEDIA_ATTACHED, ()=>{
+            const ctx = new AudioContext();
+            const source = ctx.createMediaElementSource(video);
+            gainNode = ctx.createGain();
+            gainNode.gain.value = 5.0; // 500%
+            source.connect(gainNode).connect(ctx.destination);
+          });
+
+        } else {
+          video.src = url;
+        }
+      }
+    }
+  });
+
+  document.getElementById("loading").style.display="none";
+}
+
+// ================= UI =================
+function createUI(streams){
+
+  const box = document.getElementById("sources");
+  box.innerHTML = "";
+
+  streams.forEach((s,i)=>{
+    const btn = document.createElement("div");
+    btn.className = "btn";
+
+    btn.innerText = `${s.name}
+${(s.behaviorHints?.videoSize/1024/1024/1024 || 0).toFixed(2)}GB`;
+
+    btn.onclick = ()=> play(s.url);
+
+    box.appendChild(btn);
+
+    if(i===0) play(s.url);
+  });
+}
+
+// ================= INIT =================
+loadTMDB();
+loadStreams();
+
+</script>
+
+</body>
+</html>
