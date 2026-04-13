@@ -1,153 +1,107 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Ultimate Player</title>
-
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="stylesheet" href="https://unpkg.com/artplayer/dist/artplayer.css">
-
 <style>
-body {
-  margin: 0;
-  background: #000;
-  color: #fff;
-  font-family: Arial;
-}
-
-#loading {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  background: #000;
-  z-index: 10;
-}
-
-#loading img {
-  width: 150px;
-  border-radius: 10px;
-  margin-bottom: 10px;
-}
-
+body { margin:0; background:black; color:white; font-family:sans-serif; }
+#player { width:100vw; height:100vh; }
 #sources {
-  position: fixed;
-  bottom: 0;
-  width: 100%;
-  max-height: 40%;
-  overflow-y: auto;
-  background: rgba(0,0,0,0.9);
-  display: none;
-  padding: 10px;
+  position:fixed; bottom:0; width:100%;
+  max-height:40%; overflow:auto;
+  background:#111; display:none;
 }
-
-.source {
-  padding: 10px;
-  border-bottom: 1px solid #333;
-  cursor: pointer;
-}
-
-#error {
-  color: red;
-  padding: 10px;
-}
+.source { padding:12px; border-bottom:1px solid #333; }
 </style>
 </head>
 
 <body>
 
-<div id="loading">
-  <img id="poster">
-  <div id="title">Loading...</div>
-</div>
-
 <div id="player"></div>
 <div id="sources"></div>
-<div id="error"></div>
 
 <script src="https://unpkg.com/artplayer/dist/artplayer.js"></script>
 
 <script>
 
-const TMDB_API = "YOUR_TMDB_API_KEY";
+// ===== CONFIG =====
+const BASE = "https://hdhub.thevolecitor.qzz.io/eyJ0b3Jib3giOiJ1bnNldCIsInF1YWxpdGllcyI6IjEwODBwLDcyMHAiLCJzb3J0IjoiZGVzYyJ9";
 
-const params = new URLSearchParams(location.search);
-const id = params.get("id");
-const season = params.get("s");
-const episode = params.get("e");
+// ===== PARAMS =====
+const q = new URLSearchParams(location.search);
+const id = q.get("id");
+const s = q.get("s");
+const e = q.get("e");
 
-const isSeries = season && episode;
+const isSeries = s && e;
 
-const providerBase = "https://hdhub.thevolecitor.qzz.io/eyJ0b3Jib3giOiJ1bnNldCIsInF1YWxpdGllcyI6IjEwODBwLDcyMHAiLCJzb3J0IjoiZGVzYyJ9";
-
-function buildUrl() {
+// ===== BUILD URL (FIXED OLD ENDPOINT) =====
+function getUrl() {
   if (isSeries) {
-    return `${providerBase}/stream/series/${id}:${season}:${episode}.json`;
+    return `${BASE}/stream/series/${id}:${s}:${e}.json`;
   } else {
-    return `${providerBase}/stream/movie/${id}/1/1.json`;
+    return `${BASE}/stream/movie/${id}/1/1.json`;
   }
 }
 
-async function fetchJSON(url) {
+// ===== FETCH SAFE =====
+async function fetchData(url) {
   try {
-    const res = await fetch(url, {
-      headers: {
-        "accept": "application/json",
-        "origin": location.origin,
-      }
-    });
-
+    const res = await fetch("https://api.allorigins.win/raw?url=" + encodeURIComponent(url));
     const text = await res.text();
 
-    if (text.startsWith("<")) {
-      throw new Error("HTML RESPONSE (WRONG URL OR BLOCKED)");
-    }
+    if (text.startsWith("<")) throw "Blocked HTML";
 
     return JSON.parse(text);
 
-  } catch (e) {
-    document.getElementById("error").innerText = "ERROR:\n" + e;
-    throw e;
+  } catch (err) {
+    alert("Fetch Error:\n" + err);
+    throw err;
   }
 }
 
-async function loadTMDB() {
-  try {
-    const res = await fetch(`https://api.themoviedb.org/3/find/${id}?api_key=${TMDB_API}&external_source=imdb_id`);
-    const data = await res.json();
-
-    const item = data.movie_results[0] || data.tv_results[0];
-
-    if (item) {
-      document.getElementById("poster").src = "https://image.tmdb.org/t/p/w500" + item.poster_path;
-      document.getElementById("title").innerText = item.title || item.name;
-    }
-
-  } catch {}
+// ===== PIXELDRAIN FIX =====
+function fixPixeldrain(url) {
+  if (url.includes("pixeldrain.com/u/")) {
+    const id = url.split("/u/")[1];
+    return `https://pixeldrain.com/api/file/${id}?download`;
+  }
+  return url;
 }
 
+// ===== FILTER + SORT =====
 function parseStreams(data) {
-  let list = [];
+  let out = [];
 
   (data.streams || []).forEach(s => {
-    if (!s.url) return;
 
-    // Allow only specific servers
-    if (!/fsl|fslv2|castle|hubcdn|pixeldrain/i.test(s.name)) return;
+    let name = (s.name || "").toLowerCase();
 
-    list.push({
-      name: s.name + " • " + (s.quality || ""),
-      url: s.url
-    });
+    if (
+      name.includes("fsl") ||
+      name.includes("castle") ||
+      name.includes("pixeldrain")
+    ) {
+
+      let url = s.url;
+
+      // fix pixeldrain
+      if (url.includes("pixeldrain")) {
+        url = fixPixeldrain(url);
+      }
+
+      out.push({
+        name: s.name,
+        url: url
+      });
+    }
   });
 
-  return list;
+  return out;
 }
 
-function createPlayer(url, sources) {
+// ===== PLAYER =====
+function createPlayer(url) {
 
   const art = new Artplayer({
     container: "#player",
@@ -155,32 +109,31 @@ function createPlayer(url, sources) {
     autoplay: true,
     fullscreen: true,
     autoOrientation: true,
-
-    settings: [
+    controls: [
       {
-        html: "Sources",
-        click: function () {
-          toggleSources();
-        }
+        position: "right",
+        html: "Source",
+        click: () => toggleSources()
       }
     ]
   });
 
-  // 🔊 500% BOOST
+  // 🔊 BOOST
   const ctx = new AudioContext();
-  const source = ctx.createMediaElementSource(art.video);
+  const src = ctx.createMediaElementSource(art.video);
   const gain = ctx.createGain();
-  gain.gain.value = 5;
-  source.connect(gain).connect(ctx.destination);
+  gain.gain.value = 4;
+  src.connect(gain).connect(ctx.destination);
 
   window.art = art;
 }
 
-function renderSources(list) {
+// ===== SOURCE UI =====
+function showSources(list) {
   const box = document.getElementById("sources");
   box.innerHTML = "";
 
-  list.forEach((s, i) => {
+  list.forEach(s => {
     const div = document.createElement("div");
     div.className = "source";
     div.innerText = s.name;
@@ -199,29 +152,21 @@ function toggleSources() {
   box.style.display = box.style.display === "block" ? "none" : "block";
 }
 
-async function init() {
+// ===== INIT =====
+(async () => {
 
-  await loadTMDB();
-
-  const url = buildUrl();
-
-  let data = await fetchJSON(url);
-
-  let streams = parseStreams(data);
+  const data = await fetchData(getUrl());
+  const streams = parseStreams(data);
 
   if (!streams.length) {
-    document.getElementById("error").innerText = "No streams found";
+    alert("No working servers found");
     return;
   }
 
-  renderSources(streams);
+  createPlayer(streams[0].url);
+  showSources(streams);
 
-  createPlayer(streams[0].url, streams);
-
-  document.getElementById("loading").style.display = "none";
-}
-
-init();
+})();
 
 </script>
 
