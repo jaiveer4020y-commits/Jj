@@ -1,30 +1,82 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ultimate Cloud Player</title>
+
 <link rel="stylesheet" href="https://unpkg.com/artplayer/dist/artplayer.css">
+
 <style>
-body { margin:0; background:black; color:white; font-family:sans-serif; }
+body { margin:0; background:#000; color:#fff; font-family:sans-serif; }
+
 #player { width:100vw; height:100vh; }
-#sources {
-  position:fixed; bottom:0; width:100%;
-  max-height:40%; overflow:auto;
-  background:#111; display:none;
+
+#loading {
+  position:fixed;
+  inset:0;
+  background:#000;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  z-index:10;
 }
-.source { padding:12px; border-bottom:1px solid #333; }
+
+#loading img {
+  width:160px;
+  border-radius:12px;
+  margin-bottom:10px;
+}
+
+#sources {
+  position:fixed;
+  bottom:0;
+  width:100%;
+  max-height:45%;
+  overflow:auto;
+  background:#111;
+  display:none;
+}
+
+.source {
+  padding:12px;
+  border-bottom:1px solid #333;
+  font-size:14px;
+}
+
+#error {
+  position:fixed;
+  top:0;
+  left:0;
+  right:0;
+  background:#200;
+  color:#fff;
+  padding:10px;
+  font-size:12px;
+  white-space:pre-wrap;
+}
 </style>
 </head>
 
 <body>
 
+<div id="loading">
+  <img id="poster">
+  <div id="title">Loading...</div>
+</div>
+
 <div id="player"></div>
 <div id="sources"></div>
+<div id="error"></div>
 
 <script src="https://unpkg.com/artplayer/dist/artplayer.js"></script>
 
 <script>
 
 // ===== CONFIG =====
+const TMDB = "81f645c3d9ced06a366b0d829d844cfe";
+
 const BASE = "https://hdhub.thevolecitor.qzz.io/eyJ0b3Jib3giOiJ1bnNldCIsInF1YWxpdGllcyI6IjEwODBwLDcyMHAiLCJzb3J0IjoiZGVzYyJ9";
 
 // ===== PARAMS =====
@@ -35,69 +87,91 @@ const e = q.get("e");
 
 const isSeries = s && e;
 
-// ===== BUILD URL (FIXED OLD ENDPOINT) =====
-function getUrl() {
-  if (isSeries) {
-    return `${BASE}/stream/series/${id}:${s}:${e}.json`;
-  } else {
-    return `${BASE}/stream/movie/${id}/1/1.json`;
-  }
+// ===== BUILD URL =====
+function buildUrl() {
+  return isSeries
+    ? `${BASE}/stream/series/${id}:${s}:${e}.json`
+    : `${BASE}/stream/movie/${id}/1/1.json`;
 }
 
 // ===== FETCH SAFE =====
-async function fetchData(url) {
+async function fetchJSON(url) {
   try {
     const res = await fetch("https://api.allorigins.win/raw?url=" + encodeURIComponent(url));
     const text = await res.text();
 
-    if (text.startsWith("<")) throw "Blocked HTML";
+    if (text.startsWith("<")) throw "Invalid HTML response";
 
     return JSON.parse(text);
 
   } catch (err) {
-    alert("Fetch Error:\n" + err);
+    showError("FETCH ERROR:\n" + err + "\n\nURL:\n" + url);
     throw err;
   }
 }
 
+// ===== ERROR UI =====
+function showError(msg) {
+  document.getElementById("error").innerText = msg;
+}
+
+// ===== TMDB LOADING =====
+async function loadTMDB() {
+  try {
+    const res = await fetch(`https://api.themoviedb.org/3/find/${id}?api_key=${TMDB}&external_source=imdb_id`);
+    const data = await res.json();
+
+    const item = data.movie_results[0] || data.tv_results[0];
+
+    if (item) {
+      document.getElementById("poster").src =
+        "https://image.tmdb.org/t/p/w500" + item.poster_path;
+      document.getElementById("title").innerText =
+        item.title || item.name;
+    }
+  } catch {}
+}
+
 // ===== PIXELDRAIN FIX =====
 function fixPixeldrain(url) {
-  if (url.includes("pixeldrain.com/u/")) {
+  if (url.includes("/u/")) {
     const id = url.split("/u/")[1];
     return `https://pixeldrain.com/api/file/${id}?download`;
   }
   return url;
 }
 
-// ===== FILTER + SORT =====
+// ===== PRIORITY PARSER =====
 function parseStreams(data) {
-  let out = [];
+
+  let fsl = [];
+  let pixel = [];
+  let castle = [];
 
   (data.streams || []).forEach(s => {
 
-    let name = (s.name || "").toLowerCase();
+    if (!s.url) return;
 
-    if (
-      name.includes("fsl") ||
-      name.includes("castle") ||
-      name.includes("pixeldrain")
-    ) {
+    const name = (s.name || "").toLowerCase();
 
-      let url = s.url;
+    if (name.includes("fsl")) {
+      fsl.push({ name: s.name, url: s.url });
+    }
 
-      // fix pixeldrain
-      if (url.includes("pixeldrain")) {
-        url = fixPixeldrain(url);
-      }
+    else if (name.includes("pixeldrain")) {
+      pixel.push({ name: s.name, url: fixPixeldrain(s.url) });
+    }
 
-      out.push({
-        name: s.name,
-        url: url
-      });
+    else if (name.includes("castle")) {
+      castle.push({ name: s.name, url: s.url });
     }
   });
 
-  return out;
+  if (fsl.length) return fsl;
+  if (pixel.length) return pixel;
+  if (castle.length) return castle;
+
+  return [];
 }
 
 // ===== PLAYER =====
@@ -109,10 +183,10 @@ function createPlayer(url) {
     autoplay: true,
     fullscreen: true,
     autoOrientation: true,
-    controls: [
+
+    settings: [
       {
-        position: "right",
-        html: "Source",
+        html: "Sources",
         click: () => toggleSources()
       }
     ]
@@ -122,14 +196,14 @@ function createPlayer(url) {
   const ctx = new AudioContext();
   const src = ctx.createMediaElementSource(art.video);
   const gain = ctx.createGain();
-  gain.gain.value = 4;
+  gain.gain.value = 5;
   src.connect(gain).connect(ctx.destination);
 
   window.art = art;
 }
 
 // ===== SOURCE UI =====
-function showSources(list) {
+function renderSources(list) {
   const box = document.getElementById("sources");
   box.innerHTML = "";
 
@@ -155,16 +229,29 @@ function toggleSources() {
 // ===== INIT =====
 (async () => {
 
-  const data = await fetchData(getUrl());
-  const streams = parseStreams(data);
-
-  if (!streams.length) {
-    alert("No working servers found");
+  if (!id) {
+    showError("Missing ID. Use ?id=ttxxxx");
     return;
   }
 
-  createPlayer(streams[0].url);
-  showSources(streams);
+  await loadTMDB();
+
+  const data = await fetchJSON(buildUrl());
+
+  const streams = parseStreams(data);
+
+  if (!streams.length) {
+    showError("No streams available");
+    return;
+  }
+
+  // 🎯 AUTO BEST QUALITY
+  const best = streams.find(s => /1080/i.test(s.name)) || streams[0];
+
+  renderSources(streams);
+  createPlayer(best.url);
+
+  document.getElementById("loading").style.display = "none";
 
 })();
 
