@@ -1,234 +1,288 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Cloud Player</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ultimate Cloud Player</title>
 
-<link rel="stylesheet" href="https://unpkg.com/artplayer/dist/artplayer.css">
+    <link rel="stylesheet" href="https://unpkg.com/artplayer/dist/artplayer.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
 
-<style>
-/* Videasy Inspired Dark Theme */
-body { margin:0; background:#050505; color:#fff; font-family: 'Inter', sans-serif; overflow: hidden; }
+    <style>
+        /* Videasy-Inspired Dark Theme */
+        body, html { 
+            margin: 0; 
+            padding: 0; 
+            width: 100%; 
+            height: 100%; 
+            background: #000; 
+            color: #fff; 
+            font-family: 'Inter', sans-serif; 
+            overflow: hidden; 
+        }
 
-#player { width:100vw; height:100vh; }
+        #player { width: 100vw; height: 100vh; background: #000; }
 
-/* Pulse Loading Screen */
-#loading {
-  position:fixed;
-  inset:0;
-  background: radial-gradient(circle at center, #1a1a1a 0%, #000 100%);
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  justify-content:center;
-  z-index:100;
-  transition: opacity 0.5s ease;
-}
+        /* Fullscreen Pulse Loading Screen */
+        #loading {
+            position: fixed;
+            inset: 0;
+            background: radial-gradient(circle at center, #111 0%, #000 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 999;
+            transition: opacity 0.6s ease-in-out;
+        }
 
-.loader-content { text-align: center; }
+        .loader-content { text-align: center; }
 
-#poster {
-  width: 180px;
-  height: 270px;
-  object-fit: cover;
-  border-radius: 15px;
-  box-shadow: 0 0 30px rgba(0,0,0,0.5);
-  margin-bottom: 20px;
-  border: 1px solid #333;
-  animation: pulse 2s infinite ease-in-out;
-}
+        #poster {
+            width: 200px;
+            height: 300px;
+            object-fit: cover;
+            border-radius: 12px;
+            border: 1px solid #333;
+            box-shadow: 0 0 50px rgba(0,0,0,0.8);
+            margin-bottom: 20px;
+            animation: pulse 2s infinite ease-in-out;
+            background: #222; /* Placeholder color */
+        }
 
-@keyframes pulse {
-  0% { transform: scale(1); opacity: 0.8; box-shadow: 0 0 10px rgba(255,255,255,0.1); }
-  50% { transform: scale(1.03); opacity: 1; box-shadow: 0 0 30px rgba(255,255,255,0.2); }
-  100% { transform: scale(1); opacity: 0.8; box-shadow: 0 0 10px rgba(255,255,255,0.1); }
-}
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 0.7; box-shadow: 0 0 10px rgba(255,255,255,0.05); }
+            50% { transform: scale(1.05); opacity: 1; box-shadow: 0 0 30px rgba(255,255,255,0.2); }
+            100% { transform: scale(1); opacity: 0.7; box-shadow: 0 0 10px rgba(255,255,255,0.05); }
+        }
 
-#title { font-weight: bold; font-size: 1.2rem; letter-spacing: 1px; color: #eee; }
+        #loading-text {
+            font-size: 14px;
+            font-weight: 700;
+            letter-spacing: 3px;
+            color: #aaa;
+            text-transform: uppercase;
+        }
 
-/* Source Menu */
-#sources {
-  position:fixed;
-  top: 50%; left: 50%;
-  transform: translate(-50%, -50%);
-  width: 90%; max-width: 400px;
-  background: rgba(20, 20, 20, 0.95);
-  backdrop-filter: blur(10px);
-  border-radius: 12px;
-  border: 1px solid #444;
-  display:none;
-  z-index: 200;
-}
+        /* Source Selector Overlay */
+        #sources {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 85%;
+            max-width: 450px;
+            background: rgba(15, 15, 15, 0.98);
+            border: 1px solid #444;
+            border-radius: 16px;
+            display: none;
+            z-index: 1000;
+            max-height: 70vh;
+            overflow-y: auto;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.8);
+        }
 
-.source {
-  padding: 15px;
-  border-bottom: 1px solid #333;
-  cursor: pointer;
-  text-align: center;
-  transition: background 0.3s;
-}
-.source:hover { background: #333; }
-.source:last-child { border: none; }
+        .source-item {
+            padding: 18px;
+            border-bottom: 1px solid #222;
+            cursor: pointer;
+            text-align: center;
+            font-size: 15px;
+            transition: all 0.2s;
+        }
 
-#error {
-  position:fixed;
-  bottom: 20px; left: 50%;
-  transform: translateX(-50%);
-  background: rgba(255, 0, 0, 0.8);
-  padding: 10px 20px;
-  border-radius: 5px;
-  display: none;
-  z-index: 300;
-}
-</style>
+        .source-item:hover { background: #222; color: #3498db; }
+        .source-item:last-child { border: none; }
+
+        /* Error Toast */
+        #error-overlay {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #e74c3c;
+            color: white;
+            padding: 12px 25px;
+            border-radius: 30px;
+            font-size: 13px;
+            font-weight: bold;
+            display: none;
+            z-index: 1001;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+        }
+    </style>
 </head>
 <body>
 
 <div id="loading">
-  <div class="loader-content">
-    <img id="poster" src="https://via.placeholder.com/180x270?text=Loading...">
-    <div id="title">PREPARING STREAM</div>
-  </div>
+    <div class="loader-content">
+        <img id="poster" src="" alt="">
+        <div id="loading-text">Synchronizing Stream...</div>
+    </div>
 </div>
 
 <div id="player"></div>
 <div id="sources"></div>
-<div id="error"></div>
+<div id="error-overlay"></div>
 
 <script src="https://unpkg.com/artplayer/dist/artplayer.js"></script>
 
 <script>
-// ===== CONFIG =====
+// ===== 1. SETTINGS =====
 const TMDB_KEY = "81f645c3d9ced06a366b0d829d844cfe";
 const BASE_API = "https://hdhub.thevolecitor.qzz.io/eyJ0b3Jib3giOiJ1bnNldCIsInF1YWxpdGllcyI6IjEwODBwLDcyMHAiLCJzb3J0IjoiZGVzYyJ9/stream";
 
-// ===== PARAMS & DETECTION =====
-const q = new URLSearchParams(location.search);
-const id = q.get("id"); // e.g. tt12345
-const s = q.get("s");
-const e = q.get("e");
+// ===== 2. URL DETECTION (PATH + QUERY) =====
+// Handles: /tt123456 or /tt123456/1/1
+const pathParts = window.location.pathname.split('/').filter(p => p);
+const params = new URLSearchParams(location.search);
 
-// Detection Logic: If 's' exists, it's a series.
-const isSeries = !!s;
+const id = pathParts[0] || params.get("id"); 
+const s = pathParts[1] || params.get("s");
+const e = pathParts[2] || params.get("e");
 
-// ===== BUILD ENDPOINT =====
-function buildUrl() {
-  if (isSeries) {
-    // Endpoint: /series/id:s:e.json
-    return `${BASE_API}/series/${id}:${s}:${e}.json`;
-  } else {
-    // Endpoint: /movie/id.json (Updated as requested)
-    return `${BASE_API}/movie/${id}.json`;
-  }
-}
+const isSeries = !!(s && e);
 
-async function fetchJSON(url) {
-  try {
-    const res = await fetch("https://api.allorigins.win/raw?url=" + encodeURIComponent(url));
-    if (!res.ok) throw "Network error";
-    return await res.json();
-  } catch (err) {
-    document.getElementById("error").innerText = "Failed to fetch stream. Check console.";
-    document.getElementById("error").style.display = "block";
-    console.error(err);
-  }
-}
-
-async function loadTMDB() {
-  try {
-    const type = isSeries ? 'tv' : 'movie';
-    const res = await fetch(`https://api.themoviedb.org/3/find/${id}?api_key=${TMDB_KEY}&external_source=imdb_id`);
-    const data = await res.json();
-    const item = data.movie_results[0] || data.tv_results[0];
-
-    if (item) {
-      document.getElementById("poster").src = `https://image.tmdb.org/t/p/w500${item.poster_path}`;
-      document.getElementById("title").innerText = (item.title || item.name).toUpperCase();
+// ===== 3. BUILD API ENDPOINT =====
+function buildApiUrl() {
+    if (isSeries) {
+        // Series Endpoint: .../stream/series/tt1234:1:1.json
+        return `${BASE_API}/series/${id}:${s}:${e}.json`;
+    } else {
+        // Movie Endpoint: .../stream/movie/tt1234.json
+        return `${BASE_API}/movie/${id}.json`;
     }
-  } catch (e) { console.log("TMDB Load Fail"); }
 }
 
-function parseStreams(data) {
-  if (!data || !data.streams) return [];
-  // Filtering for specific providers as per your original code
-  return data.streams.filter(st => {
-    const n = st.name.toLowerCase();
-    return n.includes("fsl") || n.includes("pixeldrain") || n.includes("castle");
-  }).map(st => {
-    if (st.name.toLowerCase().includes("pixeldrain") && st.url.includes("/u/")) {
-        st.url = `https://pixeldrain.com/api/file/${st.url.split("/u/")[1]}?download`;
+// ===== 4. CORE FUNCTIONS =====
+async function fetchSource(url) {
+    try {
+        const res = await fetch("https://api.allorigins.win/raw?url=" + encodeURIComponent(url));
+        if (!res.ok) throw "Server connection failed";
+        const data = await res.json();
+        return data.streams || [];
+    } catch (err) {
+        console.error(err);
+        showError("STREAM FETCH FAILED");
+        return [];
     }
-    return st;
-  });
 }
 
-function createPlayer(url) {
-  const art = new Artplayer({
-    container: "#player",
-    url: url,
-    autoplay: true,
-    fullscreen: true,
-    setting: true,
-    pip: true,
-    controls: [
-        {
-            position: 'right',
-            html: 'SOURCES',
-            click: () => {
-                const box = document.getElementById("sources");
-                box.style.display = box.style.display === "block" ? "none" : "block";
-            }
+async function loadMetadata() {
+    if (!id) return;
+    try {
+        const res = await fetch(`https://api.themoviedb.org/3/find/${id}?api_key=${TMDB_KEY}&external_source=imdb_id`);
+        const data = await res.json();
+        const item = data.movie_results[0] || data.tv_results[0];
+        if (item) {
+            document.getElementById("poster").src = `https://image.tmdb.org/t/p/w500${item.poster_path}`;
+            document.getElementById("loading-text").innerText = (item.title || item.name);
         }
-    ]
-  });
-
-  // Audio Boost
-  const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  const source = audioCtx.createMediaElementSource(art.video);
-  const gainNode = audioCtx.createGain();
-  gainNode.gain.value = 2.5; 
-  source.connect(gainNode);
-  gainNode.connect(audioCtx.destination);
-
-  window.art = art;
+    } catch (err) { console.warn("TMDB metadata failed to load."); }
 }
 
-(async () => {
-  if (!id) return alert("No ID provided");
-  
-  await loadTMDB();
-  const data = await fetchJSON(buildUrl());
-  const streams = parseStreams(data);
+function showError(msg) {
+    const err = document.getElementById("error-overlay");
+    err.innerText = msg;
+    err.style.display = "block";
+}
 
-  if (streams.length > 0) {
-    const best = streams.find(st => st.name.includes("1080")) || streams[0];
-    
-    // UI Source List
-    const box = document.getElementById("sources");
-    streams.forEach(st => {
-        const d = document.createElement("div");
-        d.className = "source";
-        d.innerText = st.name;
-        d.onclick = () => {
-            art.switchUrl(st.url);
-            box.style.display = "none";
-        };
-        box.appendChild(d);
+// ===== 5. INITIALIZE =====
+(async () => {
+    if (!id) {
+        showError("ERROR: NO IMDB ID FOUND IN URL");
+        document.getElementById("loading-text").innerText = "INVALID URL";
+        return;
+    }
+
+    // Start TMDB load and API load in parallel
+    const [meta, rawStreams] = await Promise.all([
+        loadMetadata(),
+        fetchSource(buildApiUrl())
+    ]);
+
+    // Parse and Filter Streams
+    const filteredStreams = rawStreams.map(st => {
+        let finalUrl = st.url;
+        // Fix Pixeldrain
+        if (st.name.toLowerCase().includes("pixeldrain") && finalUrl.includes("/u/")) {
+            const pxId = finalUrl.split("/u/")[1];
+            finalUrl = `https://pixeldrain.com/api/file/${pxId}?download`;
+        }
+        return { name: st.name, url: finalUrl };
+    }).filter(st => {
+        const n = st.name.toLowerCase();
+        return n.includes("fsl") || n.includes("pixeldrain") || n.includes("castle");
     });
 
-    createPlayer(best.url);
-    
-    // Hide loader after a small delay for smooth feel
-    setTimeout(() => {
-        document.getElementById("loading").style.opacity = "0";
-        setTimeout(() => document.getElementById("loading").style.display = "none", 500);
-    }, 1000);
+    if (filteredStreams.length === 0) {
+        showError("NO WORKING STREAMS FOUND");
+        document.getElementById("loading-text").innerText = "CONTENT UNAVAILABLE";
+        return;
+    }
 
-  } else {
-    document.getElementById("title").innerText = "NO STREAMS FOUND";
-  }
+    // Select Best Quality (1080p)
+    const best = filteredStreams.find(s => s.name.includes("1080")) || filteredStreams[0];
+
+    // Setup Source UI
+    const sourceBox = document.getElementById("sources");
+    filteredStreams.forEach(st => {
+        const el = document.createElement("div");
+        el.className = "source-item";
+        el.innerText = st.name;
+        el.onclick = () => {
+            window.art.switchUrl(st.url);
+            sourceBox.style.display = "none";
+        };
+        sourceBox.appendChild(el);
+    });
+
+    // Create Artplayer
+    const art = new Artplayer({
+        container: "#player",
+        url: best.url,
+        autoplay: true,
+        fullscreen: true,
+        setting: true,
+        hotkey: true,
+        pip: true,
+        controls: [
+            {
+                position: 'right',
+                html: '<span style="background:#3498db; padding: 4px 8px; border-radius: 4px; font-size:12px;">SOURCES</span>',
+                click: () => {
+                    sourceBox.style.display = sourceBox.style.display === "block" ? "none" : "block";
+                }
+            }
+        ]
+    });
+
+    window.art = art;
+
+    // Audio Boost (5x Gain)
+    art.on('ready', () => {
+        try {
+            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const source = audioCtx.createMediaElementSource(art.video);
+            const gainNode = audioCtx.createGain();
+            gainNode.gain.value = 5; 
+            source.connect(gainNode).connect(audioCtx.destination);
+            
+            // Resume context if browser suspended it
+            art.video.addEventListener('play', () => {
+                if (audioCtx.state === 'suspended') audioCtx.resume();
+            }, { once: true });
+        } catch(e) { console.log("Audio Context blocked"); }
+
+        // Hide Loading Screen
+        setTimeout(() => {
+            document.getElementById("loading").style.opacity = "0";
+            setTimeout(() => document.getElementById("loading").style.display = "none", 600);
+        }, 800);
+    });
+
 })();
 </script>
+
 </body>
 </html>
