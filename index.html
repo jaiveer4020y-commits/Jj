@@ -3,27 +3,26 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Cloud Player Max - Landscape</title>
+    <title>Ultimate Responsive Player</title>
     
     <link rel="stylesheet" href="https://unpkg.com/artplayer/dist/artplayer.css">
     
     <style>
-        :root { --accent: #3498db; }
-        body, html { margin: 0; padding: 0; width: 100%; height: 100%; background: #000; color: #fff; font-family: sans-serif; overflow: hidden; }
+        :root { --accent: #3498db; --error: #e74c3c; }
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; background: #000; color: #fff; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; overflow: hidden; }
 
         /* --- LANDSCAPE ENFORCEMENT --- */
         #rotate-notice {
-            position: fixed; inset: 0; background: #000; z-index: 10000;
+            position: fixed; inset: 0; background: #0b0b0b; z-index: 10000;
             display: none; flex-direction: column; align-items: center; justify-content: center;
             text-align: center; padding: 20px;
         }
         
-        /* Rotating Phone Animation */
         .phone-icon {
-            width: 60px; height: 100px; border: 3px solid #fff; border-radius: 10px;
+            width: 50px; height: 90px; border: 3px solid #fff; border-radius: 8px;
             position: relative; animation: rotatePhone 2s infinite ease-in-out; margin-bottom: 20px;
         }
-        .phone-icon::after { content: ''; position: absolute; bottom: 5px; left: 50%; transform: translateX(-50%); width: 10px; height: 10px; border: 2px solid #fff; border-radius: 50%; }
+        .phone-icon::after { content: ''; position: absolute; bottom: 5px; left: 50%; transform: translateX(-50%); width: 8px; height: 8px; border: 2px solid #fff; border-radius: 50%; }
 
         @keyframes rotatePhone {
             0% { transform: rotate(0deg); }
@@ -31,136 +30,156 @@
             100% { transform: rotate(0deg); }
         }
 
-        /* Show notice only in portrait */
         @media screen and (orientation: portrait) {
             #rotate-notice { display: flex; }
         }
 
-        /* --- VIDEASY LOADING SCREEN --- */
+        /* --- VIDEASY LOADER & OVERLAYS --- */
         #loader {
-            position: fixed; inset: 0; background: radial-gradient(circle, #1a1a1a 0%, #000 100%);
+            position: fixed; inset: 0; background: radial-gradient(circle at center, #1a1a1a 0%, #000 100%);
             z-index: 999; display: flex; flex-direction: column; align-items: center; justify-content: center;
             transition: opacity 0.5s ease;
         }
+        
         #poster { 
-            width: 180px; height: 260px; border-radius: 15px; border: 1px solid #333; 
-            margin-bottom: 25px; animation: pulse 2s infinite ease-in-out; object-fit: cover;
+            width: 40vw; max-width: 200px; aspect-ratio: 2/3; border-radius: 12px; 
+            border: 1px solid #333; margin-bottom: 20px; object-fit: cover;
+            box-shadow: 0 0 30px rgba(0,0,0,0.5); background: #222;
         }
-        @keyframes pulse { 0%, 100% { transform: scale(1); opacity: 0.7; } 50% { transform: scale(1.05); opacity: 1; } }
-        
-        #status { font-size: 14px; letter-spacing: 3px; color: var(--accent); font-weight: bold; }
 
-        /* --- PLAYER UI --- */
-        #player { width: 100vw; height: 100vh; }
-        
+        #status { font-size: 12px; letter-spacing: 2px; color: var(--accent); font-weight: bold; text-transform: uppercase; }
+
         #error-ui {
-            position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
-            background: rgba(255,0,0,0.8); padding: 10px 20px; border-radius: 5px;
-            display: none; z-index: 1001; font-weight: bold;
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            width: 80%; max-width: 400px; background: #1a1a1a; border: 1px solid var(--error);
+            padding: 20px; border-radius: 15px; text-align: center; display: none; z-index: 1001;
         }
+
+        /* --- PLAYER AREA --- */
+        #player { width: 100%; height: 100%; }
+
+        /* Mobile Adjustments for Artplayer */
+        .art-video-player { font-size: 14px; }
     </style>
 </head>
 <body>
 
     <div id="rotate-notice">
         <div class="phone-icon"></div>
-        <h2>PLEASE ROTATE DEVICE</h2>
-        <p>Landscape mode is required for the best experience.</p>
+        <h2 style="font-size: 1.2rem;">ROTATE FOR CINEMA MODE</h2>
     </div>
 
     <div id="loader">
         <img id="poster" src="" alt="">
-        <div id="status">SYNCING SERVERS...</div>
+        <div id="status">Linking to Server...</div>
     </div>
 
-    <div id="error-ui">NO PLAYABLE STREAMS FOUND</div>
+    <div id="error-ui">
+        <h3 style="color:var(--error); margin-top:0;">STREAM UNAVAILABLE</h3>
+        <p id="error-desc" style="font-size: 0.9rem; color:#ccc;">Could not find a working stream for this ID.</p>
+        <button onclick="location.reload()" style="background:var(--accent); color:white; border:none; padding:10px 20px; border-radius:8px; width:100%;">RETRY CONNECTION</button>
+    </div>
+
     <div id="player"></div>
 
     <script src="https://unpkg.com/artplayer/dist/artplayer.js"></script>
 
     <script>
+        // --- 1. CONFIG ---
         const TMDB_KEY = "81f645c3d9ced06a366b0d829d844cfe";
-        const BASE_API = "https://hdhub.thevolecitor.qzz.io/eyJ0b3Jib3giOiJ1bnNldCIsInF1YWxpdGllcyI6IjEwODBwLDcyMHAiLCJzb3J0IjoiZGVzYyJ9/stream";
+        const API_BASE = "https://hdhub.thevolecitor.qzz.io/eyJ0b3Jib3giOiJ1bnNldCIsInF1YWxpdGllcyI6IjEwODBwLDcyMHAiLCJzb3J0IjoiZGVzYyJ9/stream";
 
-        // --- URL PARSING ---
-        const path = window.location.pathname;
-        const search = new URLSearchParams(window.location.search);
-        
-        const id = (path.match(/tt\d+/) || [search.get("id")])[0];
-        const pathNums = path.split('/').filter(s => s && !s.includes('tt') && !isNaN(s));
-        const s = pathNums[0] || search.get("s");
-        const e = pathNums[1] || search.get("e");
-        const isSeries = !!(s && e);
+        // --- 2. IMPROVED DETECTION ---
+        const getMediaData = () => {
+            const path = window.location.pathname;
+            const params = new URLSearchParams(window.location.search);
+            
+            // Look for tt ID anywhere in URL
+            const id = (path.match(/tt\d+/) || [params.get("id")])[0];
+            
+            // Grab numbers for S/E
+            const segments = path.split('/').filter(s => s && !s.includes('tt') && !isNaN(s));
+            const s = segments[0] || params.get("s");
+            const e = segments[1] || params.get("e");
 
-        async function init() {
+            return { id, s, e, isSeries: !!(s && e) };
+        };
+
+        const { id, s, e, isSeries } = getMediaData();
+
+        // --- 3. UI HELPERS ---
+        const hideLoader = () => {
+            const l = document.getElementById("loader");
+            l.style.opacity = "0";
+            setTimeout(() => l.style.display = "none", 500);
+        };
+
+        // --- 4. ENGINE ---
+        async function start() {
             if (!id) {
-                document.getElementById("status").innerText = "ERROR: MISSING ID";
+                document.getElementById("status").innerText = "URL ERROR: MISSING ID";
+                // Fail-safe: show empty player so settings might still be reachable
+                initPlayer([{name: "Manual Input Needed", url: ""}]);
                 return;
             }
 
-            // 1. Metadata
+            // Fetch Metadata (Poster)
             fetch(`https://api.themoviedb.org/3/find/${id}?api_key=${TMDB_KEY}&external_source=imdb_id`)
                 .then(r => r.json()).then(data => {
                     const item = data.movie_results[0] || data.tv_results[0];
                     if (item) {
                         document.getElementById("poster").src = `https://image.tmdb.org/t/p/w500${item.poster_path}`;
-                        document.getElementById("status").innerText = (item.title || item.name).toUpperCase();
+                        document.getElementById("status").innerText = (item.title || item.name);
                     }
                 });
 
-            // 2. Fetch Streams
-            const apiUrl = isSeries 
-                ? `${BASE_API}/series/${id}:${s}:${e}.json` 
-                : `${BASE_API}/movie/${id}.json`;
+            // Build API URL
+            const target = isSeries ? `${API_BASE}/series/${id}:${s}:${e}.json` : `${API_BASE}/movie/${id}.json`;
 
             try {
-                // We use AllOrigins but with a "direct" flag to help with download URLs
-                const res = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(apiUrl)}`);
+                // Using a fallback proxy mechanism
+                const res = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(target)}`);
+                if (!res.ok) throw "API unreachable";
                 const data = await res.json();
                 
                 const streams = (data.streams || []).map(st => {
-                    let streamUrl = st.url;
-                    
-                    // Specific fix for download providers (Pixeldrain, FSL)
+                    let u = st.url;
                     if (st.name.toLowerCase().includes("pixeldrain")) {
-                        const pxId = streamUrl.split("/u/")[1] || streamUrl.split("/").pop();
-                        streamUrl = `https://pixeldrain.com/api/file/${pxId}?download`;
+                        const pid = u.split("/u/")[1] || u.split("/").pop();
+                        u = `https://pixeldrain.com/api/file/${pid}?download`;
                     }
-                    
-                    // Force HTTPS if possible
-                    if (streamUrl.startsWith("http://")) streamUrl = streamUrl.replace("http://", "https://");
-
-                    return { name: st.name, url: streamUrl };
+                    return { name: st.name, url: u };
                 });
 
-                if (streams.length === 0) throw "No streams";
-                
-                setupPlayer(streams);
+                if (!streams.length) throw "No streams found";
+                initPlayer(streams);
 
             } catch (err) {
+                console.error(err);
                 document.getElementById("error-ui").style.display = "block";
-                document.getElementById("status").innerText = "OFFLINE";
+                hideLoader();
             }
         }
 
-        function setupPlayer(list) {
+        function initPlayer(list) {
             const art = new Artplayer({
                 container: "#player",
                 url: list[0].url,
                 autoplay: true,
-                autoSize: true,
                 fullscreen: true,
                 setting: true,
                 pip: true,
                 playbackRate: true,
                 aspectRatio: true,
-                type: 'm4v', // Force Artplayer to treat everything as video file
+                autoOrientation: true, // Internal Artplayer landscape trigger
                 settings: [
                     {
-                        html: 'SERVER LIST',
+                        width: 200,
+                        html: 'SERVER SELECT',
                         selector: list.map(item => ({
                             html: item.name,
                             url: item.url,
+                            default: item === list[0]
                         })),
                         onSelect: function(item) {
                             art.switchUrl(item.url);
@@ -168,42 +187,39 @@
                         }
                     }
                 ],
-                // Force custom styles to ensure settings show up
+                // High compatibility mode for VLC-style links
                 customType: {
-                    m4v: function (video, url) {
-                        video.src = url;
-                    },
+                    m4v: (video, url) => video.src = url,
                 },
+                type: 'm4v'
             });
 
             art.on('ready', () => {
-                // AUDIO BOOST (5x)
+                // Audio Boost 5x
                 try {
-                    const actx = new (window.AudioContext || window.webkitAudioContext)();
-                    const src = actx.createMediaElementSource(art.video);
-                    const gain = actx.createGain();
+                    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                    const src = ctx.createMediaElementSource(art.video);
+                    const gain = ctx.createGain();
                     gain.gain.value = 5;
-                    src.connect(gain).connect(actx.destination);
+                    src.connect(gain).connect(ctx.destination);
                 } catch(e) {}
-
-                // HIDE LOADER
-                document.getElementById("loader").style.opacity = "0";
-                setTimeout(() => document.getElementById("loader").style.display = "none", 500);
+                
+                hideLoader();
             });
 
-            // If a source fails, auto-try the next one
+            // Error recovery: If a source fails, try next one
             art.on('video:error', () => {
-                console.warn("Source failed, trying fallback...");
-                const currentIdx = list.findIndex(s => s.url === art.url);
-                if (currentIdx < list.length - 1) {
-                    art.switchUrl(list[currentIdx + 1].url);
-                }
+                const idx = list.findIndex(s => s.url === art.url);
+                if (idx < list.length - 1) art.switchUrl(list[idx + 1].url);
             });
+
+            // Auto-hide loader after 10s if 'ready' never fires
+            setTimeout(hideLoader, 10000);
 
             window.art = art;
         }
 
-        init();
+        start();
     </script>
 </body>
 </html>
