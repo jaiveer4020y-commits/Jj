@@ -3,150 +3,311 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cloud Player v5 - Debug Mode</title>
+    <title>Ultimate Cloud Player Pro</title>
+
     <link rel="stylesheet" href="https://unpkg.com/artplayer/dist/artplayer.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;700&display=swap" rel="stylesheet">
+
     <style>
-        body, html { margin: 0; padding: 0; width: 100%; height: 100%; background: #000; overflow: hidden; font-family: sans-serif; }
-        #player { width: 100vw; height: 100vh; }
-        
-        #loading {
-            position: fixed; inset: 0; background: #000;
-            z-index: 999; display: flex; flex-direction: column; align-items: center; justify-content: center;
+        /* --- VIDEASY THEME ENGINE --- */
+        :root {
+            --bg-main: #050505;
+            --accent: #3498db;
+            --text-main: #ffffff;
+            --text-dim: #888888;
+            --glass: rgba(20, 20, 20, 0.9);
         }
-        #poster { width: 150px; border-radius: 10px; margin-bottom: 20px; animation: pulse 2s infinite; }
-        @keyframes pulse { 0% { opacity: 0.5; } 50% { opacity: 1; } 100% { opacity: 0.5; } }
-        
-        /* Debug Console - Remove this once working */
-        #debug {
-            position: fixed; bottom: 10px; left: 10px; background: rgba(0,0,0,0.8);
-            color: #0f0; font-family: monospace; font-size: 10px; padding: 10px;
-            pointer-events: none; z-index: 1000; border: 1px solid #333;
+
+        * { box-sizing: border-box; outline: none; }
+        body, html { 
+            margin: 0; padding: 0; width: 100%; height: 100%; 
+            background: var(--bg-main); color: var(--text-main);
+            font-family: 'Inter', sans-serif; overflow: hidden;
         }
+
+        #player-container { width: 100vw; height: 100vh; background: #000; }
+
+        /* --- LOADING OVERLAY --- */
+        #loader {
+            position: fixed; inset: 0; z-index: 9999;
+            background: radial-gradient(circle at center, #111 0%, #000 100%);
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            transition: transform 0.8s cubic-bezier(0.86, 0, 0.07, 1), opacity 0.5s ease;
+        }
+
+        .loader-ui { text-align: center; max-width: 400px; width: 90%; }
+
+        #poster {
+            width: 220px; height: 330px; border-radius: 16px;
+            object-fit: cover; border: 1px solid #333;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.9);
+            margin-bottom: 25px; 
+            animation: pulse 2s infinite ease-in-out;
+            background: #1a1a1a;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 0.8; box-shadow: 0 0 20px rgba(52, 152, 219, 0.1); }
+            50% { transform: scale(1.02); opacity: 1; box-shadow: 0 0 40px rgba(52, 152, 219, 0.3); }
+            100% { transform: scale(1); opacity: 0.8; box-shadow: 0 0 20px rgba(52, 152, 219, 0.1); }
+        }
+
+        .meta-title { font-size: 24px; font-weight: 700; margin-bottom: 8px; letter-spacing: -0.5px; }
+        .meta-sub { font-size: 14px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 2px; }
+
+        .progress-bar {
+            width: 100%; height: 4px; background: #222; 
+            margin-top: 30px; border-radius: 2px; overflow: hidden;
+        }
+        .progress-fill {
+            width: 30%; height: 100%; background: var(--accent);
+            animation: loadingMove 2s infinite ease;
+        }
+
+        @keyframes loadingMove {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(300%); }
+        }
+
+        /* --- UI OVERLAYS --- */
+        #error-card {
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            background: #1a0a0a; border: 1px solid #f44336; padding: 30px;
+            border-radius: 12px; text-align: center; display: none; z-index: 10000;
+        }
+
+        #debug-console {
+            position: fixed; bottom: 10px; right: 10px; 
+            background: rgba(0,0,0,0.8); color: #0f0; padding: 10px;
+            font-family: monospace; font-size: 11px; z-index: 10001;
+            border-radius: 5px; border: 1px solid #333; pointer-events: none;
+            max-width: 300px;
+        }
+
+        /* Custom Artplayer Skin Tweaks */
+        .art-video-player .art-mask-show { background: rgba(0,0,0,0.4) !important; }
     </style>
 </head>
 <body>
 
-<div id="loading">
-    <img id="poster" src="https://via.placeholder.com/150x220?text=Loading...">
-    <div id="status" style="color:white">Detecting Media...</div>
-</div>
+    <div id="debug-console">System Booting...</div>
 
-<div id="player"></div>
-<div id="debug">DEBUG LOG: Initializing...</div>
+    <div id="error-card">
+        <h2 style="color:#f44336; margin-top:0;">Stream Error</h2>
+        <p id="error-text">Failed to fetch the resource.</p>
+        <button onclick="location.reload()" style="background:#f44336; color:white; border:none; padding:10px 20px; border-radius:5px; cursor:pointer;">Retry</button>
+    </div>
 
-<script src="https://unpkg.com/artplayer/dist/artplayer.js"></script>
+    <div id="loader">
+        <div class="loader-ui">
+            <img id="poster" src="" alt="Poster">
+            <div class="meta-sub" id="load-type">Detecting Media</div>
+            <div class="meta-title" id="load-title">Syncing...</div>
+            <div class="progress-bar"><div class="progress-fill"></div></div>
+        </div>
+    </div>
 
-<script>
-const TMDB_KEY = "81f645c3d9ced06a366b0d829d844cfe";
-const BASE_API = "https://hdhub.thevolecitor.qzz.io/eyJ0b3Jib3giOiJ1bnNldCIsInF1YWxpdGllcyI6IjEwODBwLDcyMHAiLCJzb3J0IjoiZGVzYyJ9/stream";
+    <div id="player-container"></div>
 
-// 1. ADVANCED DETECTION
-const path = window.location.pathname;
-const urlParams = new URLSearchParams(window.location.search);
+    <script src="https://unpkg.com/artplayer/dist/artplayer.js"></script>
 
-// Extract ID (looks for tt followed by numbers)
-const idMatch = path.match(/tt\d+/);
-const id = idMatch ? idMatch[0] : urlParams.get("id");
+    <script>
+        // ==========================================
+        // 1. CONFIGURATION & CONSTANTS
+        // ==========================================
+        const CONFIG = {
+            TMDB_KEY: "81f645c3d9ced06a366b0d829d844cfe",
+            BASE: "https://hdhub.thevolecitor.qzz.io/eyJ0b3Jib3giOiJ1bnNldCIsInF1YWxpdGllcyI6IjEwODBwLDcyMHAiLCJzb3J0IjoiZGVzYyJ9/stream",
+            PROXY: "https://api.allorigins.win/raw?url=",
+            AUDIO_BOOST: 5.0
+        };
 
-// Extract S and E from path (/tt123/1/1)
-const pathParts = path.split('/').filter(p => p && p !== id);
-const s = pathParts[0] || urlParams.get("s");
-const e = pathParts[1] || urlParams.get("e");
-const isSeries = !!(s && e);
+        const logger = document.getElementById("debug-console");
+        function log(msg) {
+            console.log(`[SYS] ${msg}`);
+            const line = document.createElement("div");
+            line.innerText = `> ${msg}`;
+            logger.prepend(line);
+            if(logger.childNodes.length > 8) logger.removeChild(logger.lastChild);
+        }
 
-const debug = document.getElementById("debug");
-function log(msg) { debug.innerText += "\n> " + msg; console.log(msg); }
+        // ==========================================
+        // 2. INTELLIGENT PARSER
+        // ==========================================
+        function getParams() {
+            const path = window.location.pathname;
+            const search = new URLSearchParams(window.location.search);
 
-async function start() {
-    log(`ID: ${id}`);
-    log(`Season: ${s} | Episode: ${e}`);
-    log(`Type: ${isSeries ? 'SERIES' : 'MOVIE'}`);
+            // Match IMDB ID (tt1234567)
+            const idMatch = path.match(/tt\d+/) || [search.get("id")];
+            const id = idMatch ? idMatch[0] : null;
 
-    if (!id) {
-        log("ERROR: No ID found. URL must contain tt12345");
-        document.getElementById("status").innerText = "URL Error: Missing ID";
-        return;
-    }
+            // Extract Numbers from path for S/E
+            const pathNumbers = path.split('/').filter(p => !isNaN(p) && p.trim() !== "");
+            
+            const s = pathNumbers[0] || search.get("s");
+            const e = pathNumbers[1] || search.get("e");
 
-    // 2. Fetch Metadata
-    fetch(`https://api.themoviedb.org/3/find/${id}?api_key=${TMDB_KEY}&external_source=imdb_id`)
-        .then(r => r.json()).then(data => {
-            const item = data.movie_results[0] || data.tv_results[0];
-            if (item) document.getElementById("poster").src = `https://image.tmdb.org/t/p/w500${item.poster_path}`;
-        });
+            // FINAL DETECTION: Only series if BOTH s and e exist
+            const isSeries = !!(s && e);
 
-    // 3. Construct API URL
-    // Movie: BASE/id.json | Series: BASE/id/s/e.json
-    const apiEndpoint = isSeries 
-        ? `${BASE_API}/${id}/${s}/${e}.json` 
-        : `${BASE_API}/${id}.json`;
-    
-    log(`Fetching API: ${apiEndpoint}`);
+            return { id, s, e, isSeries };
+        }
 
-    try {
-        const proxy = "https://api.allorigins.win/raw?url=";
-        const res = await fetch(proxy + encodeURIComponent(apiEndpoint));
-        
-        if (!res.ok) throw "Proxy/API Error";
-        
-        const data = await res.json();
-        log(`Found ${data.streams ? data.streams.length : 0} raw streams`);
-
-        const filtered = (data.streams || []).map(st => {
-            let url = st.url;
-            if (st.name.toLowerCase().includes("pixeldrain")) {
-                const pxId = url.split("/u/")[1];
-                if(pxId) url = `https://pixeldrain.com/api/file/${pxId}?download`;
+        // ==========================================
+        // 3. API CONSTRUCTOR
+        // ==========================================
+        function buildStreamUrl(params) {
+            if (params.isSeries) {
+                // FORMAT: .../stream/series/tt0944947:1:1.json
+                return `${CONFIG.BASE}/series/${params.id}:${params.s}:${params.e}.json`;
+            } else {
+                // FORMAT: .../stream/movie/tt1457767.json
+                return `${CONFIG.BASE}/movie/${params.id}.json`;
             }
-            return { name: st.name, url: url };
-        });
+        }
 
-        if (filtered.length === 0) throw "No valid streams after filter";
+        // ==========================================
+        // 4. METADATA ENGINE
+        // ==========================================
+        async function fetchMetadata(id) {
+            try {
+                const res = await fetch(`https://api.themoviedb.org/3/find/${id}?api_key=${CONFIG.TMDB_KEY}&external_source=imdb_id`);
+                const data = await res.json();
+                const item = data.movie_results[0] || data.tv_results[0];
 
-        initPlayer(filtered);
-
-    } catch (err) {
-        log(`CRITICAL ERROR: ${err}`);
-        document.getElementById("status").innerText = "No Streams Found";
-    }
-}
-
-function initPlayer(list) {
-    log(`Starting player with: ${list[0].name}`);
-    
-    const art = new Artplayer({
-        container: "#player",
-        url: list[0].url,
-        autoplay: true,
-        fullscreen: true,
-        setting: true,
-        settings: [
-            {
-                html: 'Source Selector',
-                selector: list.map(s => ({
-                    html: s.name,
-                    url: s.url,
-                })),
-                onSelect: function(item) {
-                    art.switchUrl(item.url);
-                    return item.html;
+                if (item) {
+                    document.getElementById("poster").src = `https://image.tmdb.org/t/p/w500${item.poster_path}`;
+                    document.getElementById("load-title").innerText = item.title || item.name;
+                    log(`Metadata: ${item.title || item.name}`);
                 }
+            } catch (e) { log("Metadata Load Failed"); }
+        }
+
+        // ==========================================
+        // 5. STREAM ENGINE
+        // ==========================================
+        async function getStreams(apiUrl) {
+            log("Contacting API...");
+            try {
+                const res = await fetch(CONFIG.PROXY + encodeURIComponent(apiUrl));
+                if (!res.ok) throw "Proxy Error";
+                const data = await res.json();
+                
+                if (!data.streams || data.streams.length === 0) throw "No Streams in API";
+
+                log(`Found ${data.streams.length} raw sources`);
+
+                return data.streams.map(st => {
+                    let url = st.url;
+                    // Fix Pixeldrain
+                    if (st.name.toLowerCase().includes("pixeldrain") && url.includes("/u/")) {
+                        const pid = url.split("/u/")[1];
+                        url = `https://pixeldrain.com/api/file/${pid}?download`;
+                    }
+                    return { name: st.name, url: url };
+                });
+            } catch (e) {
+                log(`API Error: ${e}`);
+                return [];
             }
-        ]
-    });
+        }
 
-    art.on('ready', () => {
-        document.getElementById("loading").style.display = "none";
-        // Audio Boost
-        const ctx = new (window.AudioContext || window.webkitAudioContext)();
-        const src = ctx.createMediaElementSource(art.video);
-        const gain = ctx.createGain();
-        gain.gain.value = 4;
-        src.connect(gain).connect(ctx.destination);
-    });
-}
+        // ==========================================
+        // 6. PLAYER INITIALIZATION
+        // ==========================================
+        function initPlayer(streams) {
+            const bestSource = streams.find(s => s.name.includes("1080")) || streams[0];
+            
+            const art = new Artplayer({
+                container: "#player-container",
+                url: bestSource.url,
+                autoplay: true,
+                autoSize: true,
+                fullscreen: true,
+                fullscreenWeb: true,
+                setting: true,
+                pip: true,
+                playbackRate: true,
+                aspectRatio: true,
+                lock: true,
+                fastForward: true,
+                settings: [
+                    {
+                        html: 'Server / Quality',
+                        selector: streams.map(s => ({
+                            html: s.name,
+                            url: s.url,
+                        })),
+                        onSelect: function(item) {
+                            art.switchUrl(item.url);
+                            return item.html;
+                        }
+                    }
+                ],
+                // Context Menu Customization
+                contextmenu: [
+                    { html: 'Artplayer v5.0' },
+                    { html: 'Audio Boost: Active' }
+                ],
+            });
 
-start();
-</script>
+            // Audio Context for 5x Boost
+            art.on('ready', () => {
+                log("Player Ready");
+                try {
+                    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                    const src = ctx.createMediaElementSource(art.video);
+                    const gain = ctx.createGain();
+                    gain.gain.value = CONFIG.AUDIO_BOOST;
+                    src.connect(gain).connect(ctx.destination);
+                    log(`Audio Boost: ${CONFIG.AUDIO_BOOST}x`);
+                } catch(e) { log("Audio Context Denied"); }
+
+                // Hide Loader
+                const loader = document.getElementById("loader");
+                loader.style.opacity = "0";
+                setTimeout(() => loader.style.display = "none", 500);
+            });
+
+            window.art = art;
+        }
+
+        // ==========================================
+        // 7. BOOTSTRAP
+        // ==========================================
+        (async () => {
+            const params = getParams();
+            log(`ID: ${params.id} | Series: ${params.isSeries}`);
+            
+            if (!params.id) {
+                document.getElementById("error-card").style.display = "block";
+                document.getElementById("error-text").innerText = "Missing IMDB ID in URL.";
+                return;
+            }
+
+            document.getElementById("load-type").innerText = params.isSeries 
+                ? `Series: S${params.s} E${params.e}` 
+                : "Movie Feature";
+
+            // Run in parallel
+            fetchMetadata(params.id);
+            
+            const apiUrl = buildStreamUrl(params);
+            log(`URL: ${apiUrl}`);
+            
+            const streams = await getStreams(apiUrl);
+
+            if (streams.length > 0) {
+                initPlayer(streams);
+            } else {
+                document.getElementById("error-card").style.display = "block";
+                document.getElementById("error-text").innerText = "The API returned no playable streams for this title.";
+                document.getElementById("load-title").innerText = "NOT FOUND";
+            }
+        })();
+
+    </script>
 </body>
 </html>
