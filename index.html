@@ -3,140 +3,129 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cloud Player Ultimate</title>
+    <title>Cloud Player v5 - Debug Mode</title>
     <link rel="stylesheet" href="https://unpkg.com/artplayer/dist/artplayer.css">
     <style>
         body, html { margin: 0; padding: 0; width: 100%; height: 100%; background: #000; overflow: hidden; font-family: sans-serif; }
         #player { width: 100vw; height: 100vh; }
         
-        /* Videasy Pulse Loader */
         #loading {
-            position: fixed; inset: 0; background: radial-gradient(circle, #111 0%, #000 100%);
+            position: fixed; inset: 0; background: #000;
             z-index: 999; display: flex; flex-direction: column; align-items: center; justify-content: center;
-            transition: opacity 0.5s ease;
         }
-        #poster { 
-            width: 180px; height: 260px; border-radius: 15px; border: 1px solid #444; 
-            box-shadow: 0 0 30px rgba(255,255,255,0.1); margin-bottom: 20px; 
-            animation: pulse 2s infinite ease-in-out; 
-        }
-        @keyframes pulse {
-            0%, 100% { transform: scale(1); opacity: 0.6; }
-            50% { transform: scale(1.03); opacity: 1; }
-        }
-        #status { color: #aaa; font-size: 14px; letter-spacing: 2px; text-transform: uppercase; }
-
-        /* Error Overlay */
-        #error-msg {
-            position: fixed; top: 20px; width: 100%; text-align: center;
-            color: #ff4444; z-index: 1000; font-weight: bold; display: none;
+        #poster { width: 150px; border-radius: 10px; margin-bottom: 20px; animation: pulse 2s infinite; }
+        @keyframes pulse { 0% { opacity: 0.5; } 50% { opacity: 1; } 100% { opacity: 0.5; } }
+        
+        /* Debug Console - Remove this once working */
+        #debug {
+            position: fixed; bottom: 10px; left: 10px; background: rgba(0,0,0,0.8);
+            color: #0f0; font-family: monospace; font-size: 10px; padding: 10px;
+            pointer-events: none; z-index: 1000; border: 1px solid #333;
         }
     </style>
 </head>
 <body>
 
-<div id="error-msg">NO STREAMS FOUND</div>
-
 <div id="loading">
-    <img id="poster" src="https://via.placeholder.com/180x260?text=Loading...">
-    <div id="status">Fetching Data...</div>
+    <img id="poster" src="https://via.placeholder.com/150x220?text=Loading...">
+    <div id="status" style="color:white">Detecting Media...</div>
 </div>
 
 <div id="player"></div>
+<div id="debug">DEBUG LOG: Initializing...</div>
 
 <script src="https://unpkg.com/artplayer/dist/artplayer.js"></script>
 
 <script>
-// ===== CONFIG =====
 const TMDB_KEY = "81f645c3d9ced06a366b0d829d844cfe";
 const BASE_API = "https://hdhub.thevolecitor.qzz.io/eyJ0b3Jib3giOiJ1bnNldCIsInF1YWxpdGllcyI6IjEwODBwLDcyMHAiLCJzb3J0IjoiZGVzYyJ9/stream";
 
-// ===== DETECTION =====
-const pathParts = window.location.pathname.split('/').filter(p => p);
-const query = new URLSearchParams(location.search);
+// 1. ADVANCED DETECTION
+const path = window.location.pathname;
+const urlParams = new URLSearchParams(window.location.search);
 
-const id = pathParts[0] || query.get("id");
-const s = pathParts[1] || query.get("s");
-const e = pathParts[2] || query.get("e");
+// Extract ID (looks for tt followed by numbers)
+const idMatch = path.match(/tt\d+/);
+const id = idMatch ? idMatch[0] : urlParams.get("id");
 
+// Extract S and E from path (/tt123/1/1)
+const pathParts = path.split('/').filter(p => p && p !== id);
+const s = pathParts[0] || urlParams.get("s");
+const e = pathParts[1] || urlParams.get("e");
 const isSeries = !!(s && e);
 
-// ===== UI HELPERS =====
-function updateStatus(txt) { document.getElementById("status").innerText = txt; }
-function hideLoader() { 
-    const loader = document.getElementById("loading");
-    loader.style.opacity = "0";
-    setTimeout(() => loader.style.display = "none", 500);
-}
+const debug = document.getElementById("debug");
+function log(msg) { debug.innerText += "\n> " + msg; console.log(msg); }
 
-// ===== CORE LOGIC =====
-async function startApp() {
+async function start() {
+    log(`ID: ${id}`);
+    log(`Season: ${s} | Episode: ${e}`);
+    log(`Type: ${isSeries ? 'SERIES' : 'MOVIE'}`);
+
     if (!id) {
-        updateStatus("ERROR: NO ID");
+        log("ERROR: No ID found. URL must contain tt12345");
+        document.getElementById("status").innerText = "URL Error: Missing ID";
         return;
     }
 
-    // 1. Fetch Metadata (Parallel)
+    // 2. Fetch Metadata
     fetch(`https://api.themoviedb.org/3/find/${id}?api_key=${TMDB_KEY}&external_source=imdb_id`)
         .then(r => r.json()).then(data => {
             const item = data.movie_results[0] || data.tv_results[0];
-            if (item) {
-                document.getElementById("poster").src = `https://image.tmdb.org/t/p/w500${item.poster_path}`;
-                updateStatus(item.title || item.name);
-            }
+            if (item) document.getElementById("poster").src = `https://image.tmdb.org/t/p/w500${item.poster_path}`;
         });
 
-    // 2. Build API Endpoint
-    // Movie: /stream/id.json | Series: /stream/id/s/e.json
-    const apiTarget = isSeries ? `${BASE_API}/${id}/${s}/${e}.json` : `${BASE_API}/${id}.json`;
+    // 3. Construct API URL
+    // Movie: BASE/id.json | Series: BASE/id/s/e.json
+    const apiEndpoint = isSeries 
+        ? `${BASE_API}/${id}/${s}/${e}.json` 
+        : `${BASE_API}/${id}.json`;
+    
+    log(`Fetching API: ${apiEndpoint}`);
 
     try {
         const proxy = "https://api.allorigins.win/raw?url=";
-        const res = await fetch(proxy + encodeURIComponent(apiTarget));
-        const data = await res.json();
+        const res = await fetch(proxy + encodeURIComponent(apiEndpoint));
         
-        // 3. Scrape ALL available sources
-        const allStreams = (data.streams || []).map(st => {
-            let finalUrl = st.url;
-            // Pixeldrain Fix
-            if (st.name.toLowerCase().includes("pixeldrain") && finalUrl.includes("/u/")) {
-                finalUrl = `https://pixeldrain.com/api/file/${finalUrl.split("/u/")[1]}?download`;
+        if (!res.ok) throw "Proxy/API Error";
+        
+        const data = await res.json();
+        log(`Found ${data.streams ? data.streams.length : 0} raw streams`);
+
+        const filtered = (data.streams || []).map(st => {
+            let url = st.url;
+            if (st.name.toLowerCase().includes("pixeldrain")) {
+                const pxId = url.split("/u/")[1];
+                if(pxId) url = `https://pixeldrain.com/api/file/${pxId}?download`;
             }
-            return { name: st.name, url: finalUrl };
+            return { name: st.name, url: url };
         });
 
-        if (allStreams.length === 0) throw "Empty";
+        if (filtered.length === 0) throw "No valid streams after filter";
 
-        initPlayer(allStreams);
+        initPlayer(filtered);
 
     } catch (err) {
-        console.error(err);
-        document.getElementById("error-msg").style.display = "block";
-        updateStatus("NO STREAMS AVAILABLE");
-        // Hide loader anyway so they can see the error
-        setTimeout(hideLoader, 2000); 
+        log(`CRITICAL ERROR: ${err}`);
+        document.getElementById("status").innerText = "No Streams Found";
     }
 }
 
-function initPlayer(streams) {
+function initPlayer(list) {
+    log(`Starting player with: ${list[0].name}`);
+    
     const art = new Artplayer({
         container: "#player",
-        url: streams[0].url,
+        url: list[0].url,
         autoplay: true,
         fullscreen: true,
         setting: true,
-        pip: true,
-        lock: true,
-        autoSize: true,
-        playbackRate: true,
-        aspectRatio: true,
         settings: [
             {
-                html: 'Source List',
-                selector: streams.map(s => ({
+                html: 'Source Selector',
+                selector: list.map(s => ({
                     html: s.name,
                     url: s.url,
-                    default: s === streams[0]
                 })),
                 onSelect: function(item) {
                     art.switchUrl(item.url);
@@ -146,24 +135,18 @@ function initPlayer(streams) {
         ]
     });
 
-    // Audio Boost (5x) - Activated on Play to satisfy Chrome
-    art.on('play', () => {
-        if (!window.audioBoosted) {
-            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            const source = audioCtx.createMediaElementSource(art.video);
-            const gainNode = audioCtx.createGain();
-            gainNode.gain.value = 5;
-            source.connect(gainNode).connect(audioCtx.destination);
-            window.audioBoosted = true;
-        }
+    art.on('ready', () => {
+        document.getElementById("loading").style.display = "none";
+        // Audio Boost
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const src = ctx.createMediaElementSource(art.video);
+        const gain = ctx.createGain();
+        gain.gain.value = 4;
+        src.connect(gain).connect(ctx.destination);
     });
-
-    art.on('ready', hideLoader);
-    
-    window.art = art;
 }
 
-startApp();
+start();
 </script>
 </body>
 </html>
