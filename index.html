@@ -2,178 +2,208 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cloud Player Pro v6</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Cloud Player Max - Landscape</title>
+    
     <link rel="stylesheet" href="https://unpkg.com/artplayer/dist/artplayer.css">
+    
     <style>
+        :root { --accent: #3498db; }
         body, html { margin: 0; padding: 0; width: 100%; height: 100%; background: #000; color: #fff; font-family: sans-serif; overflow: hidden; }
-        #player { width: 100vw; height: 100vh; background: #000; }
+
+        /* --- LANDSCAPE ENFORCEMENT --- */
+        #rotate-notice {
+            position: fixed; inset: 0; background: #000; z-index: 10000;
+            display: none; flex-direction: column; align-items: center; justify-content: center;
+            text-align: center; padding: 20px;
+        }
         
-        /* Videasy Style Loader */
+        /* Rotating Phone Animation */
+        .phone-icon {
+            width: 60px; height: 100px; border: 3px solid #fff; border-radius: 10px;
+            position: relative; animation: rotatePhone 2s infinite ease-in-out; margin-bottom: 20px;
+        }
+        .phone-icon::after { content: ''; position: absolute; bottom: 5px; left: 50%; transform: translateX(-50%); width: 10px; height: 10px; border: 2px solid #fff; border-radius: 50%; }
+
+        @keyframes rotatePhone {
+            0% { transform: rotate(0deg); }
+            50% { transform: rotate(-90deg); }
+            100% { transform: rotate(0deg); }
+        }
+
+        /* Show notice only in portrait */
+        @media screen and (orientation: portrait) {
+            #rotate-notice { display: flex; }
+        }
+
+        /* --- VIDEASY LOADING SCREEN --- */
         #loader {
-            position: fixed; inset: 0; background: radial-gradient(circle, #151515 0%, #000 100%);
+            position: fixed; inset: 0; background: radial-gradient(circle, #1a1a1a 0%, #000 100%);
             z-index: 999; display: flex; flex-direction: column; align-items: center; justify-content: center;
             transition: opacity 0.5s ease;
         }
         #poster { 
-            width: 180px; height: 270px; border-radius: 12px; border: 1px solid #333; 
-            margin-bottom: 20px; animation: pulse 2s infinite ease-in-out; object-fit: cover;
-            background: #222;
+            width: 180px; height: 260px; border-radius: 15px; border: 1px solid #333; 
+            margin-bottom: 25px; animation: pulse 2s infinite ease-in-out; object-fit: cover;
         }
-        @keyframes pulse { 0% { transform: scale(1); opacity: 0.6; } 50% { transform: scale(1.02); opacity: 1; } 100% { transform: scale(1); opacity: 0.6; } }
-        #status { font-size: 14px; color: #888; letter-spacing: 2px; text-transform: uppercase; }
+        @keyframes pulse { 0%, 100% { transform: scale(1); opacity: 0.7; } 50% { transform: scale(1.05); opacity: 1; } }
+        
+        #status { font-size: 14px; letter-spacing: 3px; color: var(--accent); font-weight: bold; }
 
-        /* Error Message */
-        #error-display {
-            position: fixed; top: 20%; width: 80%; left: 10%; background: rgba(255,0,0,0.1);
-            border: 1px solid #ff4444; padding: 20px; border-radius: 10px; color: #ff4444;
-            display: none; z-index: 1000; text-align: center;
+        /* --- PLAYER UI --- */
+        #player { width: 100vw; height: 100vh; }
+        
+        #error-ui {
+            position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+            background: rgba(255,0,0,0.8); padding: 10px 20px; border-radius: 5px;
+            display: none; z-index: 1001; font-weight: bold;
         }
     </style>
 </head>
 <body>
 
-<div id="error-display">
-    <strong style="display:block; margin-bottom:10px;">CONNECTION ERROR</strong>
-    <div id="error-text">No response from stream server.</div>
-    <button onclick="location.reload()" style="margin-top:15px; background:#ff4444; color:#fff; border:none; padding:8px 15px; border-radius:5px; cursor:pointer;">RETRY</button>
-</div>
+    <div id="rotate-notice">
+        <div class="phone-icon"></div>
+        <h2>PLEASE ROTATE DEVICE</h2>
+        <p>Landscape mode is required for the best experience.</p>
+    </div>
 
-<div id="loader">
-    <img id="poster" src="" alt="">
-    <div id="status">INITIALIZING...</div>
-</div>
+    <div id="loader">
+        <img id="poster" src="" alt="">
+        <div id="status">SYNCING SERVERS...</div>
+    </div>
 
-<div id="player"></div>
+    <div id="error-ui">NO PLAYABLE STREAMS FOUND</div>
+    <div id="player"></div>
 
-<script src="https://unpkg.com/artplayer/dist/artplayer.js"></script>
+    <script src="https://unpkg.com/artplayer/dist/artplayer.js"></script>
 
-<script>
-// --- CONFIG ---
-const TMDB_KEY = "81f645c3d9ced06a366b0d829d844cfe";
-const BASE_API = "https://hdhub.thevolecitor.qzz.io/eyJ0b3Jib3giOiJ1bnNldCIsInF1YWxpdGllcyI6IjEwODBwLDcyMHAiLCJzb3J0IjoiZGVzYyJ9/stream";
+    <script>
+        const TMDB_KEY = "81f645c3d9ced06a366b0d829d844cfe";
+        const BASE_API = "https://hdhub.thevolecitor.qzz.io/eyJ0b3Jib3giOiJ1bnNldCIsInF1YWxpdGllcyI6IjEwODBwLDcyMHAiLCJzb3J0IjoiZGVzYyJ9/stream";
 
-// --- DETECTION LOGIC ---
-const path = window.location.pathname;
-const search = new URLSearchParams(window.location.search);
-
-// 1. Find ID (ttxxxx)
-const id = (path.match(/tt\d+/) || [search.get("id")])[0];
-
-// 2. Find S and E (Look for numbers in path that aren't the ID)
-const pathSegments = path.split('/').filter(s => s && !s.includes('tt') && !isNaN(s));
-const s = pathSegments[0] || search.get("s");
-const e = pathSegments[1] || search.get("e");
-
-const isSeries = !!(s && e);
-
-// --- UI CONTROLS ---
-const setStatus = (msg) => document.getElementById("status").innerText = msg;
-const hideLoader = () => {
-    document.getElementById("loader").style.opacity = "0";
-    setTimeout(() => document.getElementById("loader").style.display = "none", 500);
-};
-const showError = (msg) => {
-    document.getElementById("error-text").innerText = msg;
-    document.getElementById("error-display").style.display = "block";
-    hideLoader();
-};
-
-async function main() {
-    if (!id) {
-        showError("ID NOT FOUND. URL should be /tt1234567");
-        return;
-    }
-
-    // 1. Get TMDB Poster
-    fetch(`https://api.themoviedb.org/3/find/${id}?api_key=${TMDB_KEY}&external_source=imdb_id`)
-        .then(r => r.json()).then(data => {
-            const item = data.movie_results[0] || data.tv_results[0];
-            if (item) {
-                document.getElementById("poster").src = `https://image.tmdb.org/t/p/w500${item.poster_path}`;
-                setStatus(item.title || item.name);
-            }
-        }).catch(() => setStatus("STREAMING CONTENT"));
-
-    // 2. Build Correct API URL
-    const apiUrl = isSeries 
-        ? `${BASE_API}/series/${id}:${s}:${e}.json` 
-        : `${BASE_API}/movie/${id}.json`;
-
-    console.log("Fetching from:", apiUrl);
-
-    // 3. Fetch Streams with Proxy
-    try {
-        const proxyUrl = "https://api.allorigins.win/raw?url=" + encodeURIComponent(apiUrl);
-        const response = await fetch(proxyUrl);
+        // --- URL PARSING ---
+        const path = window.location.pathname;
+        const search = new URLSearchParams(window.location.search);
         
-        if (!response.ok) throw new Error("Server response was not OK");
-        
-        const data = await response.json();
-        const streams = (data.streams || []).map(st => {
-            let streamUrl = st.url;
-            if (st.name.toLowerCase().includes("pixeldrain") && streamUrl.includes("/u/")) {
-                streamUrl = `https://pixeldrain.com/api/file/${streamUrl.split("/u/")[1]}?download`;
+        const id = (path.match(/tt\d+/) || [search.get("id")])[0];
+        const pathNums = path.split('/').filter(s => s && !s.includes('tt') && !isNaN(s));
+        const s = pathNums[0] || search.get("s");
+        const e = pathNums[1] || search.get("e");
+        const isSeries = !!(s && e);
+
+        async function init() {
+            if (!id) {
+                document.getElementById("status").innerText = "ERROR: MISSING ID";
+                return;
             }
-            return { name: st.name, url: streamUrl };
-        });
 
-        if (streams.length === 0) throw new Error("No streams available in API");
+            // 1. Metadata
+            fetch(`https://api.themoviedb.org/3/find/${id}?api_key=${TMDB_KEY}&external_source=imdb_id`)
+                .then(r => r.json()).then(data => {
+                    const item = data.movie_results[0] || data.tv_results[0];
+                    if (item) {
+                        document.getElementById("poster").src = `https://image.tmdb.org/t/p/w500${item.poster_path}`;
+                        document.getElementById("status").innerText = (item.title || item.name).toUpperCase();
+                    }
+                });
 
-        initPlayer(streams);
+            // 2. Fetch Streams
+            const apiUrl = isSeries 
+                ? `${BASE_API}/series/${id}:${s}:${e}.json` 
+                : `${BASE_API}/movie/${id}.json`;
 
-    } catch (err) {
-        console.error(err);
-        showError("FAIL: " + err.message);
-    }
-}
+            try {
+                // We use AllOrigins but with a "direct" flag to help with download URLs
+                const res = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(apiUrl)}`);
+                const data = await res.json();
+                
+                const streams = (data.streams || []).map(st => {
+                    let streamUrl = st.url;
+                    
+                    // Specific fix for download providers (Pixeldrain, FSL)
+                    if (st.name.toLowerCase().includes("pixeldrain")) {
+                        const pxId = streamUrl.split("/u/")[1] || streamUrl.split("/").pop();
+                        streamUrl = `https://pixeldrain.com/api/file/${pxId}?download`;
+                    }
+                    
+                    // Force HTTPS if possible
+                    if (streamUrl.startsWith("http://")) streamUrl = streamUrl.replace("http://", "https://");
 
-function initPlayer(list) {
-    const art = new Artplayer({
-        container: "#player",
-        url: list[0].url,
-        autoplay: true,
-        fullscreen: true,
-        setting: true,
-        settings: [
-            {
-                html: 'Sources',
-                selector: list.map(item => ({
-                    html: item.name,
-                    url: item.url,
-                })),
-                onSelect: function(item) {
-                    art.switchUrl(item.url);
-                    return item.html;
+                    return { name: st.name, url: streamUrl };
+                });
+
+                if (streams.length === 0) throw "No streams";
+                
+                setupPlayer(streams);
+
+            } catch (err) {
+                document.getElementById("error-ui").style.display = "block";
+                document.getElementById("status").innerText = "OFFLINE";
+            }
+        }
+
+        function setupPlayer(list) {
+            const art = new Artplayer({
+                container: "#player",
+                url: list[0].url,
+                autoplay: true,
+                autoSize: true,
+                fullscreen: true,
+                setting: true,
+                pip: true,
+                playbackRate: true,
+                aspectRatio: true,
+                type: 'm4v', // Force Artplayer to treat everything as video file
+                settings: [
+                    {
+                        html: 'SERVER LIST',
+                        selector: list.map(item => ({
+                            html: item.name,
+                            url: item.url,
+                        })),
+                        onSelect: function(item) {
+                            art.switchUrl(item.url);
+                            return item.html;
+                        }
+                    }
+                ],
+                // Force custom styles to ensure settings show up
+                customType: {
+                    m4v: function (video, url) {
+                        video.src = url;
+                    },
+                },
+            });
+
+            art.on('ready', () => {
+                // AUDIO BOOST (5x)
+                try {
+                    const actx = new (window.AudioContext || window.webkitAudioContext)();
+                    const src = actx.createMediaElementSource(art.video);
+                    const gain = actx.createGain();
+                    gain.gain.value = 5;
+                    src.connect(gain).connect(actx.destination);
+                } catch(e) {}
+
+                // HIDE LOADER
+                document.getElementById("loader").style.opacity = "0";
+                setTimeout(() => document.getElementById("loader").style.display = "none", 500);
+            });
+
+            // If a source fails, auto-try the next one
+            art.on('video:error', () => {
+                console.warn("Source failed, trying fallback...");
+                const currentIdx = list.findIndex(s => s.url === art.url);
+                if (currentIdx < list.length - 1) {
+                    art.switchUrl(list[currentIdx + 1].url);
                 }
-            }
-        ]
-    });
+            });
 
-    art.on('ready', () => {
-        // Audio Boost 5x
-        const actx = new (window.AudioContext || window.webkitAudioContext)();
-        const src = actx.createMediaElementSource(art.video);
-        const gain = actx.createGain();
-        gain.gain.value = 5;
-        src.connect(gain).connect(actx.destination);
-        
-        hideLoader();
-    });
+            window.art = art;
+        }
 
-    // Auto-hide loader if 'ready' event is missed
-    setTimeout(hideLoader, 6000);
-}
-
-// Fail-safe: If nothing happens in 12 seconds, hide loader
-setTimeout(() => {
-    if (document.getElementById("loader").style.display !== "none") {
-        setStatus("LOADING TIMEOUT - CLICK TO CLOSE");
-        document.getElementById("loader").onclick = hideLoader;
-    }
-}, 12000);
-
-main();
-</script>
+        init();
+    </script>
 </body>
 </html>
