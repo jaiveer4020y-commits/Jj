@@ -3,257 +3,155 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Cloud Player Max - Responsive</title>
+    <title>Cloud Player Pro</title>
     
     <link rel="stylesheet" href="https://unpkg.com/artplayer/dist/artplayer.css">
     
     <style>
-        :root {
-            --flix-red: #ff0000;
-            --control-bg: rgba(0, 0, 0, 0.85);
-            --icon-size: 24px;
-        }
+        :root { --flix-red: #e50914; }
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; background: #000; overflow: hidden; }
 
-        body, html { 
-            margin: 0; padding: 0; width: 100%; height: 100%; 
-            background: #000; color: #fff; overflow: hidden;
-            font-family: 'Inter', -apple-system, sans-serif;
-        }
-
-        /* --- FORCE LANDSCAPE CSS --- */
+        /* Force Landscape on Mobile */
         @media screen and (orientation: portrait) {
-            #portrait-lock {
-                position: fixed; inset: 0; background: #000; z-index: 9999;
-                display: flex; flex-direction: column; align-items: center; justify-content: center;
-                text-align: center;
+            #artplayer {
+                transform: rotate(90deg);
+                transform-origin: bottom left;
+                width: 100vh;
+                height: 100vw;
+                position: absolute;
+                top: -100vw;
+                left: 0;
             }
-            #artplayer-container { visibility: hidden; }
-        }
-        @media screen and (orientation: landscape) {
-            #portrait-lock { display: none; }
-            #artplayer-container { visibility: visible; }
         }
 
-        #portrait-lock p { font-weight: bold; letter-spacing: 2px; color: var(--flix-red); }
-
-        /* --- PLAYER LAYOUT --- */
-        #artplayer-container { width: 100vw; height: 100vh; background: #000; }
-
-        /* --- LOADER (No GIF) --- */
-        #loading-screen {
-            position: fixed; inset: 0; background: #000; z-index: 1000;
+        /* Flixer Theme Overrides */
+        .art-video-player .art-progress-played { background: var(--flix-red) !important; }
+        .art-video-player .art-progress-indicator { background: var(--flix-red) !important; }
+        .art-video-player .art-setting-item.art-setting-item-active { color: var(--flix-red) !important; }
+        
+        /* Simple Loader */
+        #loader {
+            position: fixed; inset: 0; background: #000; z-index: 999;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
         }
-        .spinner { width: 40px; height: 40px; border: 4px solid #333; border-top-color: var(--flix-red); border-radius: 50%; animation: spin 1s linear infinite; }
-        @keyframes spin { to { transform: rotate(360deg); } }
+        .spin { width: 40px; height: 40px; border: 3px solid #222; border-top-color: var(--flix-red); border-radius: 50%; animation: s 1s linear infinite; }
+        @keyframes s { to { transform: rotate(360deg); } }
 
-        /* --- BOTTOM CONTROL BAR ADJUSTMENTS --- */
-        .custom-controls-bottom {
-            position: absolute; bottom: 0; left: 0; right: 0;
-            background: linear-gradient(transparent, rgba(0,0,0,0.9));
-            padding: 10px 20px 25px 20px; z-index: 100;
-            display: flex; flex-direction: column; gap: 10px;
-        }
-
-        .control-row { display: flex; align-items: center; justify-content: space-between; width: 100%; }
-        
-        /* The "Sidebar" icons moved to bottom line */
-        .utility-icons { display: flex; gap: 30px; align-items: center; }
-        .util-btn { 
-            display: flex; flex-direction: column; align-items: center; 
-            cursor: pointer; opacity: 0.8; transition: 0.2s; 
-        }
-        .util-btn:hover { opacity: 1; color: var(--flix-red); }
-        .util-btn svg { width: var(--icon-size); height: var(--icon-size); fill: currentColor; }
-        .util-btn span { font-size: 9px; text-transform: uppercase; margin-top: 4px; font-weight: 800; }
-
-        .art-progress-played { background: var(--flix-red) !important; }
-        .art-progress-indicator { background: var(--flix-red) !important; }
-
-        /* Error Banner */
-        #error-banner {
-            position: fixed; top: 10%; left: 50%; transform: translateX(-50%);
-            background: rgba(255,0,0,0.2); border: 1px solid var(--flix-red);
-            padding: 10px 20px; border-radius: 5px; z-index: 1001; display: none;
-        }
+        #artplayer { width: 100vw; height: 100vh; }
     </style>
 </head>
 <body>
 
-    <div id="portrait-lock">
-        <p>ROTATE TO LANDSCAPE</p>
-    </div>
-
-    <div id="loading-screen">
-        <div class="spinner"></div>
-        <p id="load-msg" style="margin-top: 20px; font-size: 12px; letter-spacing: 2px;">SYNCING CONTENT...</p>
-    </div>
-
-    <div id="error-banner">SOURCE ERROR: ATTEMPTING FALLBACK...</div>
-
-    <div id="artplayer-container"></div>
+    <div id="loader"><div class="spin"></div><p style="color:white; margin-top:15px; font-family:sans-serif; font-size:12px; letter-spacing:2px;">LOADING STREAM...</p></div>
+    <div id="artplayer"></div>
 
     <script src="https://unpkg.com/artplayer/dist/artplayer.js"></script>
 
     <script>
-        // --- CONFIGURATION ---
-        const TMDB_KEY = "81f645c3d9ced06a366b0d829d844cfe";
         const API_BASE = "https://hdhub.thevolecitor.qzz.io/eyJ0b3Jib3giOiJ1bnNldCIsInF1YWxpdGllcyI6IjEwODBwLDcyMHAiLCJzb3J0IjoiZGVzYyJ9/stream";
         
-        // --- PARSING ---
+        // URL Data Fetching
         const path = window.location.pathname;
         const params = new URLSearchParams(window.location.search);
-        const imdbId = (path.match(/tt\d+/) || [params.get("id")])[0];
-        const segments = path.split('/').filter(x => x && !x.includes('tt') && !isNaN(x));
-        const s = segments[0] || params.get("s");
-        const e = segments[1] || params.get("e");
-        const isSeries = !!(s && e);
+        const id = (path.match(/tt\d+/) || [params.get("id")])[0];
+        const nums = path.split('/').filter(x => x && !x.includes('tt') && !isNaN(x));
+        const s = nums[0] || params.get("s");
+        const e = nums[1] || params.get("e");
 
-        let artInstance;
-
-        // --- THE ENGINE ---
-        async function boot() {
-            if (!imdbId) {
-                document.getElementById('load-msg').innerText = "FATAL: NO IMDB ID DETECTED";
-                return;
-            }
-
-            const streamUrl = isSeries 
-                ? `${API_BASE}/series/${imdbId}:${s}:${e}.json` 
-                : `${API_BASE}/movie/${imdbId}.json`;
+        async function start() {
+            if (!id) return;
+            const target = (s && e) ? `${API_BASE}/series/${id}:${s}:${e}.json` : `${API_BASE}/movie/${id}.json`;
 
             try {
-                // Dual-Proxy Strategy to fix "Video Load Fails"
-                let data;
-                try {
-                    const res = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(streamUrl)}`);
-                    data = await res.json();
-                } catch {
-                    const res = await fetch(`https://corsproxy.io/?${encodeURIComponent(streamUrl)}`);
-                    data = await res.json();
-                }
-
-                if (!data.streams || data.streams.length === 0) throw "No Streams";
-
-                const processedStreams = data.streams.map(st => {
+                // Multi-proxy approach to prevent playback errors
+                const res = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(target)}`);
+                const data = await res.json();
+                
+                const streams = (data.streams || []).map(st => {
                     let u = st.url;
-                    // Fix Pixeldrain Download Syntax
                     if (st.name.toLowerCase().includes("pixeldrain")) {
-                        const pid = u.split("/u/")[1] || u.split("/").pop();
-                        u = `https://pixeldrain.com/api/file/${pid}?download`;
+                        u = `https://pixeldrain.com/api/file/${u.split("/u/")[1] || u.split("/").pop()}?download`;
                     }
-                    // Fix FSL and others by forcing https
-                    if (u.startsWith("http://")) u = u.replace("http://", "https://");
                     return { name: st.name, url: u };
                 });
 
-                initArtPlayer(processedStreams);
+                if (streams.length > 0) initPlayer(streams);
+                else throw "No Streams Found";
 
             } catch (err) {
-                document.getElementById('load-msg').innerText = "FAILED TO CONNECT TO SERVER";
                 console.error(err);
+                document.getElementById('loader').innerHTML = '<p style="color:red">STREAM FAILED. PLEASE REFRESH.</p>';
             }
         }
 
-        function initArtPlayer(sources) {
-            artInstance = new Artplayer({
-                container: '#artplayer-container',
-                url: sources[0].url,
+        function initPlayer(list) {
+            const art = new Artplayer({
+                container: '#artplayer',
+                url: list[0].url,
                 autoplay: true,
                 fullscreen: true,
                 setting: true,
-                pip: true,
                 playbackRate: true,
                 aspectRatio: true,
+                pip: true,
                 autoOrientation: true,
-                // --- Vercel/VLC Compatibility Mode ---
+                // --- FIX FOR DOWNLOAD LINKS ---
                 type: 'm4v',
                 customType: {
                     m4v: function(video, url) {
                         video.src = url;
-                        video.crossOrigin = "anonymous"; // Essential for CORS bypass
+                        video.crossOrigin = "anonymous";
                     }
                 },
                 settings: [
                     {
                         width: 200,
-                        html: 'SERVER LIST',
-                        selector: sources.map(s => ({
-                            html: s.name,
-                            url: s.url,
-                            default: s === sources[0]
+                        html: 'SERVERS',
+                        selector: list.map(item => ({
+                            html: item.name,
+                            url: item.url,
                         })),
                         onSelect: function(item) {
-                            artInstance.switchUrl(item.url);
+                            art.switchUrl(item.url);
                             return item.html;
                         }
                     }
                 ],
-                // --- FLIXER BOTTOM UI ---
-                layers: [
+                controls: [
                     {
-                        name: 'bottom-controls',
-                        html: `
-                            <div class="custom-controls-bottom">
-                                <div class="control-row">
-                                    <div class="utility-icons">
-                                        <div class="util-btn" onclick="artInstance.setting.show = true">
-                                            <svg viewBox="0 0 24 24"><path d="M4 6h16v2H4zm0 5h16v2H4zm0 5h16v2H4z"/></svg>
-                                            <span>Episodes</span>
-                                        </div>
-                                        <div class="util-btn" onclick="artInstance.setting.show = true">
-                                            <svg viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h14l4 4V4c0-1.1-.9-2-2-2zm-2 12H6v-2h12v2zm0-3H6V9h12v2zm0-3H6V6h12v2z"/></svg>
-                                            <span>Subtitles</span>
-                                        </div>
-                                        <div class="util-btn" onclick="artInstance.setting.show = true">
-                                            <svg viewBox="0 0 24 24"><path d="M20 13H4c-.55 0-1 .45-1 1v6c0 .55.45 1 1 1h16c.55 0 1-.45 1-1v-6c0-.55-.45-1-1-1zM7 19c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zM20 3H4c-.55 0-1 .45-1 1v6c0 .55.45 1 1 1h16c.55 0 1-.45 1-1V4c0-.55-.45-1-1-1zM7 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z"/></svg>
-                                            <span>Servers</span>
-                                        </div>
-                                        <div class="util-btn" onclick="artInstance.setting.show = true">
-                                            <svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.21.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
-                                            <span>Settings</span>
-                                        </div>
-                                    </div>
-                                    <div class="logo" style="color:var(--flix-red); font-weight:900; letter-spacing:1px;">FLIXER</div>
-                                </div>
-                            </div>
-                        `,
-                        style: { display: 'block' },
-                    }
-                ]
+                        position: 'right',
+                        html: 'EPISODES',
+                        click: function () {
+                            art.setting.show = true; // Opens the server/episode list
+                        },
+                    },
+                ],
             });
 
-            // Handle Loading States
-            artInstance.on('ready', () => {
-                document.getElementById('loading-screen').style.display = 'none';
+            // Hide loader as soon as the video is actually ready to play
+            art.on('video:canplay', () => {
+                document.getElementById('loader').style.display = 'none';
                 
-                // --- AUDIO BOOST (5.0X) ---
+                // Audio Boost 5x
                 const actx = new (window.AudioContext || window.webkitAudioContext)();
-                const src = actx.createMediaElementSource(artInstance.video);
+                const src = actx.createMediaElementSource(art.video);
                 const gain = actx.createGain();
                 gain.gain.value = 5;
                 src.connect(gain).connect(actx.destination);
             });
 
-            // Failure Recovery
-            artInstance.on('video:error', () => {
-                document.getElementById('error-banner').style.display = 'block';
-                const currentIdx = sources.findIndex(s => s.url === artInstance.url);
-                if (currentIdx < sources.length - 1) {
-                    setTimeout(() => {
-                        artInstance.switchUrl(sources[currentIdx + 1].url);
-                        document.getElementById('error-banner').style.display = 'none';
-                    }, 2000);
+            // Auto-recovery if a link dies
+            art.on('video:error', () => {
+                const currentIdx = list.findIndex(s => s.url === art.url);
+                if (currentIdx < list.length - 1) {
+                    art.switchUrl(list[currentIdx + 1].url);
                 }
             });
 
-            // Hard Timeout: Hide loader after 12s no matter what
-            setTimeout(() => {
-                document.getElementById('loading-screen').style.display = 'none';
-            }, 12000);
+            window.art = art;
         }
 
-        boot();
+        start();
     </script>
 </body>
 </html>
