@@ -150,7 +150,11 @@ function initArt(sources) {
                     video.crossOrigin = 'anonymous';
                     video.src = url;
                     video.load();
-                    video.play().catch(function(e) { console.warn('Autoplay blocked:', e); });
+                    // Muted autoplay is always allowed, then unmute immediately
+                    video.muted = true;
+                    video.play().then(function() {
+                        video.muted = false;
+                    }).catch(function(e) { console.warn('Autoplay failed:', e); });
                 }
             }
         },
