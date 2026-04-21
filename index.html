@@ -3,177 +3,161 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Stream Pro - Flixer Edition</title>
+    <title>Flixer Pro Max</title>
     
     <link rel="stylesheet" href="https://unpkg.com/artplayer/dist/artplayer.css">
     
     <style>
-        :root { --red: #e50914; --glass: rgba(0, 0, 0, 0.8); }
+        :root { --red: #e50914; }
         body, html { margin: 0; padding: 0; width: 100%; height: 100%; background: #000; overflow: hidden; font-family: sans-serif; }
 
-        /* --- FORCE LANDSCAPE (NO GIF) --- */
+        /* Force Landscape */
         @media screen and (orientation: portrait) {
             #artplayer {
-                transform: rotate(90deg);
-                transform-origin: bottom left;
-                width: 100vh;
-                height: 100vw;
-                position: absolute;
-                top: -100vw;
-                left: 0;
+                transform: rotate(90deg); transform-origin: bottom left;
+                width: 100vh; height: 100vw; position: absolute; top: -100vw; left: 0;
             }
         }
 
-        /* --- FLIXER SIDEBAR (INTEGRATED) --- */
-        .flix-sidebar {
-            position: absolute; left: 0; top: 0; bottom: 0; width: 80px;
-            background: linear-gradient(to right, rgba(0,0,0,0.9), transparent);
-            display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 30px;
-            z-index: 10;
-        }
-        .side-item {
-            display: flex; flex-direction: column; align-items: center;
-            cursor: pointer; opacity: 0.6; transition: 0.3s; color: #fff;
-        }
-        .side-item:hover { opacity: 1; color: var(--red); }
-        .side-item svg { width: 24px; height: 24px; fill: currentColor; }
-        .side-item span { font-size: 9px; margin-top: 5px; text-transform: uppercase; font-weight: bold; }
-
-        /* --- UI OVERRIDES --- */
+        /* Flixer Theme - Red Progress & Hidden Default Context */
         .art-video-player .art-progress-played { background: var(--red) !important; }
         .art-video-player .art-progress-indicator { background: var(--red) !important; }
-        
+        .art-video-player .art-state { display: none !important; } /* Hide the big play button for cleaner look */
+
         /* Loading Screen */
-        #loading {
+        #loader {
             position: fixed; inset: 0; background: #000; z-index: 9999;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
         }
-        .bar { width: 100px; height: 2px; background: #222; position: relative; overflow: hidden; }
-        .bar::after { content: ''; position: absolute; left: 0; top: 0; height: 100%; width: 50%; background: var(--red); animation: load 1.5s infinite; }
-        @keyframes load { 0% { left: -50%; } 100% { left: 100%; } }
+        .dot-spinner { width: 40px; height: 40px; border: 3px solid rgba(255,255,255,0.1); border-top-color: var(--red); border-radius: 50%; animation: spin 0.8s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
 
-    <div id="loading"><div class="bar"></div><p style="color:#555; font-size:10px; margin-top:10px; letter-spacing:2px;">ESTABLISHING STREAM</p></div>
+    <div id="loader"><div class="dot-spinner"></div><p style="color:white; font-size:10px; margin-top:15px; letter-spacing:2px; font-weight:bold;">BYPASSING ERRORS...</p></div>
     <div id="artplayer"></div>
 
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
     <script src="https://unpkg.com/artplayer/dist/artplayer.js"></script>
 
     <script>
-        // NEW BASE URL
-        const BASE = "https://hdhub.thevolecitor.qzz.io/eyJ0b3Jib3giOiJ1bnNldCIsInF1YWxpdGllcyI6IjEwODBwLDcyMHAsNDgwcCIsInNvcnQiOiJkZXNjIn0/stream";
+        // CONFIG
+        const BASE_API = "https://hdhub.thevolecitor.qzz.io/eyJ0b3Jib3giOiJ1bnNldCIsInF1YWxpdGllcyI6IjEwODBwLDcyMHAsNDgwcCIsInNvcnQiOiJkZXNjIn0/stream";
         
+        // SLUG FIXER
         const path = window.location.pathname;
         const params = new URLSearchParams(window.location.search);
-        const id = (path.match(/tt\d+/) || [params.get("id")])[0];
-        const nums = path.split('/').filter(x => x && !x.includes('tt') && !isNaN(x));
-        const s = nums[0] || params.get("s");
-        const e = nums[1] || params.get("e");
+        
+        // Extract IMDB ID (must have tt)
+        let imdb = (path.match(/tt\d+/) || [params.get("id")])[0];
+        // Robust S/E Extraction
+        const segments = path.split('/').filter(x => x && !x.includes('tt') && !isNaN(x));
+        let s = segments[0] || params.get("s");
+        let e = segments[1] || params.get("e");
 
-        async function init() {
-            if (!id) return;
-            const target = (s && e) ? `${BASE}/series/${id}:${s}:${e}.json` : `${BASE}/movie/${id}.json`;
+        async function startEngine() {
+            if (!imdb) return;
+
+            // CORRECT SERIES SLUG FORMAT: tt1234567:1:1
+            const targetUrl = (s && e) 
+                ? `${BASE_API}/series/${imdb}:${s}:${e}.json` 
+                : `${BASE_API}/movie/${imdb}.json`;
 
             try {
-                // Using a direct fetch with fallback
-                const res = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(target)}`);
+                // Fetch with Proxy to avoid CORS scrap errors
+                const res = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`);
                 const data = await res.json();
                 
-                const sources = (data.streams || []).map(st => {
+                if (!data.streams || data.streams.length === 0) throw "No Streams";
+
+                const validSources = data.streams.map(st => {
                     let u = st.url;
-                    // Fix Pixeldrain Download URL
-                    if (st.name.toLowerCase().includes("pixeldrain")) {
-                        const pid = u.split("/u/")[1] || u.split("/").pop();
-                        u = `https://pixeldrain.com/api/file/${pid}?download`;
+                    // Auto-fix Pixeldrain
+                    if (u.includes("pixeldrain.com/u/")) {
+                        u = `https://pixeldrain.com/api/file/${u.split("/u/")[1]}?download`;
                     }
                     return { name: st.name, url: u };
                 });
 
-                if (sources.length > 0) startPlayer(sources);
-                else throw "Empty List";
+                initArt(validSources);
 
             } catch (err) {
-                document.getElementById('loading').innerHTML = '<p style="color:red">ERROR LOADING SOURCE</p>';
+                console.error("Scrape Error:", err);
+                document.getElementById('loader').innerHTML = '<p style="color:var(--red); font-weight:bold;">SOURCE SCRAPE FAILED</p>';
             }
         }
 
-        function startPlayer(list) {
+        function initArt(sources) {
             const art = new Artplayer({
                 container: '#artplayer',
-                url: list[0].url,
+                url: sources[0].url,
                 autoplay: true,
+                autoSize: true,
                 fullscreen: true,
                 setting: true,
                 playbackRate: true,
                 aspectRatio: true,
                 autoOrientation: true,
-                lock: true,
-                // --- THE "NO ERROR" ENGINE ---
-                type: 'video', 
+                pip: true,
+                // --- THE "NO ERROR" PLAYBACK ENGINE ---
+                type: 'm4v',
                 customType: {
-                    video: function(video, url) {
-                        video.src = url;
-                        video.crossOrigin = "anonymous"; // Fixes CORS "NotSupported"
-                        video.preload = "auto";
+                    m4v: function(video, url) {
+                        if (Hls.isSupported() && (url.includes('m3u8') || url.includes('castle'))) {
+                            const hls = new Hls();
+                            hls.loadSource(url);
+                            hls.attachMedia(video);
+                        } else {
+                            // Direct injection for download links / MKV / MP4
+                            video.src = url;
+                            video.crossOrigin = "anonymous";
+                        }
                     }
                 },
                 settings: [
                     {
-                        width: 200,
-                        html: 'SERVER LIST',
-                        selector: list.map(i => ({ html: i.name, url: i.url })),
-                        onSelect: function(i) {
-                            art.switchUrl(i.url);
-                            return i.html;
+                        width: 250,
+                        html: 'SERVERS',
+                        selector: sources.map(s => ({ html: s.name, url: s.url })),
+                        onSelect: function(item) {
+                            art.switchUrl(item.url);
+                            return item.html;
                         }
                     }
                 ],
-                layers: [
+                controls: [
                     {
-                        name: 'sidebar',
-                        html: `
-                        <div class="flix-sidebar">
-                            <div class="side-item" onclick="art.setting.show = true">
-                                <svg viewBox="0 0 24 24"><path d="M4 6h16v2H4zm0 5h16v2H4zm0 5h16v2H4z"/></svg>
-                                <span>Episodes</span>
-                            </div>
-                            <div class="side-item" onclick="art.setting.show = true">
-                                <svg viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h14l4 4V4c0-1.1-.9-2-2-2zm-2 12H6v-2h12v2zm0-3H6V9h12v2zm0-3H6V6h12v2z"/></svg>
-                                <span>Subtitles</span>
-                            </div>
-                            <div class="side-item" onclick="art.setting.show = true">
-                                <svg viewBox="0 0 24 24"><path d="M20 13H4c-.55 0-1 .45-1 1v6c0 .55.45 1 1 1h16c.55 0 1-.45 1-1v-6c0-.55-.45-1-1-1zM7 19c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zM20 3H4c-.55 0-1 .45-1 1v6c0 .55.45 1 1 1h16c.55 0 1-.45 1-1V4c0-.55-.45-1-1-1zM7 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z"/></svg>
-                                <span>Servers</span>
-                            </div>
-                        </div>`,
-                        style: { display: 'block' }
+                        position: 'right',
+                        html: '<span style="font-size:10px; font-weight:bold; background:var(--red); padding:3px 8px; border-radius:3px;">SERVERS</span>',
+                        click: function() { art.setting.show = true; }
                     }
                 ]
             });
 
             art.on('ready', () => {
-                document.getElementById('loading').style.display = 'none';
+                document.getElementById('loader').style.display = 'none';
                 
-                // 5x Audio Boost
-                try {
-                    const ctx = new (window.AudioContext || window.webkitAudioContext)();
-                    const s = ctx.createMediaElementSource(art.video);
-                    const g = ctx.createGain(); g.gain.value = 5;
-                    s.connect(g).connect(ctx.destination);
-                } catch(e) {}
+                // 5x Gain (Boost Audio)
+                const actx = new (window.AudioContext || window.webkitAudioContext)();
+                const src = actx.createMediaElementSource(art.video);
+                const gain = actx.createGain(); gain.gain.value = 5;
+                src.connect(gain).connect(actx.destination);
             });
 
-            // Auto-Switch on Fail
+            // Auto-recovery: If a link breaks, switch to next server
             art.on('video:error', () => {
-                const idx = list.findIndex(s => s.url === art.url);
-                if (idx < list.length - 1) art.switchUrl(list[idx + 1].url);
+                const curIdx = sources.findIndex(s => s.url === art.url);
+                if (curIdx < sources.length - 1) {
+                    console.warn("Playback Error. Switching to fallback...");
+                    art.switchUrl(sources[curIdx + 1].url);
+                }
             });
 
             window.art = art;
         }
 
-        init();
+        startEngine();
     </script>
 </body>
 </html>
