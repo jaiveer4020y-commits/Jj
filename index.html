@@ -7,104 +7,27 @@
     <title>Flixer Pro Max</title>
     <link rel="stylesheet" href="https://unpkg.com/artplayer/dist/artplayer.css">
     <style>
-        :root { --red: #e50914; --bg: #0a0a0a; }
+        :root { --red: #e50914; }
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; background: #000; overflow: hidden; font-family: sans-serif; }
 
 ```
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-    body, html {
-        width: 100%; height: 100%;
-        background: var(--bg);
-        overflow: hidden;
-        font-family: 'Segoe UI', sans-serif;
-    }
-
-    /* ── PORTRAIT → ROTATE ── */
     @media screen and (orientation: portrait) {
         #artplayer {
-            transform: rotate(90deg);
-            transform-origin: bottom left;
-            width: 100vh;
-            height: 100vw;
-            position: absolute;
-            top: -100vw;
-            left: 0;
+            transform: rotate(90deg); transform-origin: bottom left;
+            width: 100vh; height: 100vw; position: absolute; top: -100vw; left: 0;
         }
     }
 
-    /* ── ARTPLAYER THEME ── */
-    .art-video-player .art-progress-played  { background: var(--red) !important; }
+    .art-video-player .art-progress-played { background: var(--red) !important; }
     .art-video-player .art-progress-indicator { background: var(--red) !important; }
     .art-video-player .art-state { display: none !important; }
 
-    /* ── LOADER ── */
     #loader {
-        position: fixed; inset: 0;
-        background: var(--bg);
-        z-index: 9999;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        gap: 18px;
-        transition: opacity 0.4s ease;
+        position: fixed; inset: 0; background: #000; z-index: 9999;
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
     }
-    #loader.hide { opacity: 0; pointer-events: none; }
-
-    .logo {
-        font-size: 28px;
-        font-weight: 900;
-        letter-spacing: -1px;
-        color: var(--red);
-    }
-    .logo span { color: #fff; }
-
-    .spinner {
-        width: 44px; height: 44px;
-        border: 3px solid rgba(255,255,255,0.08);
-        border-top-color: var(--red);
-        border-radius: 50%;
-        animation: spin 0.75s linear infinite;
-    }
+    .dot-spinner { width: 40px; height: 40px; border: 3px solid rgba(255,255,255,0.1); border-top-color: var(--red); border-radius: 50%; animation: spin 0.8s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
-
-    #loader-msg {
-        color: rgba(255,255,255,0.45);
-        font-size: 10px;
-        letter-spacing: 3px;
-        text-transform: uppercase;
-    }
-
-    /* ── ERROR OVERLAY ── */
-    #error-box {
-        display: none;
-        position: fixed; inset: 0;
-        background: var(--bg);
-        z-index: 9999;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        gap: 14px;
-        color: #fff;
-        text-align: center;
-        padding: 24px;
-    }
-    #error-box.show { display: flex; }
-    #error-box .err-icon { font-size: 48px; }
-    #error-box h2 { font-size: 16px; color: var(--red); letter-spacing: 1px; }
-    #error-box p  { font-size: 12px; color: rgba(255,255,255,0.5); max-width: 300px; line-height: 1.6; }
-    #error-box button {
-        margin-top: 8px;
-        background: var(--red);
-        border: none;
-        color: #fff;
-        padding: 10px 24px;
-        border-radius: 4px;
-        font-size: 12px;
-        font-weight: 700;
-        letter-spacing: 1px;
-        cursor: pointer;
-    }
 
     #artplayer { width: 100%; height: 100%; }
 </style>
@@ -113,25 +36,10 @@
 </head>
 <body>
 
-<!-- LOADER -->
-
 <div id="loader">
-    <div class="logo">FLIXTER<span> PRO</span></div>
-    <div class="spinner"></div>
-    <p id="loader-msg">FETCHING SOURCES…</p>
+    <div class="dot-spinner"></div>
+    <p style="color:white; font-size:10px; margin-top:15px; letter-spacing:2px; font-weight:bold;" id="loader-msg">FETCHING SOURCES...</p>
 </div>
-
-<!-- ERROR -->
-
-<div id="error-box">
-    <div class="err-icon">⚠️</div>
-    <h2>PLAYBACK FAILED</h2>
-    <p id="error-detail">All servers and proxies exhausted. Try again later or check the URL.</p>
-    <button onclick="retryAll()">↺ RETRY</button>
-</div>
-
-<!-- PLAYER -->
-
 <div id="artplayer"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
@@ -139,237 +47,123 @@
 <script src="https://unpkg.com/artplayer/dist/artplayer.js"></script>
 
 <script>
-/* ═══════════════════════════════════════════════
-   CONFIG
-═══════════════════════════════════════════════ */
 const BASE_API = "https://hdhub.thevolecitor.qzz.io/eyJ0b3Jib3giOiJ1bnNldCIsInF1YWxpdGllcyI6IjEwODBwLDcyMHAsNDgwcCIsInNvcnQiOiJkZXNjIn0/stream";
 
-// Multiple CORS proxies — tried in order until one works
-const CORS_PROXIES = [
-    url => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
-    url => `https://corsproxy.io/?${encodeURIComponent(url)}`,
-    url => `https://proxy.cors.sh/${url}`,
-    url => `https://cors-anywhere.herokuapp.com/${url}`,
-];
-
-/* ═══════════════════════════════════════════════
-   URL PARSING
-═══════════════════════════════════════════════ */
-const path   = window.location.pathname;
+const path = window.location.pathname;
 const params = new URLSearchParams(window.location.search);
-
 let imdb = (path.match(/tt\d+/) || [params.get("id")])[0];
 const segs = path.split('/').filter(x => x && !x.match(/tt\d+/) && !isNaN(x));
 let s = segs[0] || params.get("s");
 let e = segs[1] || params.get("e");
 
-/* ═══════════════════════════════════════════════
-   HELPERS
-═══════════════════════════════════════════════ */
-function setMsg(txt) {
-    document.getElementById('loader-msg').textContent = txt;
-}
-
-function showError(detail) {
-    document.getElementById('loader').classList.add('hide');
-    document.getElementById('error-detail').textContent = detail || 'Unknown error.';
-    document.getElementById('error-box').classList.add('show');
-}
-
-function hideLoader() {
-    const l = document.getElementById('loader');
-    l.classList.add('hide');
-    setTimeout(() => l.style.display = 'none', 450);
-}
-
+// ── URL FIXER ──────────────────────────────────────────────
 function fixUrl(url) {
     if (!url) return url;
-    // Pixeldrain: direct download API
+
+    // Pixeldrain: /api/file/{id} WITHOUT ?download = streaming endpoint
+    // ?download forces browser to download the file instead of playing it
     if (url.includes('pixeldrain.com/u/')) {
-        return `https://pixeldrain.com/api/file/${url.split('/u/')[1].split('?')[0]}?download`;
+        const id = url.split('/u/')[1].split('?')[0].split('/')[0];
+        return 'https://pixeldrain.com/api/file/' + id;
     }
-    // Ensure protocol
+
     if (url.startsWith('//')) return 'https:' + url;
     return url;
 }
 
 function isHLS(url) {
-    return /\.(m3u8)(\?|$)/i.test(url) || url.includes('manifest') || url.includes('playlist');
+    return /\.m3u8/i.test(url) || url.includes('castle');
 }
 
-function isMKV(url) {
-    return /\.mkv(\?|$)/i.test(url);
-}
-
-/* ═══════════════════════════════════════════════
-   CORS PROXY FETCH — tries each proxy in order
-═══════════════════════════════════════════════ */
-async function fetchWithProxies(targetUrl) {
-    let lastErr;
-    for (let i = 0; i < CORS_PROXIES.length; i++) {
-        const proxied = CORS_PROXIES[i](targetUrl);
-        setMsg(`TRYING PROXY ${i + 1}/${CORS_PROXIES.length}…`);
-        try {
-            const res = await fetch(proxied, { signal: AbortSignal.timeout(8000) });
-            if (!res.ok) throw new Error(`HTTP ${res.status}`);
-            const data = await res.json();
-            if (data && (data.streams || data.url || data.sources)) return data;
-            throw new Error('Empty payload');
-        } catch (err) {
-            console.warn(`Proxy ${i + 1} failed:`, err.message);
-            lastErr = err;
-        }
-    }
-    throw lastErr || new Error('All proxies failed');
-}
-
-/* ═══════════════════════════════════════════════
-   MAIN ENGINE
-═══════════════════════════════════════════════ */
+// ── FETCH API ──────────────────────────────────────────────
 async function startEngine() {
     if (!imdb) {
-        showError('No IMDB ID found in URL. Append /tt1234567 or ?id=tt1234567');
+        document.getElementById('loader').innerHTML = '<p style="color:var(--red);font-weight:bold;">NO IMDB ID IN URL</p>';
         return;
     }
 
     const targetUrl = (s && e)
-        ? `${BASE_API}/series/${imdb}:${parseInt(s)}:${parseInt(e)}.json`
-        : `${BASE_API}/movie/${imdb}.json`;
-
-    console.log('Fetching:', targetUrl);
+        ? BASE_API + '/series/' + imdb + ':' + parseInt(s) + ':' + parseInt(e) + '.json'
+        : BASE_API + '/movie/' + imdb + '.json';
 
     try {
-        setMsg('CONTACTING SERVER…');
-        const data = await fetchWithProxies(targetUrl);
+        document.getElementById('loader-msg').textContent = 'CONTACTING SERVER...';
+        const res = await fetch(targetUrl);
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const data = await res.json();
 
-        // Normalise stream list — handle different API shapes
-        let rawStreams = data.streams || data.sources || (data.url ? [{ name: 'Server 1', url: data.url }] : []);
-        if (!Array.isArray(rawStreams) || rawStreams.length === 0) throw new Error('No streams in response');
+        if (!data.streams || data.streams.length === 0) throw new Error('No streams');
 
-        const sources = rawStreams
-            .filter(st => st && (st.url || st.file))
-            .map((st, i) => ({
-                name: st.name || st.label || `Server ${i + 1}`,
-                url:  fixUrl(st.url || st.file)
-            }));
+        const sources = data.streams.map(function(st) {
+            return { name: st.name, url: fixUrl(st.url) };
+        });
 
-        if (sources.length === 0) throw new Error('All stream URLs were empty');
-
-        setMsg('LAUNCHING PLAYER…');
         initArt(sources);
 
     } catch (err) {
-        console.error('Engine error:', err);
-        showError(`Scrape failed: ${err.message}. Check API or try a different ID.`);
+        console.error('Scrape Error:', err);
+        document.getElementById('loader').innerHTML = '<p style="color:var(--red);font-weight:bold;">SOURCE SCRAPE FAILED<br><span style="font-size:10px;color:#888">' + err.message + '</span></p>';
     }
 }
 
-/* ═══════════════════════════════════════════════
-   ARTPLAYER INIT
-═══════════════════════════════════════════════ */
-function buildCustomType(sources) {
-    return {
-        // Handles HLS, MKV, MP4, and direct download links
-        m4v: function(video, url, art) {
-            // Destroy any previous HLS instance
-            if (art._hlsInstance) {
-                art._hlsInstance.destroy();
-                art._hlsInstance = null;
-            }
-
-            url = fixUrl(url);
-            console.log('Loading URL:', url);
-
-            if (isHLS(url) && Hls.isSupported()) {
-                const hls = new Hls({
-                    enableWorker: true,
-                    lowLatencyMode: false,
-                    fragLoadingTimeOut: 20000,
-                    manifestLoadingTimeOut: 20000,
-                    xhrSetup: function(xhr) {
-                        xhr.timeout = 15000;
-                    }
-                });
-                hls.loadSource(url);
-                hls.attachMedia(video);
-                hls.on(Hls.Events.MANIFEST_PARSED, () => {
-                    video.play().catch(() => {});
-                });
-                hls.on(Hls.Events.ERROR, function(event, data) {
-                    if (data.fatal) {
-                        switch (data.type) {
-                            case Hls.ErrorTypes.NETWORK_ERROR:
-                                console.warn('HLS network error, recovering…');
-                                hls.startLoad();
-                                break;
-                            case Hls.ErrorTypes.MEDIA_ERROR:
-                                console.warn('HLS media error, recovering…');
-                                hls.recoverMediaError();
-                                break;
-                            default:
-                                console.error('HLS fatal error, triggering fallback');
-                                hls.destroy();
-                                art.emit('video:error', new Error('HLS fatal'));
-                                break;
-                        }
-                    }
-                });
-                art._hlsInstance = hls;
-
-            } else if (isHLS(url) && video.canPlayType('application/vnd.apple.mpegurl')) {
-                // Safari native HLS
-                video.src = url;
-                video.play().catch(() => {});
-
-            } else {
-                // Direct MP4 / MKV / download link
-                video.src = url;
-                video.crossOrigin = 'anonymous';
-                // For MKV on browsers that don't support it, we can't do much
-                // but set the src and let the browser try
-                if (isMKV(url)) {
-                    console.warn('MKV detected — browser support varies. Chrome recommended.');
-                }
-                video.load();
-                video.play().catch(() => {});
-            }
-        }
-    };
-}
-
+// ── PLAYER ─────────────────────────────────────────────────
 function initArt(sources) {
-    const art = new Artplayer({
+    var hlsInstance = null;
+
+    var art = new Artplayer({
         container: '#artplayer',
         url: sources[0].url,
         type: 'm4v',
         autoplay: true,
         autoSize: true,
         fullscreen: true,
-        fullscreenWeb: true,
         setting: true,
         playbackRate: true,
         aspectRatio: true,
         autoOrientation: true,
         pip: true,
-        volume: 1,
-        muted: false,
-        hotkey: true,
-        screenshot: false,
 
-        customType: buildCustomType(sources),
+        customType: {
+            m4v: function(video, url) {
+                if (hlsInstance) { hlsInstance.destroy(); hlsInstance = null; }
 
-        // Server switcher in settings panel
+                url = fixUrl(url);
+
+                if (isHLS(url)) {
+                    if (Hls.isSupported()) {
+                        hlsInstance = new Hls({ enableWorker: true });
+                        hlsInstance.loadSource(url);
+                        hlsInstance.attachMedia(video);
+                        hlsInstance.on(Hls.Events.MANIFEST_PARSED, function() { video.play(); });
+                        hlsInstance.on(Hls.Events.ERROR, function(_, data) {
+                            if (data.fatal) {
+                                if (data.type === Hls.ErrorTypes.MEDIA_ERROR) hlsInstance.recoverMediaError();
+                                else { hlsInstance.destroy(); hlsInstance = null; art.emit('video:error'); }
+                            }
+                        });
+                    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+                        video.src = url;
+                        video.play();
+                    }
+                } else {
+                    // Direct MP4 / MKV / Pixeldrain
+                    video.crossOrigin = 'anonymous';
+                    video.src = url;
+                    video.load();
+                    video.play().catch(function(e) { console.warn('Autoplay blocked:', e); });
+                }
+            }
+        },
+
         settings: [
             {
-                width: 260,
-                html: '📡 &nbsp;SERVERS',
-                selector: sources.map((s, i) => ({
-                    html: `<span style="font-size:11px">${s.name}</span>`,
-                    url: s.url,
-                    default: i === 0
-                })),
+                width: 250,
+                html: 'SERVERS',
+                selector: sources.map(function(s, i) {
+                    return { html: s.name, url: s.url, default: i === 0 };
+                }),
                 onSelect: function(item) {
-                    switchToUrl(art, item.url);
+                    art.switchUrl(fixUrl(item.url), 'm4v');
                     return item.html;
                 }
             }
@@ -378,80 +172,44 @@ function initArt(sources) {
         controls: [
             {
                 position: 'right',
-                html: '<span style="font-size:10px;font-weight:700;background:var(--red);padding:3px 10px;border-radius:3px;letter-spacing:1px">SERVERS</span>',
+                html: '<span style="font-size:10px;font-weight:bold;background:var(--red);padding:3px 8px;border-radius:3px;">SERVERS</span>',
                 click: function() { art.setting.show = !art.setting.show; }
             }
         ]
     });
 
-    // Player ready
-    art.on('ready', () => {
-        hideLoader();
-        boostAudio(art);
-        console.log('Player ready ✓');
+    art.on('ready', function() {
+        document.getElementById('loader').style.display = 'none';
+        try {
+            var ctx = new (window.AudioContext || window.webkitAudioContext)();
+            var src = ctx.createMediaElementSource(art.video);
+            var gain = ctx.createGain();
+            gain.gain.value = 5;
+            src.connect(gain).connect(ctx.destination);
+        } catch(e) { console.warn('AudioContext:', e.message); }
     });
 
-    // Auto-fallback on error
-    let lastAutoSwitch = 0;
-    art.on('video:error', () => {
-        const now = Date.now();
-        if (now - lastAutoSwitch < 2000) return; // debounce
-        lastAutoSwitch = now;
-
-        const curIdx = sources.findIndex(s => s.url === art.url);
-        const nextIdx = curIdx + 1;
-
-        if (nextIdx < sources.length) {
-            console.warn(`Server ${curIdx + 1} failed → trying server ${nextIdx + 1}`);
-            setMsg(`SERVER ${curIdx + 1} FAILED, TRYING ${nextIdx + 1}…`);
-            setTimeout(() => switchToUrl(art, sources[nextIdx].url), 800);
+    var switching = false;
+    art.on('video:error', function() {
+        if (switching) return;
+        switching = true;
+        var curIdx = sources.findIndex(function(src) { return fixUrl(src.url) === fixUrl(art.url); });
+        var next = curIdx + 1;
+        if (next < sources.length) {
+            console.warn('Server ' + (curIdx+1) + ' failed, trying ' + (next+1));
+            setTimeout(function() {
+                switching = false;
+                art.switchUrl(fixUrl(sources[next].url), 'm4v');
+            }, 500);
         } else {
-            showError('All servers failed. The content may be offline or geo-blocked.');
+            document.getElementById('loader').style.display = 'flex';
+            document.getElementById('loader').innerHTML = '<p style="color:var(--red);font-weight:bold;">ALL SERVERS FAILED</p>';
         }
     });
 
     window.art = art;
 }
 
-/* ═══════════════════════════════════════════════
-   SWITCH URL (works for both HLS & direct)
-═══════════════════════════════════════════════ */
-function switchToUrl(art, url) {
-    url = fixUrl(url);
-    art.url = url; // triggers customType handler via artplayer
-    // Artplayer switchUrl also triggers type handler:
-    art.switchUrl(url, 'm4v');
-}
-
-/* ═══════════════════════════════════════════════
-   AUDIO BOOST (5× gain)
-═══════════════════════════════════════════════ */
-function boostAudio(art) {
-    try {
-        const ctx  = new (window.AudioContext || window.webkitAudioContext)();
-        const src  = ctx.createMediaElementSource(art.video);
-        const gain = ctx.createGain();
-        gain.gain.value = 5;
-        src.connect(gain);
-        gain.connect(ctx.destination);
-    } catch(e) {
-        console.warn('AudioContext boost failed (harmless):', e.message);
-    }
-}
-
-/* ═══════════════════════════════════════════════
-   RETRY BUTTON
-═══════════════════════════════════════════════ */
-function retryAll() {
-    document.getElementById('error-box').classList.remove('show');
-    document.getElementById('loader').classList.remove('hide');
-    document.getElementById('loader').style.display = '';
-    startEngine();
-}
-
-/* ═══════════════════════════════════════════════
-   KICK OFF
-═══════════════════════════════════════════════ */
 startEngine();
 </script>
 
