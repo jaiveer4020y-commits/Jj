@@ -1460,8 +1460,8 @@ async function fetchStreamFromRenderApi(slug) {
                     data.stream_url ||
                     data.hls_url    ||
                     data.m3u8_url   ||
-                    (typeof data === 'string' && data.includes('') ? data : null);
-                if (raw && typeof raw === 'string' && raw.includes('.m3u8?v=xxxxxxxxxx')) {
+                    (typeof data === 'string' && data.includes('.m3u8') ? data : null);
+                if (raw && typeof raw === 'string' && raw.includes('.m3u8')) {
                     console.log(`[RenderAPI] Got stream on attempt ${attempt}:`, raw);
                     return proxyUrl(raw);
                 }
