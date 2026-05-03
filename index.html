@@ -1395,7 +1395,7 @@ function initHlsPlayer(url) {
      Movie:   movie.name.year          e.g. avatar.2009
      TV:      series.name.s01e01       e.g. breaking.bad.s01e01
    ------------------------------------------------------------------------- */
-const RENDER_API  = 'https://workingg.vercel.app/api/proxy?url=https://u-1-1azw.onrender.com/api/get-stream';
+const RENDER_API  = 'https://u-1-1azw.onrender.com/api/get-stream';
 const PROXY_BASE  = 'https://workingg.vercel.app/api/proxy?url=';
 const MAX_RETRIES = 5;
 const RETRY_DELAY = 2000; // ms between retries
@@ -1404,6 +1404,85 @@ const RETRY_DELAY = 2000; // ms between retries
 function proxyUrl(rawUrl) {
     return PROXY_BASE + encodeURIComponent(rawUrl);
 }
+
+/* -------------------------------------------------------------------------
+   HDHUB FSL STREAMING SOURCE
+   Priority 1 (movies only) — fetches IMDB ID from TMDB, then queries
+   HDHub stremio endpoint. Only picks streams whose description contains
+   "[FSL]". The direct download URL is used as a progressive video source.
+
+   Movie endpoint : /stream/movie/ttXXXXXXX.json
+   Series endpoint: /stream/series/ttXXXXXXX:season:episode.json
+   ------------------------------------------------------------------------- */
+const HDHUB_BASE = 'https://hdhub.thevolecitor.qzz.io/eyJ0b3Jib3giOiJ1bnNldCIsInF1YWxpdGllcyI6IjEwODBwLDcyMHAsNDgwcCIsInNvcnQiOiJkZXNjIn0';
+
+/**
+ * Fetch IMDB ID for a TMDB movie or TV show.
+ * TMDB external_ids endpoint returns { imdb_id: "ttXXXXXXX" }.
+ */
+async function fetchImdbId(type, tmdbId) {
+    try {
+        const endpoint = type === 'movie'
+            ? `${TMDB_PROXY}/movie/${tmdbId}/external_ids`
+            : `${TMDB_PROXY}/tv/${tmdbId}/external_ids`;
+        const res = await fetch(endpoint);
+        if (!res.ok) return null;
+        const data = await res.json();
+        return data.imdb_id || null;
+    } catch (err) {
+        console.warn('[HDHub] fetchImdbId failed:', err.message);
+        return null;
+    }
+}
+
+/**
+ * Query HDHub stremio addon and return the first FSL stream URL, or null.
+ * The FSL stream `url` is a direct file download link — we serve it
+ * straight to the video element as a progressive source (no proxy needed,
+ * no m3u8 wrapping).
+ */
+async function fetchStreamFromHDHub(type, imdbId, season, episode) {
+    try {
+        let apiUrl;
+        if (type === 'movie') {
+            apiUrl = `${HDHUB_BASE}/stream/movie/${imdbId}.json`;
+        } else {
+            apiUrl = `${HDHUB_BASE}/stream/series/${imdbId}:${season}:${episode}.json`;
+        }
+        console.log('[HDHub] Fetching:', apiUrl);
+
+        const res = await fetch(apiUrl, { cache: 'no-store' });
+        if (!res.ok) {
+            console.warn('[HDHub] HTTP', res.status);
+            return null;
+        }
+
+        const data = await res.json();
+        const streams = data.streams || [];
+
+        // Pick only FSL streams (description must contain "[FSL]")
+        const fslStreams = streams.filter(s =>
+            s.description && s.description.includes('[FSL]') && s.url
+        );
+
+        if (!fslStreams.length) {
+            console.warn('[HDHub] No FSL streams found in response.');
+            return null;
+        }
+
+        // Prefer 1080p if available, else take the first FSL stream
+        const best = fslStreams.find(s => s.name && s.name.includes('1080p')) || fslStreams[0];
+        console.log('[HDHub] Selected FSL stream:', best.name, best.url);
+        return best.url; // direct download URL — no proxy wrapping
+    } catch (err) {
+        console.warn('[HDHub] Fetch error:', err.message);
+        return null;
+    }
+}
+
+/* -------------------------------------------------------------------------
+   RENDER API STREAMING SOURCE (second priority)
+   ------------------------------------------------------------------------- */
 
 /**
  * Build the API slug for a movie or TV episode.
@@ -1459,7 +1538,7 @@ async function fetchStreamFromRenderApi(slug) {
                     data.url        ||
                     data.stream_url ||
                     data.hls_url    ||
-                    data.m3u8_url   ||
+                    data.m3u8       ||
                     (typeof data === 'string' && data.includes('.m3u8') ? data : null);
                 if (raw && typeof raw === 'string' && raw.includes('.m3u8')) {
                     console.log(`[RenderAPI] Got stream on attempt ${attempt}:`, raw);
@@ -1478,57 +1557,75 @@ async function fetchStreamFromRenderApi(slug) {
     return null;
 }
 
+/* -------------------------------------------------------------------------
+   Helper: spin up playback once a stream URL is resolved.
+   Shared by all success paths so behaviour is identical.
+   ------------------------------------------------------------------------- */
+function _startPlayback(url, type, id, season, episode) {
+    _revokeAllSubtitleBlobs();
+    stopProgressSaving();
+    hasRestoredPosition = false;
+    if (hlsInstance) { hlsInstance.destroy(); hlsInstance = null; }
+    Array.from(video.querySelectorAll('track[data-github], track[data-wyzie]')).forEach(t => t.remove());
+    errorMessageDiv.classList.add('hidden');
+    resolvedUrl     = url;
+    videoStorageKey = generateStorageKey(url);
+    initHlsPlayer(url);
+    if (type === 'movie') {
+        loadSubtitlesFromGithub('movie', id);
+        loadSubtitlesFromWyzie('movie', id);
+        fetchAndSetTitle('movie', id);
+    } else {
+        loadSubtitlesFromGithub('tv', id, season, episode);
+        loadSubtitlesFromWyzie('tv', id, season, episode);
+        fetchAndSetTitle('tv', id, season, episode);
+    }
+}
+
 /**
- * Master stream resolver.
- *   1. Tries Render API (primary) — URL is proxied before use.
- *   2. Falls back to GitHub raw files on failure.
+ * Master stream resolver — priority chain:
+ *   1. HDHub FSL (movies AND series) — direct download URL, no proxy
+ *   2. Render API — proxied m3u8 URL
+ *   3. GitHub raw files — final fallback
  * Subtitles + title are loaded after the stream is resolved.
  */
 async function resolveStreamWithFallback(type, id, season, episode) {
     showLoader();
 
-    // Build API slug from TMDB title
-    const slug = await buildApiSlug(type, id, season, episode);
-    let primaryUrl = null;
-
-    if (slug) {
-        primaryUrl = await fetchStreamFromRenderApi(slug);
+    // ---- Step 1: HDHub FSL ----
+    const imdbId = await fetchImdbId(type, id);
+    if (imdbId) {
+        const hdhubUrl = await fetchStreamFromHDHub(type, imdbId, season, episode);
+        if (hdhubUrl) {
+            console.log('[Stream] Using HDHub FSL source');
+            _startPlayback(hdhubUrl, type, id, season, episode);
+            return;
+        }
+        console.warn('[Stream] HDHub FSL failed, trying Render API...');
     } else {
-        console.warn('[Stream] Could not build slug — skipping primary source.');
+        console.warn('[Stream] Could not get IMDB ID, skipping HDHub.');
     }
 
-    if (primaryUrl) {
-        // ---- Primary succeeded ----
-        console.log('[Stream] Using primary source (Render API + proxy)');
-        _revokeAllSubtitleBlobs();
-        stopProgressSaving();
-        hasRestoredPosition = false;
-        if (hlsInstance) { hlsInstance.destroy(); hlsInstance = null; }
-        Array.from(video.querySelectorAll('track[data-github], track[data-wyzie]')).forEach(t => t.remove());
-        errorMessageDiv.classList.add('hidden');
-        resolvedUrl     = primaryUrl;
-        videoStorageKey = generateStorageKey(primaryUrl);
-        initHlsPlayer(primaryUrl);
-
-        // Load subtitles and title
-        if (type === 'movie') {
-            loadSubtitlesFromGithub('movie', id);
-            loadSubtitlesFromWyzie('movie', id);
-            fetchAndSetTitle('movie', id);
-        } else {
-            loadSubtitlesFromGithub('tv', id, season, episode);
-            loadSubtitlesFromWyzie('tv', id, season, episode);
-            fetchAndSetTitle('tv', id, season, episode);
+    // ---- Step 2: Render API ----
+    const slug = await buildApiSlug(type, id, season, episode);
+    if (slug) {
+        const renderUrl = await fetchStreamFromRenderApi(slug);
+        if (renderUrl) {
+            console.log('[Stream] Using Render API source');
+            _startPlayback(renderUrl, type, id, season, episode);
+            return;
         }
+        console.warn('[Stream] Render API failed, falling back to GitHub...');
     } else {
-        // ---- Primary failed — fall back to GitHub ----
-        console.warn('[Stream] Primary source failed. Falling back to GitHub.');
-        if (type === 'movie') {
-            await playMovieGithub(id);
-        } else {
-            await playEpisodeGithub(id, season, episode);
-        }
-        // subtitle/title loading is handled inside the Github fallback functions
+        console.warn('[Stream] Could not build slug, skipping Render API.');
+    }
+
+    // ---- Step 3: GitHub fallback ----
+    console.warn('[Stream] All primary sources failed. Using GitHub fallback.');
+    if (type === 'movie') {
+        await playMovieGithub(id);
+    } else {
+        await playEpisodeGithub(id, season, episode);
     }
 }
 
