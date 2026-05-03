@@ -1095,7 +1095,7 @@ async function source_hdhub(type, id, season, episode) {
         const best = streams.find(s=>s.name&&s.name.includes('1080p')) || streams[0];
         console.log('[HDHub] Selected:', best.name);
         /* HDHub FSL URLs are direct video files — proxy them so CORS is handled */
-        return proxyUrl(best.url);
+        return (best.url);
     } catch(e) { console.warn('[HDHub] Error:', e.message); return null; }
 }
 
@@ -1114,7 +1114,7 @@ async function source_render(type, id, season, episode) {
     if (!slug) return null;
     for (let i = 1; i <= MAX_RETRIES; i++) {
         try {
-            const apiUrl = `${RENDER_API}?title=${encodeURIComponent(slug)}`;
+            const apiUrl = `${PROXY_BASE}${RENDER_API}?title=${encodeURIComponent(slug)}`;
             console.log(`[Render] Attempt ${i}/${MAX_RETRIES}:`, apiUrl);
             const r = await fetch(apiUrl, {cache:'no-store'});
             if (r.ok) {
