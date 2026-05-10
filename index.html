@@ -52,7 +52,6 @@
         }
         @media(max-width:1000px){
             #right-controlbuttons{width:; justify-content:center;}
-            #next-episode-button{position: relative;right: 0;}
             #speed-button{position: relative;left: 0;}
             #bottom-controls-row{justify-content: center;}
             #left-controlbuttons{display:none;}
@@ -84,7 +83,7 @@
         @media(max-width:500px){
             #back-button, #report-button, #mobile-title{display:none !important;}
             #right-controlbuttons{width:unset; justify-content:space-between;}
-            #next-episode-button, #speed-button{position:relative;}
+            #speed-button{position:relative;}
         }
         #mobile-title { display: none; }
         @media(max-width:999px){
@@ -167,7 +166,7 @@
         .report-submit-btn:disabled { opacity: 0.5; cursor: not-allowed; }
         @media (max-width: 480px) { .report-modal-box { padding: 16px; } .report-modal-title { font-size: 16px; } }
 
-        /* ---- QUALITY MENU (added) ---- */
+        /* ---- QUALITY MENU ---- */
         #quality-menu {
             position: absolute;
             bottom: 4rem;
@@ -183,6 +182,132 @@
         #quality-list { list-style: none; margin: 0; padding: 0; font-size: .875rem; }
         #quality-list li { padding: 6px 10px; cursor: pointer; border-radius: 4px; transition: background .15s; }
         #quality-list li:hover { background: rgba(255,255,255,.1); }
+
+        /* ---- SUBTITLE SYNC MENU (added) ---- */
+        #sub-sync-menu {
+            position: absolute;
+            bottom: 4rem;
+            right: 0;
+            width: 15rem;
+            border-radius: .4rem;
+            box-shadow: 0 25px 50px -12px rgba(0,0,0,.5);
+            padding: .85rem;
+            background: #262626;
+            color: #fff;
+            z-index: 50;
+        }
+        #sub-sync-menu h5 {
+            margin: 0 0 .6rem 0;
+            font-size: .8rem;
+            font-weight: 700;
+            color: #e5e7eb;
+            letter-spacing: .04em;
+            text-transform: uppercase;
+        }
+        .sub-sync-presets {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            margin-bottom: .65rem;
+        }
+        .sub-sync-btn {
+            background: #383838;
+            border: none;
+            color: #fff;
+            font-size: .75rem;
+            font-family: 'Netflix Sans', sans-serif;
+            padding: 5px 9px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background .15s;
+            font-weight: 500;
+        }
+        .sub-sync-btn:hover { background: rgba(225,0,0,.8); }
+        .sub-sync-btn.active { background: rgb(225,0,0); font-weight: 700; }
+        .sub-sync-current {
+            text-align: center;
+            font-size: .82rem;
+            color: #d1d5db;
+            margin-bottom: .55rem;
+        }
+        .sub-sync-current span {
+            font-weight: 700;
+            color: #fff;
+        }
+        .sub-sync-custom-row {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: .3rem;
+        }
+        .sub-sync-custom-row label {
+            font-size: .72rem;
+            color: #9ca3af;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+        .sub-sync-custom-row input[type=number] {
+            flex: 1;
+            background: #1a1a1a;
+            border: 1px solid #444;
+            color: #fff;
+            border-radius: 4px;
+            padding: 5px 8px;
+            font-size: .8rem;
+            font-family: 'Netflix Sans', sans-serif;
+            outline: none;
+            width: 0;
+        }
+        .sub-sync-custom-row input[type=number]:focus { border-color: rgb(225,0,0); }
+        .sub-sync-custom-row button {
+            background: rgb(225,0,0);
+            border: none;
+            color: #fff;
+            font-size: .75rem;
+            font-weight: 700;
+            font-family: 'Netflix Sans', sans-serif;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+        .sub-sync-reset {
+            width: 100%;
+            margin-top: .5rem;
+            background: #383838;
+            border: none;
+            color: #9ca3af;
+            font-size: .72rem;
+            font-family: 'Netflix Sans', sans-serif;
+            padding: 5px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background .15s, color .15s;
+        }
+        .sub-sync-reset:hover { background: #444; color: #fff; }
+
+        /* mobile: full-screen sub sync menu */
+        @media (max-width: 999px) {
+            #sub-sync-menu:not(.hidden) {
+                position: fixed !important;
+                top: 0 !important; left: 0 !important; right: 0 !important; bottom: 0 !important;
+                width: 100% !important; height: 100% !important;
+                border-radius: 0 !important;
+                z-index: 99999 !important;
+                display: flex !important;
+                flex-direction: column !important;
+                justify-content: center !important;
+                padding: 2rem !important;
+                background: #000 !important;
+                box-sizing: border-box;
+            }
+            #sub-sync-menu h5 { font-size: 1rem; margin-bottom: 1rem; }
+            .sub-sync-btn { font-size: .9rem; padding: 8px 14px; }
+            .sub-sync-current { font-size: 1rem; }
+            .sub-sync-custom-row input[type=number] { font-size: .9rem; padding: 8px 10px; }
+            .sub-sync-custom-row button { font-size: .85rem; padding: 8px 14px; }
+            .sub-sync-reset { font-size: .85rem; padding: 8px; margin-top: 1rem; }
+        }
     </style>
 </head>
 <body>
@@ -289,13 +414,8 @@
                     </div>
                 </div>
 
+                <!-- RIGHT CONTROLS — next episode button REMOVED -->
                 <div id="right-controlbuttons" class="flex items-center space-x-1 md:space-x-2 relative">
-                    <button id="next-episode-button" class="bottom-control-button text-white flex items-center justify-center md:h-9 md:w-9 flex-shrink-0 cursor-pointer focus:outline-none mobile-labeled-btn hidden" title="Next Episode">
-                        <svg width="100%" height="100%" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" class="w-6 h-6 md:w-full md:h-full flex-shrink-0">
-                            <path fill-rule="evenodd" clip-rule="evenodd" d="M22 3H20V21H22V3ZM4.28615 3.61729C3.28674 3.00228 2 3.7213 2 4.89478V19.1052C2 20.2787 3.28674 20.9977 4.28615 20.3827L15.8321 13.2775C16.7839 12.6918 16.7839 11.3082 15.8321 10.7225L4.28615 3.61729ZM4 18.2104V5.78956L14.092 12L4 18.2104Z" fill="currentColor"></path>
-                        </svg>
-                        <span class="mobile-btn-label">Next Episode</span>
-                    </button>
 
                     <!-- Audio & Subtitles -->
                     <div class="relative" id="audio-subtitle-wrapper">
@@ -336,7 +456,7 @@
                         <ul id="speed-list" class="space-y-1 text-sm"></ul>
                     </div>
 
-                    <!-- QUALITY BUTTON (added) -->
+                    <!-- QUALITY BUTTON -->
                     <div style="position:relative;">
                         <button id="quality-button" class="bottom-control-button text-white flex items-center justify-center md:h-9 md:w-9 flex-shrink-0 cursor-pointer focus:outline-none mobile-labeled-btn" title="Video Quality">
                             <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" fill="none" aria-hidden="true" class="w-6 h-6 md:w-full md:h-full flex-shrink-0" viewBox="0 0 24 24">
@@ -346,6 +466,40 @@
                         </button>
                         <div id="quality-menu" class="hidden">
                             <ul id="quality-list"></ul>
+                        </div>
+                    </div>
+
+                    <!-- SUBTITLE SYNC BUTTON (added) -->
+                    <div style="position:relative;">
+                        <button id="sub-sync-button" class="bottom-control-button text-white flex items-center justify-center md:h-9 md:w-9 flex-shrink-0 cursor-pointer focus:outline-none mobile-labeled-btn" title="Subtitle Sync">
+                            <!-- Clock + CC icon combination -->
+                            <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" fill="none" aria-hidden="true" class="w-6 h-6 md:w-full md:h-full flex-shrink-0" viewBox="0 0 24 24">
+                                <path fill="currentColor" fill-rule="evenodd" d="M12 2a10 10 0 1 0 0 20A10 10 0 0 0 12 2zm0 2a8 8 0 1 1 0 16A8 8 0 0 1 12 4zm-1 3v5.414l3.293 3.293-1.414 1.414L9 13.414V7h2zm-4 9h1.5a1.5 1.5 0 0 0 0-3H7v5h1v-2zm1.5-1.5a.5.5 0 0 1 0 1H8v-1zM13 13h1.5a1.5 1.5 0 0 0 0-3H12v5h1v-2zm1.5-1.5a.5.5 0 0 1 0 1H13v-1z" clip-rule="evenodd"></path>
+                            </svg>
+                            <span class="mobile-btn-label">Sub Sync</span>
+                        </button>
+                        <!-- Subtitle sync panel -->
+                        <div id="sub-sync-menu" class="hidden">
+                            <h5>Subtitle Sync</h5>
+                            <div class="sub-sync-current">Current offset: <span id="sub-sync-display">0.0s</span></div>
+                            <div class="sub-sync-presets">
+                                <button class="sub-sync-btn" data-offset="-5">-5s</button>
+                                <button class="sub-sync-btn" data-offset="-4">-4s</button>
+                                <button class="sub-sync-btn" data-offset="-3">-3s</button>
+                                <button class="sub-sync-btn" data-offset="-2">-2s</button>
+                                <button class="sub-sync-btn" data-offset="-1">-1s</button>
+                                <button class="sub-sync-btn" data-offset="+1">+1s</button>
+                                <button class="sub-sync-btn" data-offset="+2">+2s</button>
+                                <button class="sub-sync-btn" data-offset="+3">+3s</button>
+                                <button class="sub-sync-btn" data-offset="+4">+4s</button>
+                                <button class="sub-sync-btn" data-offset="+5">+5s</button>
+                            </div>
+                            <div class="sub-sync-custom-row">
+                                <label>Custom (s):</label>
+                                <input type="number" id="sub-sync-custom-input" step="0.1" min="-30" max="30" placeholder="e.g. -1.5">
+                                <button id="sub-sync-custom-apply">Set</button>
+                            </div>
+                            <button class="sub-sync-reset" id="sub-sync-reset">Reset to 0</button>
                         </div>
                     </div>
 
@@ -393,7 +547,7 @@
 
 <script>
 /* =========================================================================
-   DOM ELEMENTS  — identical to core code
+   DOM ELEMENTS
    ========================================================================= */
 const video                = document.getElementById('video');
 const videoContainer       = document.getElementById('video-container');
@@ -437,7 +591,7 @@ const mobileSkipBackwardButton = document.getElementById('mobile-skip-backward-b
 const mobileSkipForwardButton  = document.getElementById('mobile-skip-forward-button');
 
 /* =========================================================================
-   DOUBLE-TAP SKIP  — identical
+   DOUBLE-TAP SKIP
    ========================================================================= */
 let lastTap = 0;
 videoContainer.addEventListener('touchend', e => {
@@ -454,7 +608,7 @@ function handleSkipBackward() { video.currentTime = Math.max(0, video.currentTim
 function handleSkipForward()  { video.currentTime = Math.min(video.duration, video.currentTime + 10); resetInactivityTimer(); }
 
 /* =========================================================================
-   SPEED  — identical
+   SPEED
    ========================================================================= */
 const speedButton   = document.getElementById('speed-button');
 const speedMenu     = document.getElementById('speed-menu');
@@ -466,7 +620,7 @@ const SPEED_OPTIONS = [
 ];
 
 /* =========================================================================
-   STATE  — identical + tiny additions
+   STATE
    ========================================================================= */
 const urlParams          = new URLSearchParams(window.location.search);
 let resolvedUrl          = null;
@@ -500,7 +654,7 @@ function getFullLanguageName(code) {
 }
 
 /* =========================================================================
-   UI HELPERS  — identical
+   UI HELPERS
    ========================================================================= */
 function displayError(msg) {
     console.error(msg);
@@ -533,6 +687,12 @@ function updateProgress() {
     seekThumb.style.left = `calc(${pct}% - 3px)`;
     remainingTimeDisplay.textContent = `${formatTime(video.duration - video.currentTime)}`;
 }
+function isAnyMenuOpen() {
+    return !audioSubtitleMenu.classList.contains('hidden') ||
+           !speedMenu.classList.contains('hidden') ||
+           !document.getElementById('quality-menu').classList.contains('hidden') ||
+           !document.getElementById('sub-sync-menu').classList.contains('hidden');
+}
 function showControls() {
     if (!loadingIndicator.classList.contains('hidden')) {
         bottomOverlay.classList.remove('controls-hidden'); bottomOverlay.classList.add('controls-visible'); return;
@@ -542,8 +702,7 @@ function showControls() {
     centerPlayPauseOverlay.classList.add('opacity-100','pointer-events-auto');
 }
 function hideControls() {
-    if (audioSubtitleMenu.classList.contains('hidden') && speedMenu.classList.contains('hidden') &&
-        document.getElementById('quality-menu').classList.contains('hidden')) {
+    if (!isAnyMenuOpen()) {
         bottomOverlay.classList.remove('controls-visible'); bottomOverlay.classList.add('controls-hidden');
         centerPlayPauseOverlay.classList.remove('opacity-100','pointer-events-auto');
         centerPlayPauseOverlay.classList.add('opacity-0','pointer-events-none');
@@ -560,9 +719,7 @@ function updateCenterPlayPauseIcon(paused) {
 }
 function resetInactivityTimer() {
     clearTimeout(inactivityTimer); showControls();
-    if (!video.paused && !isSeeking && audioSubtitleMenu.classList.contains('hidden') &&
-        speedMenu.classList.contains('hidden') && document.getElementById('quality-menu').classList.contains('hidden') &&
-        loadingIndicator.classList.contains('hidden')) {
+    if (!video.paused && !isSeeking && !isAnyMenuOpen() && loadingIndicator.classList.contains('hidden')) {
         inactivityTimer = setTimeout(hideControls, INACTIVITY_TIMEOUT);
     }
 }
@@ -583,16 +740,14 @@ function toggleMute() {
     updateVolumeSlider(); resetInactivityTimer();
 }
 function toggleVideoPlayPause() {
-    if (audioSubtitleMenu.classList.contains('hidden') && speedMenu.classList.contains('hidden') &&
-        document.getElementById('quality-menu').classList.contains('hidden') &&
-        loadingIndicator.classList.contains('hidden')) {
+    if (!isAnyMenuOpen() && loadingIndicator.classList.contains('hidden')) {
         if (video.paused||video.ended) video.play().catch(e=>displayError('Play failed: '+e.message));
         else video.pause();
     }
 }
 
 /* =========================================================================
-   SEEKING  — identical
+   SEEKING
    ========================================================================= */
 function calculateNewTime(clientX) {
     const rect=seekBar.getBoundingClientRect(); let pos=clientX-rect.left;
@@ -625,7 +780,7 @@ function endSeeking(e) {
 }
 
 /* =========================================================================
-   FULLSCREEN  — identical
+   FULLSCREEN
    ========================================================================= */
 function isMobileDevice() { return /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent)||(navigator.maxTouchPoints>1&&window.innerWidth<=1024); }
 function lockLandscape() { try { if(screen.orientation?.lock) screen.orientation.lock('landscape').catch(()=>{}); } catch(e){} }
@@ -648,7 +803,7 @@ function updateFullscreenIcon() {
 }
 
 /* =========================================================================
-   AUDIO / SUBTITLE MENU  — identical
+   AUDIO / SUBTITLE MENU
    ========================================================================= */
 function toggleAudioSubtitleMenu() {
     const hidden=audioSubtitleMenu.classList.contains('hidden');
@@ -660,6 +815,8 @@ function handleDocumentClick(e) {
     if(!speedMenu.classList.contains('hidden')&&!speedMenu.contains(e.target)&&!speedButton.contains(e.target)){speedMenu.classList.add('hidden');resetInactivityTimer();}
     const qm=document.getElementById('quality-menu'),qb=document.getElementById('quality-button');
     if(!qm.classList.contains('hidden')&&!qm.contains(e.target)&&!qb.contains(e.target)){qm.classList.add('hidden');resetInactivityTimer();}
+    const sm=document.getElementById('sub-sync-menu'),sb=document.getElementById('sub-sync-button');
+    if(!sm.classList.contains('hidden')&&!sm.contains(e.target)&&!sb.contains(e.target)&&window.innerWidth>=1000){sm.classList.add('hidden');resetInactivityTimer();}
 }
 function renderTracksMenu() {
     audioList.innerHTML=''; subtitleList.innerHTML='';
@@ -749,7 +906,7 @@ function handleTrackSelection(type,idx,hlsIdx) {
 }
 
 /* =========================================================================
-   SPEED LOGIC  — identical
+   SPEED LOGIC
    ========================================================================= */
 function renderSpeedMenu() {
     speedList.innerHTML='';
@@ -773,8 +930,7 @@ document.addEventListener('click',handleDocumentClick);
 document.addEventListener('keydown',handleSpeedKeyboard);
 
 /* =========================================================================
-   QUALITY MENU  (added — new feature)
-   Reads HLS levels from hls.js and lets user pick a fixed quality.
+   QUALITY MENU
    ========================================================================= */
 const qualityButton = document.getElementById('quality-button');
 const qualityMenu   = document.getElementById('quality-menu');
@@ -786,15 +942,13 @@ function renderQualityMenu() {
         const li = document.createElement('li'); li.textContent = 'N/A'; li.style.color = '#9ca3af'; qualityList.appendChild(li); return;
     }
     const levels  = hlsInstance.levels;
-    const current = hlsInstance.currentLevel; // -1 = auto
-    // Auto option
+    const current = hlsInstance.currentLevel;
     const autoLi = document.createElement('li');
     autoLi.textContent = 'Auto';
     autoLi.style.fontWeight = current === -1 ? '700' : '400';
     autoLi.style.color = current === -1 ? '#fff' : '#9ca3af';
     autoLi.addEventListener('click', () => { hlsInstance.currentLevel = -1; renderQualityMenu(); qualityMenu.classList.add('hidden'); resetInactivityTimer(); });
     qualityList.appendChild(autoLi);
-    // Level options
     levels.forEach((level, i) => {
         const li  = document.createElement('li');
         const lbl = level.height ? `${level.height}p` : `Level ${i}`;
@@ -813,7 +967,121 @@ function toggleQualityMenu() {
 qualityButton.addEventListener('click', e => { e.stopPropagation(); toggleQualityMenu(); });
 
 /* =========================================================================
-   PROGRESS SAVE / RESTORE  — identical
+   SUBTITLE SYNC  (added)
+
+   How it works:
+   - _subSyncOffset (seconds) is the current delay applied to all cues.
+   - Positive offset = subtitles appear later (video is ahead of audio).
+   - Negative offset = subtitles appear earlier.
+   - We shift every cue's startTime and endTime by the delta each time
+     the offset changes, so it works for HLS, GitHub, and Wyzie tracks.
+   ========================================================================= */
+let _subSyncOffset = 0; // current total offset in seconds
+
+const subSyncButton      = document.getElementById('sub-sync-button');
+const subSyncMenu        = document.getElementById('sub-sync-menu');
+const subSyncDisplay     = document.getElementById('sub-sync-display');
+const subSyncCustomInput = document.getElementById('sub-sync-custom-input');
+const subSyncPresets     = document.querySelectorAll('.sub-sync-btn');
+
+/** Apply a new total offset to all text track cues (shifts by delta from current). */
+function applySubSyncOffset(newOffset) {
+    const delta = newOffset - _subSyncOffset;
+    _subSyncOffset = newOffset;
+
+    const tracks = video.textTracks ? Array.from(video.textTracks)
+        .filter(t => (t.kind === 'subtitles' || t.kind === 'captions') && t.cues) : [];
+
+    tracks.forEach(track => {
+        Array.from(track.cues).forEach(cue => {
+            cue.startTime += delta;
+            cue.endTime   += delta;
+        });
+    });
+
+    updateSubSyncUI();
+}
+
+function updateSubSyncUI() {
+    const sign = _subSyncOffset > 0 ? '+' : '';
+    subSyncDisplay.textContent = `${sign}${_subSyncOffset.toFixed(1)}s`;
+
+    // Update active state on preset buttons
+    subSyncPresets.forEach(btn => {
+        // Preset buttons are cumulative increments, not absolute values.
+        // We highlight none (they apply a delta, not set absolute).
+        btn.classList.remove('active');
+    });
+
+    // Show reset button highlighted if offset ≠ 0
+    document.getElementById('sub-sync-reset').style.color = _subSyncOffset !== 0 ? '#fff' : '#9ca3af';
+}
+
+function toggleSubSyncMenu() {
+    const hidden = subSyncMenu.classList.contains('hidden');
+    if (hidden) {
+        updateSubSyncUI();
+        subSyncMenu.classList.remove('hidden');
+        clearTimeout(inactivityTimer);
+        showControls();
+    } else {
+        subSyncMenu.classList.add('hidden');
+        resetInactivityTimer();
+    }
+}
+
+subSyncButton.addEventListener('click', e => { e.stopPropagation(); toggleSubSyncMenu(); });
+
+// Preset buttons apply a DELTA (e.g. clicking -1s subtracts 1 second from current offset)
+subSyncPresets.forEach(btn => {
+    btn.addEventListener('click', e => {
+        e.stopPropagation();
+        const delta = parseFloat(btn.dataset.offset);
+        applySubSyncOffset(_subSyncOffset + delta);
+    });
+});
+
+// Custom input
+document.getElementById('sub-sync-custom-apply').addEventListener('click', e => {
+    e.stopPropagation();
+    const val = parseFloat(subSyncCustomInput.value);
+    if (!isNaN(val)) {
+        applySubSyncOffset(val); // sets ABSOLUTE offset
+        subSyncCustomInput.value = '';
+    }
+});
+subSyncCustomInput.addEventListener('keydown', e => {
+    if (e.key === 'Enter') {
+        e.preventDefault();
+        const val = parseFloat(subSyncCustomInput.value);
+        if (!isNaN(val)) { applySubSyncOffset(val); subSyncCustomInput.value = ''; }
+    }
+    e.stopPropagation(); // prevent player shortcuts while typing
+});
+
+// Reset
+document.getElementById('sub-sync-reset').addEventListener('click', e => {
+    e.stopPropagation();
+    applySubSyncOffset(0);
+});
+
+// When a new track is added (HLS cues load later), re-apply the current offset
+// so sync stays consistent when switching tracks.
+video.textTracks && video.textTracks.addEventListener('addtrack', e => {
+    if (_subSyncOffset === 0) return;
+    const t = e.track;
+    if (t.kind !== 'subtitles' && t.kind !== 'captions') return;
+    // Wait a tick for cues to load
+    setTimeout(() => {
+        if (t.cues) Array.from(t.cues).forEach(cue => {
+            cue.startTime += _subSyncOffset;
+            cue.endTime   += _subSyncOffset;
+        });
+    }, 200);
+});
+
+/* =========================================================================
+   PROGRESS SAVE / RESTORE
    ========================================================================= */
 function generateStorageKey(url){return `video_progress:${url}`;}
 function saveVideoProgress(){
@@ -850,7 +1118,7 @@ function postTimeUpdateToParent(){
 }
 
 /* =========================================================================
-   UI CONTROL BINDINGS  — identical
+   UI CONTROL BINDINGS
    ========================================================================= */
 function setupUIControls() {
     const container=videoContainer;
@@ -887,39 +1155,27 @@ function setupUIControls() {
     video.addEventListener('pause',()=>{showControls();updateBottomPlayPauseIcon(true);updateCenterPlayPauseIcon(true);clearTimeout(inactivityTimer);});
     video.addEventListener('play',()=>{updateBottomPlayPauseIcon(false);updateCenterPlayPauseIcon(false);resetInactivityTimer();});
     video.addEventListener('ended',()=>{showControls();updateBottomPlayPauseIcon(true);updateCenterPlayPauseIcon(true);hideLoader();});
-    const nextEpisodeButton=document.getElementById('next-episode-button');
-    nextEpisodeButton.addEventListener('click',()=>{
-        const tvMatch=window.location.pathname.match(/\/tv\/(\d+)\/S(\d+)\/E(\d+)/i);
-        if(!tvMatch)return;
-        playEpisode(tvMatch[1],Number(tvMatch[2]),Number(tvMatch[3])+1);
-    });
+    /* next episode button removed — no listener needed */
     updateNextEpisodeButtonVisibility();
 }
 
 async function updateNextEpisodeButtonVisibility() {
-    const nextEpisodeButton=document.getElementById('next-episode-button');
-    const tvMatch=window.location.pathname.match(/\/tv\/(\d+)\/S(\d+)\/E(\d+)/i);
-    if(!tvMatch){nextEpisodeButton.classList.add('hidden');return;}
-    nextEpisodeButton.classList.add('hidden');
-    const seriesId=tvMatch[1],seasonNumber=Number(tvMatch[2]),nextEpisode=Number(tvMatch[3])+1;
-    try{
-        const githubJsonUrl=`https://raw.githubusercontent.com/Watchout2025/api/refs/heads/main/hls/tv/${seriesId}/S${seasonNumber}.json`;
-        const res=await fetch(githubJsonUrl,{cache:'no-store'});if(!res.ok)return;
-        const data=await res.json();if(data[nextEpisode])nextEpisodeButton.classList.remove('hidden');
-    }catch(e){console.warn('updateNextEpisodeButtonVisibility failed:',e.message);}
+    /* next episode button removed — function kept as no-op to avoid call errors */
 }
 
 function setupInactivityDetection() {
     if(!isHlsJsMode&&video.audioTracks)video.audioTracks.addEventListener('change',renderTracksMenu);
     lastKnownVolume=video.volume>0?video.volume:.5;
     updateProgress();updateBufferProgress();updateVolumeSlider();updateFullscreenIcon();
-    updateNextEpisodeButtonVisibility();
+    /* reset sub sync offset when new stream starts */
+    _subSyncOffset = 0;
+    updateSubSyncUI();
     if(video.paused||video.ended){showControls();updateBottomPlayPauseIcon(true);updateCenterPlayPauseIcon(true);}
     else{updateBottomPlayPauseIcon(false);updateCenterPlayPauseIcon(false);resetInactivityTimer();}
 }
 
 /* =========================================================================
-   VOLUME SLIDER  — identical
+   VOLUME SLIDER
    ========================================================================= */
 function calculateNewVolume(clientY){const rect=volumeSliderTrack.getBoundingClientRect();let dist=rect.bottom-clientY;dist=Math.max(0,Math.min(dist,rect.height));return dist/rect.height;}
 function handleVolumeAdjust(e){e.preventDefault();const y=e.touches?e.touches[0].clientY:e.clientY;const vol=calculateNewVolume(y);video.volume=vol;if(vol>0){video.muted=false;lastKnownVolume=vol;}else video.muted=true;updateVolumeSlider();}
@@ -929,7 +1185,7 @@ volumeSliderTrack.addEventListener('mousedown',startVolumeAdjusting);
 volumeSliderTrack.addEventListener('touchstart',startVolumeAdjusting,{passive:true});
 
 /* =========================================================================
-   KEYBOARD SHORTCUTS  — identical
+   KEYBOARD SHORTCUTS
    ========================================================================= */
 function handleKeyboardShortcuts(e){
     if(['INPUT','TEXTAREA'].includes(e.target.tagName))return;
@@ -958,7 +1214,7 @@ function handleKeyboardShortcuts(e){
 document.addEventListener('keydown',handleKeyboardShortcuts);
 
 /* =========================================================================
-   HLS / DIRECT VIDEO INIT  — identical
+   HLS / DIRECT VIDEO INIT
    ========================================================================= */
 function isDirectVideoUrl(url){try{const path=new URL(url).pathname.toLowerCase();return/\.(mp4|webm|ogg|ogv|mov|mkv|avi|flv|m4v)(\?|$)/.test(path);}catch(e){return/\.(mp4|webm|ogg|ogv|mov|mkv|avi|flv|m4v)(\?|$)/.test(url.toLowerCase());}}
 
@@ -1005,22 +1261,13 @@ function initHlsPlayer(url){
 }
 
 /* =========================================================================
-   *** PRIMARY SOURCE — multimovies.fyi via hls-proxy (ADDED) ***
-
-   Slug formats:
-     Movie:   https://multimovies.fyi/movie/{slug}/
-     Series:  https://multimovies.fyi/episodes/{show}-{season}x{episode}/
-
-   The slug is derived from the TMDB title + TMDB episode data.
-   API endpoint:  https://hls-proxy.vercel.app/api/?url={multimovies_url}
-   Proxy for playback: https://workingg.vercel.app/api/proxy?source=2&url={streaming_url}
+   PRIMARY SOURCE — multimovies.fyi via hls-proxy
    ========================================================================= */
 const TMDB_PROXY      = 'https://search-proxy.bingeoutofficial.workers.dev';
 const MULTIMOVIES_API = 'https://hls-proxy.vercel.app/api/?url=';
 const PROXY_SOURCE2   = 'https://workingg.vercel.app/api/proxy?source=2&url=';
 const PROXY_SOURCE1   = 'https://workingg.vercel.app/api/proxy?source=1&url=';
 
-/** Convert a title string to a URL slug (lowercase, spaces→hyphens, strip specials) */
 function toSlug(str) {
     return (str || '')
         .toLowerCase()
@@ -1029,10 +1276,6 @@ function toSlug(str) {
         .replace(/\s+/g, '-');
 }
 
-/**
- * Fetch TMDB title data for movie or TV.
- * Returns { title, year } for movies or { name, seasonNum, episodeNum } for TV.
- */
 async function fetchTmdbData(type, id, season, episode) {
     try {
         if (type === 'movie') {
@@ -1048,11 +1291,6 @@ async function fetchTmdbData(type, id, season, episode) {
     } catch (e) { console.warn('[TMDB]', e.message); return null; }
 }
 
-/**
- * Call hls-proxy with a multimovies URL.
- * Returns proxied streaming_url on success, null on failure.
- * Tries StreamP2p server first (highest quality), then any available server.
- */
 async function fetchFromMultimovies(multimoviesUrl) {
     try {
         const apiUrl = PROXY_SOURCE2 + MULTIMOVIES_API + encodeURIComponent(multimoviesUrl);
@@ -1063,22 +1301,16 @@ async function fetchFromMultimovies(multimoviesUrl) {
         if (data.status !== 'success' || !Array.isArray(data.servers) || !data.servers.length) {
             console.warn('[Multimovies] Bad response:', data.status); return null;
         }
-        // Prefer StreamP2p, fall back to first successful server
         const preferred = data.servers.find(s => s.provider === 'StreamP2p' && s.result?.streaming_url);
         const fallback  = data.servers.find(s => s.result?.streaming_url);
         const server    = preferred || fallback;
         if (!server) { console.warn('[Multimovies] No server with streaming_url'); return null; }
         const rawUrl = server.result.streaming_url;
         console.log('[Multimovies] Got stream from', server.provider, rawUrl);
-        // Wrap through proxy source=2
         return PROXY_SOURCE2 + encodeURIComponent(rawUrl);
     } catch (e) { console.warn('[Multimovies] Error:', e.message); return null; }
 }
 
-/**
- * Primary source: multimovies.fyi
- * Builds the correct URL from TMDB data, calls hls-proxy.
- */
 async function source_multimovies(type, id, season, episode) {
     const tmdb = await fetchTmdbData(type, id, season, episode);
     if (!tmdb) { console.warn('[Multimovies] No TMDB data'); return null; }
@@ -1093,7 +1325,6 @@ async function source_multimovies(type, id, season, episode) {
         if (!showSlug) return null;
         const s = String(tmdb.seasonNum).padStart(2, '0');
         const e = String(tmdb.episodeNum).padStart(2, '0');
-        // Format: /episodes/{show-slug}-{season}x{episode}/  e.g. dark-1x1
         multimoviesUrl = `https://multimovies.fyi/episodes/${showSlug}-${parseInt(s)}x${parseInt(e)}/`;
     }
 
@@ -1102,10 +1333,8 @@ async function source_multimovies(type, id, season, episode) {
 }
 
 /* =========================================================================
-   *** FALLBACK SOURCES (kept identical to core code) ***
+   GITHUB FALLBACK
    ========================================================================= */
-
-/* --- Fallback 1: GitHub raw HLS --- */
 async function playMovie(movieId) {
     _revokeAllSubtitleBlobs();
     showLoader();
@@ -1144,7 +1373,7 @@ async function playEpisode(seriesId, seasonNumber, episodeNumber) {
 }
 
 /* =========================================================================
-   ROUTE DISPATCHER  (updated: try multimovies first, fall back to GitHub)
+   ROUTE DISPATCHER
    ========================================================================= */
 async function resolveAndPlay() {
     const path = window.location.pathname;
@@ -1182,7 +1411,6 @@ async function resolveAndPlay() {
             loadSubtitlesFromGithub('tv', id, season, episode);
             loadSubtitlesFromWyzie('tv', id, season, episode);
             fetchAndSetTitle('tv', id, season, episode);
-            updateNextEpisodeButtonVisibility();
         } else {
             console.warn('[Router] TV multimovies failed → GitHub fallback');
             await playEpisode(id, season, episode);
@@ -1190,13 +1418,12 @@ async function resolveAndPlay() {
         return;
     }
 
-    /* Fallback: ?url= query param or hardcoded default */
     const hlsUrl = urlParams.get('url') || 'https://vidmmo.com/hls/ZDBtrL1WMPQipj3EubEdG6tAKeYJ0Nt3/master.m3u8';
     initHlsPlayer(hlsUrl);
 }
 
 /* =========================================================================
-   TMDB TITLE FETCHING  — identical
+   TMDB TITLE FETCHING
    ========================================================================= */
 async function fetchAndSetTitle(type, id, season, episode) {
     try {
@@ -1220,7 +1447,7 @@ async function fetchAndSetTitle(type, id, season, episode) {
 }
 
 /* =========================================================================
-   SUBTITLES — GITHUB  — identical
+   SUBTITLES — GITHUB
    ========================================================================= */
 const GITHUB_RAW = 'https://raw.githubusercontent.com/Watchout2025/api/refs/heads/main';
 const LANG_LABELS = {eng:'English',hin:'Hindi',ara:'Arabic',fra:'French',spa:'Spanish',por:'Portuguese',rus:'Russian',zho:'Chinese',jpn:'Japanese',kor:'Korean',ger:'German',ita:'Italian',tam:'Tamil',tel:'Telugu',mal:'Malayalam',ben:'Bengali',mar:'Marathi',urd:'Urdu',pol:'Polish',tur:'Turkish',nld:'Dutch',swe:'Swedish',nor:'Norwegian',dan:'Danish',fin:'Finnish',ind:'Indonesian',tha:'Thai',vie:'Vietnamese',ces:'Czech',hun:'Hungarian',ron:'Romanian',bul:'Bulgarian',hrv:'Croatian',srp:'Serbian',slk:'Slovak',ukr:'Ukrainian',heb:'Hebrew',fas:'Persian',msa:'Malay'};
@@ -1253,7 +1480,7 @@ async function loadSubtitlesFromGithub(type, id, season, episode) {
 }
 
 /* =========================================================================
-   SUBTITLES — WYZIE  — identical
+   SUBTITLES — WYZIE
    ========================================================================= */
 const WYZIE_API='https://sub.wyzie.io/search';
 const WYZIE_KEY='wyzie-ea127adc7693d78810f9cf157f267ea0';
@@ -1282,7 +1509,7 @@ async function loadSubtitlesFromWyzie(type,id,season,episode){
 window.onload = () => { setupUIControls(); resolveAndPlay(); };
 
 /* =========================================================================
-   REPORT ISSUE MODAL  — identical
+   REPORT ISSUE MODAL
    ========================================================================= */
 const reportModal=document.getElementById('reportModal');
 const issueTypeSelect=document.getElementById('issueType');
