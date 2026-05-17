@@ -1,3 +1,6 @@
+Here is the complete HTML code for your video player with all the requested changes implemented.
+
+```html
 <html lang="en"><head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -38,7 +41,7 @@
 
         html,body{height:100%;width:100vw;margin:0;padding:0;overflow:hidden;font-family:'Netflix Sans',sans-serif;background:#000}
         body{padding-bottom:env(safe-area-inset-bottom)}
-        .bottom-control-button:hover {transform:scale(1.3)}
+        .bottom-control-button:hover {transform:scale(1.1)}
         #timeline-row{display:flex;width:100%;box-sizing:border-box;gap:1rem;align-items:center;position:relative}
         #bottom-controls-row{display:flex;width:100%;padding-top:4px;gap:8px;box-sizing:border-box;position:relative;margin-top:0}
         .bottom-control-button{background:transparent;border-radius:.2rem;border:none;color:#fff;cursor:pointer;padding:0;margin:0 !important;position:relative;transition:transform 200ms;width:3rem;height:3rem;}
@@ -162,152 +165,71 @@
         .report-modal-body select:focus, .report-modal-body textarea:focus { border-color: rgb(225,0,0); }
         .report-modal-body textarea { resize: none; min-height: 96px; }
         .report-modal-footer { display: flex; justify-content: flex-end; margin-top: 20px; }
-        .report-submit-btn { padding: 10px 18px; background: rgb(225,0,0); cursor: pointer; border-radius: 4px; font-weight: 700; }
+        .report-submit-btn { padding: 10px 18px; background: rgb(225,0,0); cursor: pointer; border-radius: 4px; font-weight: 700; border: none; color: #fff; }
         .report-submit-btn:disabled { opacity: 0.5; cursor: not-allowed; }
         @media (max-width: 480px) { .report-modal-box { padding: 16px; } .report-modal-title { font-size: 16px; } }
 
-        /* ---- QUALITY MENU ---- */
+        /* QUALITY MENU - improved design */
         #quality-menu {
             position: absolute;
             bottom: 4rem;
             right: 0;
-            width: 12rem;
-            border-radius: .4rem;
-            box-shadow: 0 25px 50px -12px rgba(0,0,0,.5);
-            padding: .75rem;
-            background: #262626;
+            width: 13rem;
+            border-radius: 8px;
+            background: rgba(28, 28, 30, 0.95);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255,255,255,0.1);
+            padding: 8px 0;
             color: #fff;
             z-index: 50;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.5);
         }
-        #quality-list { list-style: none; margin: 0; padding: 0; font-size: .875rem; }
-        #quality-list li { padding: 6px 10px; cursor: pointer; border-radius: 4px; transition: background .15s; }
-        #quality-list li:hover { background: rgba(255,255,255,.1); }
+        #quality-list { list-style: none; margin: 0; padding: 0; font-size: 0.9rem; }
+        #quality-list li { padding: 10px 16px; cursor: pointer; transition: background 0.15s; display: flex; justify-content: space-between; align-items: center; }
+        #quality-list li:hover { background: rgba(255,255,255,0.1); }
+        #quality-list li .quality-badge { font-size: 0.7rem; background: rgba(255,255,255,0.2); padding: 2px 6px; border-radius: 4px; }
+        .quality-active { color: rgb(225,0,0); }
+        .quality-active .quality-badge { background: rgb(225,0,0); color: #fff; }
 
-        /* ---- SUBTITLE SYNC MENU (added) ---- */
-        #sub-sync-menu {
-            position: absolute;
-            bottom: 4rem;
-            right: 0;
-            width: 15rem;
-            border-radius: .4rem;
-            box-shadow: 0 25px 50px -12px rgba(0,0,0,.5);
-            padding: .85rem;
-            background: #262626;
+        /* NEXT EPISODE BUTTON - Netflix style */
+        #next-episode-button {
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.2);
             color: #fff;
-            z-index: 50;
-        }
-        #sub-sync-menu h5 {
-            margin: 0 0 .6rem 0;
-            font-size: .8rem;
-            font-weight: 700;
-            color: #e5e7eb;
-            letter-spacing: .04em;
-            text-transform: uppercase;
-        }
-        .sub-sync-presets {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 5px;
-            margin-bottom: .65rem;
-        }
-        .sub-sync-btn {
-            background: #383838;
-            border: none;
-            color: #fff;
-            font-size: .75rem;
             font-family: 'Netflix Sans', sans-serif;
-            padding: 5px 9px;
-            border-radius: 4px;
-            cursor: pointer;
-            transition: background .15s;
             font-weight: 500;
-        }
-        .sub-sync-btn:hover { background: rgba(225,0,0,.8); }
-        .sub-sync-btn.active { background: rgb(225,0,0); font-weight: 700; }
-        .sub-sync-current {
-            text-align: center;
-            font-size: .82rem;
-            color: #d1d5db;
-            margin-bottom: .55rem;
-        }
-        .sub-sync-current span {
-            font-weight: 700;
-            color: #fff;
-        }
-        .sub-sync-custom-row {
+            font-size: 0.85rem;
+            padding: 8px 16px;
+            border-radius: 30px;
+            cursor: pointer;
+            transition: all 0.2s ease;
             display: flex;
             align-items: center;
-            gap: 6px;
-            margin-top: .3rem;
-        }
-        .sub-sync-custom-row label {
-            font-size: .72rem;
-            color: #9ca3af;
-            white-space: nowrap;
-            flex-shrink: 0;
-        }
-        .sub-sync-custom-row input[type=number] {
-            flex: 1;
-            background: #1a1a1a;
-            border: 1px solid #444;
-            color: #fff;
-            border-radius: 4px;
-            padding: 5px 8px;
-            font-size: .8rem;
-            font-family: 'Netflix Sans', sans-serif;
-            outline: none;
-            width: 0;
-        }
-        .sub-sync-custom-row input[type=number]:focus { border-color: rgb(225,0,0); }
-        .sub-sync-custom-row button {
-            background: rgb(225,0,0);
-            border: none;
-            color: #fff;
-            font-size: .75rem;
-            font-weight: 700;
-            font-family: 'Netflix Sans', sans-serif;
-            padding: 5px 10px;
-            border-radius: 4px;
-            cursor: pointer;
+            gap: 8px;
             white-space: nowrap;
         }
-        .sub-sync-reset {
-            width: 100%;
-            margin-top: .5rem;
-            background: #383838;
-            border: none;
-            color: #9ca3af;
-            font-size: .72rem;
-            font-family: 'Netflix Sans', sans-serif;
-            padding: 5px;
-            border-radius: 4px;
-            cursor: pointer;
-            transition: background .15s, color .15s;
+        #next-episode-button:hover {
+            background: rgba(255,255,255,0.2);
+            transform: scale(1.02);
         }
-        .sub-sync-reset:hover { background: #444; color: #fff; }
-
-        /* mobile: full-screen sub sync menu */
+        #next-episode-button svg {
+            width: 16px;
+            height: 16px;
+        }
         @media (max-width: 999px) {
-            #sub-sync-menu:not(.hidden) {
-                position: fixed !important;
-                top: 0 !important; left: 0 !important; right: 0 !important; bottom: 0 !important;
-                width: 100% !important; height: 100% !important;
-                border-radius: 0 !important;
-                z-index: 99999 !important;
-                display: flex !important;
-                flex-direction: column !important;
-                justify-content: center !important;
-                padding: 2rem !important;
-                background: #000 !important;
-                box-sizing: border-box;
-            }
-            #sub-sync-menu h5 { font-size: 1rem; margin-bottom: 1rem; }
-            .sub-sync-btn { font-size: .9rem; padding: 8px 14px; }
-            .sub-sync-current { font-size: 1rem; }
-            .sub-sync-custom-row input[type=number] { font-size: .9rem; padding: 8px 10px; }
-            .sub-sync-custom-row button { font-size: .85rem; padding: 8px 14px; }
-            .sub-sync-reset { font-size: .85rem; padding: 8px; margin-top: 1rem; }
+            #next-episode-button { font-size: 0.7rem; padding: 6px 12px; }
         }
+
+        /* Fix for fullscreen title position */
+        :-webkit-full-screen #title-display { bottom: 80px; top: auto; transform: translateX(-50%); }
+        :fullscreen #title-display { bottom: 80px; top: auto; transform: translateX(-50%); }
+        :-webkit-full-screen .controls-visible #title-display { opacity: 1; }
+        :fullscreen .controls-visible #title-display { opacity: 1; }
+        
+        /* Safari/WebKit fullscreen specific fixes */
+        video::-webkit-media-controls { display: none !important; }
+        video::-webkit-media-controls-enclosure { display: none !important; }
     </style>
 </head>
 <body>
@@ -414,8 +336,16 @@
                     </div>
                 </div>
 
-                <!-- RIGHT CONTROLS — next episode button REMOVED -->
+                <!-- RIGHT CONTROLS -->
                 <div id="right-controlbuttons" class="flex items-center space-x-1 md:space-x-2 relative">
+
+                    <!-- NEXT EPISODE BUTTON -->
+                    <button id="next-episode-button" style="display:none;">
+                        <span>Next Episode</span>
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+                        </svg>
+                    </button>
 
                     <!-- Audio & Subtitles -->
                     <div class="relative" id="audio-subtitle-wrapper">
@@ -456,50 +386,16 @@
                         <ul id="speed-list" class="space-y-1 text-sm"></ul>
                     </div>
 
-                    <!-- QUALITY BUTTON -->
+                    <!-- QUALITY BUTTON (improved icon) -->
                     <div style="position:relative;">
                         <button id="quality-button" class="bottom-control-button text-white flex items-center justify-center md:h-9 md:w-9 flex-shrink-0 cursor-pointer focus:outline-none mobile-labeled-btn" title="Video Quality">
                             <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" fill="none" aria-hidden="true" class="w-6 h-6 md:w-full md:h-full flex-shrink-0" viewBox="0 0 24 24">
-                                <path fill="currentColor" fill-rule="evenodd" d="M3 5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h18a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2H3zm0 2h18v10H3V7zm2 2v6h3v-6H5zm5 0v6h2v-2h1a2 2 0 0 0 0-4h-3zm2 2h1a0 0 0 0 1 0 0v0a0 0 0 0 1 0 0h-1v-0zm4-2 1.5 3L18 9h2l-2.5 3L20 15h-2l-1.5-3-1.5 3h-2l2-3-2-3h2z" clip-rule="evenodd"></path>
+                                <path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-14h2v6h-2zm0 8h2v2h-2z"/>
                             </svg>
                             <span class="mobile-btn-label">Quality</span>
                         </button>
                         <div id="quality-menu" class="hidden">
                             <ul id="quality-list"></ul>
-                        </div>
-                    </div>
-
-                    <!-- SUBTITLE SYNC BUTTON (added) -->
-                    <div style="position:relative;">
-                        <button id="sub-sync-button" class="bottom-control-button text-white flex items-center justify-center md:h-9 md:w-9 flex-shrink-0 cursor-pointer focus:outline-none mobile-labeled-btn" title="Subtitle Sync">
-                            <!-- Clock + CC icon combination -->
-                            <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" fill="none" aria-hidden="true" class="w-6 h-6 md:w-full md:h-full flex-shrink-0" viewBox="0 0 24 24">
-                                <path fill="currentColor" fill-rule="evenodd" d="M12 2a10 10 0 1 0 0 20A10 10 0 0 0 12 2zm0 2a8 8 0 1 1 0 16A8 8 0 0 1 12 4zm-1 3v5.414l3.293 3.293-1.414 1.414L9 13.414V7h2zm-4 9h1.5a1.5 1.5 0 0 0 0-3H7v5h1v-2zm1.5-1.5a.5.5 0 0 1 0 1H8v-1zM13 13h1.5a1.5 1.5 0 0 0 0-3H12v5h1v-2zm1.5-1.5a.5.5 0 0 1 0 1H13v-1z" clip-rule="evenodd"></path>
-                            </svg>
-                            <span class="mobile-btn-label">Sub Sync</span>
-                        </button>
-                        <!-- Subtitle sync panel -->
-                        <div id="sub-sync-menu" class="hidden">
-                            <h5>Subtitle Sync</h5>
-                            <div class="sub-sync-current">Current offset: <span id="sub-sync-display">0.0s</span></div>
-                            <div class="sub-sync-presets">
-                                <button class="sub-sync-btn" data-offset="-5">-5s</button>
-                                <button class="sub-sync-btn" data-offset="-4">-4s</button>
-                                <button class="sub-sync-btn" data-offset="-3">-3s</button>
-                                <button class="sub-sync-btn" data-offset="-2">-2s</button>
-                                <button class="sub-sync-btn" data-offset="-1">-1s</button>
-                                <button class="sub-sync-btn" data-offset="+1">+1s</button>
-                                <button class="sub-sync-btn" data-offset="+2">+2s</button>
-                                <button class="sub-sync-btn" data-offset="+3">+3s</button>
-                                <button class="sub-sync-btn" data-offset="+4">+4s</button>
-                                <button class="sub-sync-btn" data-offset="+5">+5s</button>
-                            </div>
-                            <div class="sub-sync-custom-row">
-                                <label>Custom (s):</label>
-                                <input type="number" id="sub-sync-custom-input" step="0.1" min="-30" max="30" placeholder="e.g. -1.5">
-                                <button id="sub-sync-custom-apply">Set</button>
-                            </div>
-                            <button class="sub-sync-reset" id="sub-sync-reset">Reset to 0</button>
                         </div>
                     </div>
 
@@ -589,54 +485,336 @@ const centerPlayIcon        = document.getElementById('center-play-icon');
 const centerPauseIcon       = document.getElementById('center-pause-icon');
 const mobileSkipBackwardButton = document.getElementById('mobile-skip-backward-button');
 const mobileSkipForwardButton  = document.getElementById('mobile-skip-forward-button');
+const nextEpisodeButton     = document.getElementById('next-episode-button');
 
 /* =========================================================================
-   DOUBLE-TAP SKIP
+   STATE VARIABLES
    ========================================================================= */
-let lastTap = 0;
-videoContainer.addEventListener('touchend', e => {
-    const now = Date.now();
-    if (now - lastTap < 350) {
-        const rect = video.getBoundingClientRect();
-        const x = e.changedTouches[0].clientX - rect.left;
-        if (x < rect.width / 2) handleSkipBackward(); else handleSkipForward();
-    }
-    lastTap = now;
-});
-function showSkipHint(text, isBackward) { /* disabled */ }
-function handleSkipBackward() { video.currentTime = Math.max(0, video.currentTime - 10); resetInactivityTimer(); }
-function handleSkipForward()  { video.currentTime = Math.min(video.duration, video.currentTime + 10); resetInactivityTimer(); }
-
-/* =========================================================================
-   SPEED
-   ========================================================================= */
-const speedButton   = document.getElementById('speed-button');
-const speedMenu     = document.getElementById('speed-menu');
-const speedList     = document.getElementById('speed-list');
-const SPEED_OPTIONS = [
-    {label:'0.25x',value:.25},{label:'0.5x',value:.5},{label:'0.75x',value:.75},
-    {label:'Normal',value:1},{label:'1.25x',value:1.25},{label:'1.5x',value:1.5},
-    {label:'1.75x',value:1.75},{label:'2x',value:2}
-];
-
-/* =========================================================================
-   STATE
-   ========================================================================= */
-const urlParams          = new URLSearchParams(window.location.search);
-let resolvedUrl          = null;
-let hlsInstance          = null;
-let isHlsJsMode          = false;
+let currentSeriesId = null;
+let currentSeason = null;
+let currentEpisode = null;
+let totalEpisodes = null;
+let isHlsJsMode = false;
+let hlsInstance = null;
 let inactivityTimer;
 const INACTIVITY_TIMEOUT = 3000;
-let isSeeking            = false;
-let isVolumeAdjusting    = false;
-let lastKnownVolume      = 0.5;
+let isSeeking = false;
+let isVolumeAdjusting = false;
+let lastKnownVolume = 0.5;
 let currentMouseMoveHandler = null;
 let currentTouchMoveHandler = null;
-let videoStorageKey      = null;
-let hasRestoredPosition  = false;
+let videoStorageKey = null;
+let hasRestoredPosition = false;
 let saveProgressInterval = null;
+let resolvedUrl = null;
+let currentMediaType = null;
+let currentContentId = null;
+let _subtitleBlobUrls = [];
 
+/* =========================================================================
+   HELPER FUNCTIONS
+   ========================================================================= */
+function revokeAllSubtitleBlobs() {
+    while(_subtitleBlobUrls.length) URL.revokeObjectURL(_subtitleBlobUrls.pop());
+}
+
+function getMediaInfoFromUrl() {
+    const path = window.location.pathname;
+    const tvMatch = path.match(/\/tv\/(\d+)\/S(\d+)\/E(\d+)/i);
+    if (tvMatch) {
+        return { mediaType: 'tv', contentId: tvMatch[1], seasonNumber: Number(tvMatch[2]), episodeNumber: Number(tvMatch[3]) };
+    }
+    const movieMatch = path.match(/\/movie\/(\d+)/i);
+    if (movieMatch) {
+        return { mediaType: 'movie', contentId: movieMatch[1] };
+    }
+    return null;
+}
+
+function formatTime(totalSec) {
+    if (isNaN(totalSec) || totalSec < 0) return '0:00';
+    const sec = Math.floor(totalSec % 60), min = Math.floor(totalSec/60)%60, hrs = Math.floor(totalSec/3600);
+    const pad = n => n.toString().padStart(2,'0');
+    return hrs ? `${hrs}:${pad(min)}:${pad(sec)}` : `${min}:${pad(sec)}`;
+}
+
+function displayError(msg) {
+    console.error(msg);
+    errorMessageDiv.textContent = msg;
+    errorMessageDiv.classList.remove('hidden');
+}
+
+function showLoader() {
+    loadingIndicator.classList.remove('hidden');
+    centerPlayPauseOverlay.classList.remove('opacity-100','pointer-events-auto');
+    centerPlayPauseOverlay.classList.add('opacity-0','pointer-events-none');
+}
+
+function hideLoader() {
+    loadingIndicator.classList.add('hidden');
+    resetInactivityTimer();
+}
+
+function showControls() {
+    if (!loadingIndicator.classList.contains('hidden')) {
+        bottomOverlay.classList.remove('controls-hidden'); bottomOverlay.classList.add('controls-visible');
+        return;
+    }
+    bottomOverlay.classList.remove('controls-hidden'); bottomOverlay.classList.add('controls-visible');
+    centerPlayPauseOverlay.classList.remove('opacity-0','pointer-events-none');
+    centerPlayPauseOverlay.classList.add('opacity-100','pointer-events-auto');
+}
+
+function hideControls() {
+    if (!isAnyMenuOpen()) {
+        bottomOverlay.classList.remove('controls-visible'); bottomOverlay.classList.add('controls-hidden');
+        centerPlayPauseOverlay.classList.remove('opacity-100','pointer-events-auto');
+        centerPlayPauseOverlay.classList.add('opacity-0','pointer-events-none');
+    }
+}
+
+function isAnyMenuOpen() {
+    return !audioSubtitleMenu.classList.contains('hidden') ||
+           !document.getElementById('speed-menu').classList.contains('hidden') ||
+           !document.getElementById('quality-menu').classList.contains('hidden');
+}
+
+function resetInactivityTimer() {
+    clearTimeout(inactivityTimer); showControls();
+    if (!video.paused && !isSeeking && !isAnyMenuOpen() && loadingIndicator.classList.contains('hidden')) {
+        inactivityTimer = setTimeout(hideControls, INACTIVITY_TIMEOUT);
+    }
+}
+
+function generateStorageKey(url) { return `video_progress:${url}`; }
+
+function saveVideoProgress() {
+    if (!video.duration || isNaN(video.duration) || video.duration === Infinity) return;
+    if (video.currentTime < 1 || video.currentTime > video.duration - 5) return;
+    try {
+        const data = { currentTime: video.currentTime, duration: video.duration, timestamp: Date.now(), url: resolvedUrl };
+        localStorage.setItem(videoStorageKey, JSON.stringify(data));
+    } catch(e) { console.error('save progress error', e); }
+}
+
+function restoreVideoProgress() {
+    if (hasRestoredPosition) return;
+    if (!video.duration || isNaN(video.duration) || video.duration === Infinity) return;
+    try {
+        const raw = localStorage.getItem(videoStorageKey);
+        if (!raw) return;
+        const data = JSON.parse(raw);
+        if (data.url !== resolvedUrl || data.currentTime <= 1 || data.currentTime >= video.duration - 5) return;
+        hasRestoredPosition = true;
+        const seek = () => { video.currentTime = data.currentTime; };
+        if (video.readyState >= 2) seek();
+        else video.addEventListener('canplay', seek, { once: true });
+    } catch(e) { hasRestoredPosition = true; }
+}
+
+function clearVideoProgress() { try { localStorage.removeItem(videoStorageKey); } catch(e) { console.error(e); } }
+
+function startProgressSaving() {
+    saveProgressInterval = setInterval(saveVideoProgress, 5000);
+    video.addEventListener('pause', saveVideoProgress);
+    video.addEventListener('seeking', saveVideoProgress);
+    video.addEventListener('ended', clearVideoProgress);
+    window.addEventListener('beforeunload', saveVideoProgress);
+}
+
+function stopProgressSaving() {
+    clearInterval(saveProgressInterval);
+    saveProgressInterval = null;
+    video.removeEventListener('pause', saveVideoProgress);
+    video.removeEventListener('seeking', saveVideoProgress);
+    video.removeEventListener('ended', clearVideoProgress);
+    window.removeEventListener('beforeunload', saveVideoProgress);
+}
+
+function postTimeUpdateToParent() {
+    if (window.parent !== window) {
+        window.parent.postMessage({
+            event: 'videoTimeUpdate',
+            currentTime: video.currentTime,
+            duration: video.duration,
+            paused: video.paused,
+            ...getMediaInfoFromUrl()
+        }, '*');
+    }
+}
+
+/* =========================================================================
+   VIDEO PROGRESS UI
+   ========================================================================= */
+function updateBufferProgress() {
+    if (!video.duration || video.duration === Infinity) return;
+    const buffered = video.buffered;
+    if (!buffered.length) { bufferIndicator.style.width = '0%'; return; }
+    let f = 0;
+    for (let i = 0; i < buffered.length; i++) f = Math.max(f, buffered.end(i));
+    bufferIndicator.style.width = `${Math.min(100, (f / video.duration) * 100)}%`;
+}
+
+function updateProgress() {
+    if (!video.duration || isSeeking) return;
+    const pct = (video.currentTime / video.duration) * 100;
+    progressIndicator.style.width = `${pct}%`;
+    seekThumb.style.left = `calc(${pct}% - 3px)`;
+    remainingTimeDisplay.textContent = `${formatTime(video.duration - video.currentTime)}`;
+}
+
+function updateBottomPlayPauseIcon(paused) {
+    if (paused) { playIcon.classList.remove('hidden'); pauseIcon.classList.add('hidden'); }
+    else { playIcon.classList.add('hidden'); pauseIcon.classList.remove('hidden'); }
+}
+
+function updateCenterPlayPauseIcon(paused) {
+    if (paused) { centerPlayIcon.classList.remove('hidden'); centerPauseIcon.classList.add('hidden'); }
+    else { centerPlayIcon.classList.add('hidden'); centerPauseIcon.classList.remove('hidden'); }
+}
+
+function updateMuteIcon() {
+    const muted = video.muted || video.volume === 0, vol = video.muted ? 0 : video.volume;
+    volumeOffIcon.classList.toggle('hidden', !muted);
+    volumeLowIcon.classList.toggle('hidden', muted || vol > 0.33);
+    volumeMediumIcon.classList.toggle('hidden', muted || vol <= 0.33 || vol > 0.66);
+    volumeHighIcon.classList.toggle('hidden', muted || vol <= 0.66);
+}
+
+function updateVolumeSlider() {
+    const vol = video.muted ? 0 : video.volume;
+    volumeLevel.style.height = `${vol * 100}%`;
+    volumeThumbControl.style.bottom = `calc(${vol * 100}% - 8px)`;
+    updateMuteIcon();
+}
+
+function toggleMute() {
+    if (video.muted) { video.volume = lastKnownVolume > 0 ? lastKnownVolume : 0.5; video.muted = false; }
+    else { lastKnownVolume = video.volume; video.muted = true; }
+    updateVolumeSlider();
+    resetInactivityTimer();
+}
+
+function toggleVideoPlayPause() {
+    if (!isAnyMenuOpen() && loadingIndicator.classList.contains('hidden')) {
+        if (video.paused || video.ended) video.play().catch(e => displayError('Play failed: ' + e.message));
+        else video.pause();
+    }
+}
+
+/* =========================================================================
+   SEEKING
+   ========================================================================= */
+function calculateNewTime(clientX) {
+    const rect = seekBar.getBoundingClientRect();
+    let pos = clientX - rect.left;
+    pos = Math.max(0, Math.min(pos, rect.width));
+    return video.duration * (pos / rect.width);
+}
+
+function handleSeek(clientX) {
+    if (!video.duration || video.duration === Infinity) return;
+    const newTime = calculateNewTime(clientX), pct = (newTime / video.duration) * 100;
+    progressIndicator.style.width = `${pct}%`;
+    seekThumb.style.left = `calc(${pct}% - 3px)`;
+    remainingTimeDisplay.textContent = `-${formatTime(video.duration - newTime)}`;
+}
+
+function startSeeking(e) {
+    if (!video.duration || video.duration === Infinity) return;
+    isSeeking = true; showControls(); seekThumb.classList.add('scale-100');
+    currentMouseMoveHandler = ev => handleSeek(ev.clientX);
+    currentTouchMoveHandler = ev => handleSeek(ev.touches[0].clientX);
+    window.addEventListener('mousemove', currentMouseMoveHandler);
+    window.addEventListener('mouseup', endSeeking);
+    window.addEventListener('touchmove', currentTouchMoveHandler, { passive: true });
+    window.addEventListener('touchend', endSeeking);
+    handleSeek(e.touches ? e.touches[0].clientX : e.clientX);
+}
+
+function endSeeking(e) {
+    if (!isSeeking) return;
+    const x = e.changedTouches ? e.changedTouches[0].clientX : e.clientX;
+    video.currentTime = calculateNewTime(x);
+    isSeeking = false;
+    seekThumb.classList.remove('scale-100');
+    if (currentMouseMoveHandler) { window.removeEventListener('mousemove', currentMouseMoveHandler); currentMouseMoveHandler = null; }
+    window.removeEventListener('mouseup', endSeeking);
+    window.removeEventListener('touchend', endSeeking);
+    resetInactivityTimer();
+}
+
+/* =========================================================================
+   VOLUME SLIDER
+   ========================================================================= */
+function calculateNewVolume(clientY) {
+    const rect = volumeSliderTrack.getBoundingClientRect();
+    let dist = rect.bottom - clientY;
+    dist = Math.max(0, Math.min(dist, rect.height));
+    return dist / rect.height;
+}
+
+function handleVolumeAdjust(e) {
+    e.preventDefault();
+    const y = e.touches ? e.touches[0].clientY : e.clientY;
+    const vol = calculateNewVolume(y);
+    video.volume = vol;
+    if (vol > 0) { video.muted = false; lastKnownVolume = vol; }
+    else video.muted = true;
+    updateVolumeSlider();
+}
+
+function startVolumeAdjusting(e) {
+    isVolumeAdjusting = true;
+    e.preventDefault();
+    window.addEventListener('mousemove', handleVolumeAdjust);
+    window.addEventListener('mouseup', endVolumeAdjusting);
+    window.addEventListener('touchmove', handleVolumeAdjust);
+    window.addEventListener('touchend', endVolumeAdjusting);
+    handleVolumeAdjust(e);
+}
+
+function endVolumeAdjusting() {
+    if (!isVolumeAdjusting) return;
+    isVolumeAdjusting = false;
+    window.removeEventListener('mousemove', handleVolumeAdjust);
+    window.removeEventListener('mouseup', endVolumeAdjusting);
+    window.removeEventListener('touchmove', handleVolumeAdjust);
+    window.removeEventListener('touchend', endVolumeAdjusting);
+    resetInactivityTimer();
+}
+
+volumeSliderTrack.addEventListener('mousedown', startVolumeAdjusting);
+volumeSliderTrack.addEventListener('touchstart', startVolumeAdjusting, { passive: true });
+
+/* =========================================================================
+   FULLSCREEN
+   ========================================================================= */
+function isMobileDevice() { return /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && window.innerWidth <= 1024); }
+function lockLandscape() { try { if (screen.orientation?.lock) screen.orientation.lock('landscape').catch(()=>{}); } catch(e){} }
+function unlockOrientation() { try { if (screen.orientation?.unlock) screen.orientation.unlock(); } catch(e){} }
+function isInFullscreen() { return !!(document.fullscreenElement || document.webkitFullscreenElement || video.webkitDisplayingFullscreen); }
+function toggleFullscreen() {
+    if (video.webkitEnterFullscreen && !document.fullscreenElement && !document.webkitFullscreenElement) { video.webkitEnterFullscreen(); return; }
+    if (document.fullscreenElement || document.webkitFullscreenElement) {
+        const exit = document.exitFullscreen || document.webkitExitFullscreen;
+        if (exit) exit.call(document);
+        if (isMobileDevice()) unlockOrientation();
+    } else {
+        const req = videoContainer.requestFullscreen || videoContainer.webkitRequestFullscreen;
+        if (req) req.call(videoContainer, { navigationUI: 'hide' }).then(() => { if (isMobileDevice()) lockLandscape(); }).catch(err => displayError('Fullscreen error: ' + err.message));
+    }
+}
+function updateFullscreenIcon() {
+    const inFs = isInFullscreen();
+    fullscreenEnterIcon.classList.toggle('hidden', inFs);
+    fullscreenExitIcon.classList.toggle('hidden', !inFs);
+    if (!inFs && isMobileDevice()) unlockOrientation();
+}
+
+/* =========================================================================
+   AUDIO / SUBTITLE MENU
+   ========================================================================= */
 const languageCodeMap = {
     'eng':'English','en':'English','und':'Undefined',
     'hin':'Hindi','hi':'Hindi','tel':'Telugu','te':'Telugu',
@@ -653,627 +831,354 @@ function getFullLanguageName(code) {
     return languageCodeMap[lc] || code.charAt(0).toUpperCase() + code.slice(1);
 }
 
-/* =========================================================================
-   UI HELPERS
-   ========================================================================= */
-function displayError(msg) {
-    console.error(msg);
-    errorMessageDiv.textContent = msg;
-    errorMessageDiv.classList.remove('hidden');
+function toggleAudioSubtitleMenu() {
+    const hidden = audioSubtitleMenu.classList.contains('hidden');
+    if (hidden) { renderTracksMenu(); audioSubtitleMenu.classList.remove('hidden'); clearTimeout(inactivityTimer); showControls(); }
+    else { audioSubtitleMenu.classList.add('hidden'); resetInactivityTimer(); }
 }
-function showLoader() {
-    loadingIndicator.classList.remove('hidden');
-    centerPlayPauseOverlay.classList.remove('opacity-100','pointer-events-auto');
-    centerPlayPauseOverlay.classList.add('opacity-0','pointer-events-none');
-}
-function hideLoader() { loadingIndicator.classList.add('hidden'); resetInactivityTimer(); }
-function formatTime(totalSec) {
-    if (isNaN(totalSec) || totalSec < 0) return '0:00';
-    const sec = Math.floor(totalSec % 60), min = Math.floor(totalSec/60)%60, hrs = Math.floor(totalSec/3600);
-    const pad = n => n.toString().padStart(2,'0');
-    return hrs ? `${hrs}:${pad(min)}:${pad(sec)}` : `${min}:${pad(sec)}`;
-}
-function updateBufferProgress() {
-    if (!video.duration || video.duration === Infinity) return;
-    const buffered = video.buffered;
-    if (!buffered.length) { bufferIndicator.style.width='0%'; return; }
-    let f=0; for (let i=0;i<buffered.length;i++) f=Math.max(f,buffered.end(i));
-    bufferIndicator.style.width = `${Math.min(100,(f/video.duration)*100)}%`;
-}
-function updateProgress() {
-    if (!video.duration || isSeeking) return;
-    const pct = (video.currentTime/video.duration)*100;
-    progressIndicator.style.width = `${pct}%`;
-    seekThumb.style.left = `calc(${pct}% - 3px)`;
-    remainingTimeDisplay.textContent = `${formatTime(video.duration - video.currentTime)}`;
-}
-function isAnyMenuOpen() {
-    return !audioSubtitleMenu.classList.contains('hidden') ||
-           !speedMenu.classList.contains('hidden') ||
-           !document.getElementById('quality-menu').classList.contains('hidden') ||
-           !document.getElementById('sub-sync-menu').classList.contains('hidden');
-}
-function showControls() {
-    if (!loadingIndicator.classList.contains('hidden')) {
-        bottomOverlay.classList.remove('controls-hidden'); bottomOverlay.classList.add('controls-visible'); return;
+
+function renderTracksMenu() {
+    audioList.innerHTML = ''; subtitleList.innerHTML = '';
+    const getDisplayName = (track, isHls) => {
+        const raw = isHls ? track.lang : track.language, primary = isHls ? track.name : track.label;
+        let name = raw ? getFullLanguageName(raw) : '';
+        if (primary) { const l = primary.toLowerCase(); if (languageCodeMap[l]) name = languageCodeMap[l]; else if (!name || name.toLowerCase() === 'undefined' || name.toLowerCase() === raw?.toLowerCase()) name = primary; }
+        return name || `Track ${track.id ?? track.groupId ?? ''}`;
+    };
+    const audioTracks = isHlsJsMode ? hlsInstance.audioTracks : (video.audioTracks ? Array.from(video.audioTracks) : []);
+    const curAudioIdx = isHlsJsMode ? hlsInstance.audioTrack : (video.audioTracks ? Array.from(video.audioTracks).findIndex(t => t.enabled) : -1);
+    if (!audioTracks.length) { audioList.innerHTML = '<li class="text-gray-400">No alternate audio tracks found.</li>'; }
+    else {
+        audioTracks.forEach((track, i) => {
+            const selected = isHlsJsMode ? (i === curAudioIdx) : track.enabled;
+            const li = document.createElement('li');
+            li.className = `track-selector cursor-pointer flex items-center gap-2 ${selected ? 'font-bold text-white' : 'text-gray-400'}`;
+            const check = document.createElement('span');
+            check.style.cssText = `visibility:${selected ? 'visible' : 'hidden'};flex-shrink:0;display:inline-flex;align-items:center;`;
+            check.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="14" height="14"><path fill-rule="evenodd" clip-rule="evenodd" d="M21.2928 4.29285L22.7071 5.70706L8.70706 19.7071C8.51952 19.8946 8.26517 20 7.99995 20C7.73474 20 7.48038 19.8946 7.29285 19.7071L0.292847 12.7071L1.70706 11.2928L7.99995 17.5857L21.2928 4.29285Z" fill="white"></path></svg>`;
+            const label = document.createElement('span');
+            label.textContent = getDisplayName(track, isHlsJsMode);
+            li.appendChild(check);
+            li.appendChild(label);
+            li.dataset.index = i;
+            li.dataset.type = 'audio';
+            li.addEventListener('click', () => handleTrackSelection('audio', i));
+            audioList.appendChild(li);
+        });
     }
-    bottomOverlay.classList.remove('controls-hidden'); bottomOverlay.classList.add('controls-visible');
-    centerPlayPauseOverlay.classList.remove('opacity-0','pointer-events-none');
-    centerPlayPauseOverlay.classList.add('opacity-100','pointer-events-auto');
-}
-function hideControls() {
-    if (!isAnyMenuOpen()) {
-        bottomOverlay.classList.remove('controls-visible'); bottomOverlay.classList.add('controls-hidden');
-        centerPlayPauseOverlay.classList.remove('opacity-100','pointer-events-auto');
-        centerPlayPauseOverlay.classList.add('opacity-0','pointer-events-none');
-    }
-}
-function updateBottomPlayPauseIcon(paused) {
-    if (paused) { playIcon.classList.remove('hidden'); pauseIcon.classList.add('hidden'); }
-    else        { playIcon.classList.add('hidden'); pauseIcon.classList.remove('hidden'); }
-}
-function updateCenterPlayPauseIcon(paused) {
-    centerPlayPauseButton.classList.remove('hidden');
-    if (paused) { centerPlayIcon.classList.remove('hidden'); centerPauseIcon.classList.add('hidden'); }
-    else        { centerPlayIcon.classList.add('hidden'); centerPauseIcon.classList.remove('hidden'); }
-}
-function resetInactivityTimer() {
-    clearTimeout(inactivityTimer); showControls();
-    if (!video.paused && !isSeeking && !isAnyMenuOpen() && loadingIndicator.classList.contains('hidden')) {
-        inactivityTimer = setTimeout(hideControls, INACTIVITY_TIMEOUT);
-    }
-}
-function updateMuteIcon() {
-    const muted = video.muted || video.volume===0, vol = video.muted?0:video.volume;
-    volumeOffIcon.classList.toggle('hidden',!muted);
-    volumeLowIcon.classList.toggle('hidden',muted||vol>.33);
-    volumeMediumIcon.classList.toggle('hidden',muted||vol<=.33||vol>.66);
-    volumeHighIcon.classList.toggle('hidden',muted||vol<=.66);
-}
-function updateVolumeSlider() {
-    const vol = video.muted?0:video.volume;
-    volumeLevel.style.height=`${vol*100}%`; volumeThumbControl.style.bottom=`calc(${vol*100}% - 8px)`; updateMuteIcon();
-}
-function toggleMute() {
-    if (video.muted) { video.volume=lastKnownVolume>0?lastKnownVolume:.5; video.muted=false; }
-    else { lastKnownVolume=video.volume; video.muted=true; }
-    updateVolumeSlider(); resetInactivityTimer();
-}
-function toggleVideoPlayPause() {
-    if (!isAnyMenuOpen() && loadingIndicator.classList.contains('hidden')) {
-        if (video.paused||video.ended) video.play().catch(e=>displayError('Play failed: '+e.message));
-        else video.pause();
+    const allTextTracks = video.textTracks ? Array.from(video.textTracks).filter(t => t.kind === 'subtitles' || t.kind === 'captions') : [];
+    const curSubIdx = allTextTracks.findIndex(t => t.mode === 'showing');
+    const offLi = document.createElement('li');
+    offLi.className = `track-selector cursor-pointer flex items-center gap-2 ${curSubIdx === -1 ? 'font-bold text-white' : 'text-gray-400'}`;
+    const offCheck = document.createElement('span');
+    offCheck.style.cssText = `visibility:${curSubIdx === -1 ? 'visible' : 'hidden'};flex-shrink:0;display:inline-flex;align-items:center;`;
+    offCheck.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="14" height="14"><path fill-rule="evenodd" clip-rule="evenodd" d="M21.2928 4.29285L22.7071 5.70706L8.70706 19.7071C8.51952 19.8946 8.26517 20 7.99995 20C7.73474 20 7.48038 19.8946 7.29285 19.7071L0.292847 12.7071L1.70706 11.2928L7.99995 17.5857L21.2928 4.29285Z" fill="white"></path></svg>`;
+    const offLabel = document.createElement('span');
+    offLabel.textContent = 'Off';
+    offLi.appendChild(offCheck);
+    offLi.appendChild(offLabel);
+    offLi.dataset.index = -1;
+    offLi.dataset.type = 'subtitle';
+    offLi.addEventListener('click', () => handleTrackSelection('subtitle', -1));
+    subtitleList.appendChild(offLi);
+    if (!allTextTracks.length) {
+        subtitleList.innerHTML += '<li class="text-gray-400">No subtitle tracks found.</li>';
+    } else {
+        allTextTracks.forEach((track, idx) => {
+            const selected = track.mode === 'showing';
+            const li = document.createElement('li');
+            li.className = `track-selector cursor-pointer flex items-center gap-2 ${selected ? 'font-bold text-white' : 'text-gray-400'}`;
+            const check = document.createElement('span');
+            check.style.cssText = `visibility:${selected ? 'visible' : 'hidden'};flex-shrink:0;display:inline-flex;align-items:center;`;
+            check.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="14" height="14"><path fill-rule="evenodd" clip-rule="evenodd" d="M21.2928 4.29285L22.7071 5.70706L8.70706 19.7071C8.51952 19.8946 8.26517 20 7.99995 20C7.73474 20 7.48038 19.8946 7.29285 19.7071L0.292847 12.7071L1.70706 11.2928L7.99995 17.5857L21.2928 4.29285Z" fill="white"></path></svg>`;
+            const label = document.createElement('span');
+            label.textContent = `${track.label || getFullLanguageName(track.language)}${track.kind === 'captions' ? ' [CC]' : ''}`;
+            li.appendChild(check);
+            li.appendChild(label);
+            li.dataset.index = idx;
+            li.dataset.type = 'subtitle';
+            li.addEventListener('click', () => handleTrackSelection('subtitle', idx));
+            subtitleList.appendChild(li);
+        });
     }
 }
 
-/* =========================================================================
-   SEEKING
-   ========================================================================= */
-function calculateNewTime(clientX) {
-    const rect=seekBar.getBoundingClientRect(); let pos=clientX-rect.left;
-    pos=Math.max(0,Math.min(pos,rect.width)); return video.duration*(pos/rect.width);
-}
-function handleSeek(clientX) {
-    if (!video.duration||video.duration===Infinity) return;
-    const newTime=calculateNewTime(clientX), pct=(newTime/video.duration)*100;
-    progressIndicator.style.width=`${pct}%`; seekThumb.style.left=`calc(${pct}% - 3px)`;
-    remainingTimeDisplay.textContent=`-${formatTime(video.duration-newTime)}`;
-}
-function startSeeking(e) {
-    if (!video.duration||video.duration===Infinity) return;
-    isSeeking=true; showControls(); seekThumb.classList.add('scale-100');
-    currentMouseMoveHandler=ev=>handleSeek(ev.clientX);
-    currentTouchMoveHandler=ev=>handleSeek(ev.touches[0].clientX);
-    window.addEventListener('mousemove',currentMouseMoveHandler);
-    window.addEventListener('mouseup',endSeeking);
-    window.addEventListener('touchmove',currentTouchMoveHandler,{passive:true});
-    window.addEventListener('touchend',endSeeking);
-    handleSeek(e.touches?e.touches[0].clientX:e.clientX);
-}
-function endSeeking(e) {
-    if (!isSeeking) return;
-    const x=e.changedTouches?e.changedTouches[0].clientX:e.clientX;
-    video.currentTime=calculateNewTime(x); isSeeking=false; seekThumb.classList.remove('scale-100');
-    if (currentMouseMoveHandler) { window.removeEventListener('mousemove',currentMouseMoveHandler); currentMouseMoveHandler=null; }
-    window.removeEventListener('mouseup',endSeeking); window.removeEventListener('touchend',endSeeking);
+function handleTrackSelection(type, idx, hlsIdx) {
+    if (type === 'audio') {
+        if (isHlsJsMode && hlsInstance) hlsInstance.audioTrack = idx;
+        else if (video.audioTracks) { for (let i = 0; i < video.audioTracks.length; i++) video.audioTracks[i].enabled = (i === idx); }
+        audioSubtitleMenu.classList.add('hidden');
+        renderTracksMenu();
+        resetInactivityTimer();
+        return;
+    }
+    if (type !== 'subtitle') return;
+    const subs = video.textTracks ? Array.from(video.textTracks).filter(t => t.kind === 'subtitles' || t.kind === 'captions') : [];
+    if (idx === -1) {
+        if (isHlsJsMode && hlsInstance) hlsInstance.subtitleTrack = -1;
+        subs.forEach(t => t.mode = 'disabled');
+        audioSubtitleMenu.classList.add('hidden');
+        renderTracksMenu();
+        resetInactivityTimer();
+        return;
+    }
+    const targetTrack = subs[idx];
+    if (targetTrack) {
+        if (isHlsJsMode && hlsInstance) hlsInstance.subtitleTrack = -1;
+        subs.forEach((t, i) => { t.mode = (i === idx) ? 'showing' : 'disabled'; });
+        const showingTracks = subs.filter(t => t.mode === 'showing');
+        if (showingTracks.length > 1) showingTracks.slice(1).forEach(t => { t.mode = 'disabled'; });
+    }
+    audioSubtitleMenu.classList.add('hidden');
+    renderTracksMenu();
     resetInactivityTimer();
 }
 
 /* =========================================================================
-   FULLSCREEN
+   SPEED MENU
    ========================================================================= */
-function isMobileDevice() { return /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent)||(navigator.maxTouchPoints>1&&window.innerWidth<=1024); }
-function lockLandscape() { try { if(screen.orientation?.lock) screen.orientation.lock('landscape').catch(()=>{}); } catch(e){} }
-function unlockOrientation() { try { if(screen.orientation?.unlock) screen.orientation.unlock(); } catch(e){} }
-function isInFullscreen() { return !!(document.fullscreenElement||document.webkitFullscreenElement||video.webkitDisplayingFullscreen); }
-function toggleFullscreen() {
-    if (video.webkitEnterFullscreen&&!document.fullscreenElement&&!document.webkitFullscreenElement) { video.webkitEnterFullscreen(); return; }
-    if (document.fullscreenElement||document.webkitFullscreenElement) {
-        const exit=document.exitFullscreen||document.webkitExitFullscreen; if(exit) exit.call(document);
-        if(isMobileDevice()) unlockOrientation();
-    } else {
-        const req=videoContainer.requestFullscreen||videoContainer.webkitRequestFullscreen;
-        if(req) req.call(videoContainer,{navigationUI:'hide'}).then(()=>{if(isMobileDevice())lockLandscape();}).catch(err=>displayError('Fullscreen error: '+err.message));
-    }
-}
-function updateFullscreenIcon() {
-    const inFs=isInFullscreen();
-    fullscreenEnterIcon.classList.toggle('hidden',inFs); fullscreenExitIcon.classList.toggle('hidden',!inFs);
-    if(!inFs&&isMobileDevice()) unlockOrientation();
-}
+const SPEED_OPTIONS = [
+    { label: '0.25x', value: 0.25 }, { label: '0.5x', value: 0.5 }, { label: '0.75x', value: 0.75 },
+    { label: 'Normal', value: 1 }, { label: '1.25x', value: 1.25 }, { label: '1.5x', value: 1.5 },
+    { label: '1.75x', value: 1.75 }, { label: '2x', value: 2 }
+];
+const speedButton = document.getElementById('speed-button');
+const speedMenu = document.getElementById('speed-menu');
+const speedList = document.getElementById('speed-list');
 
-/* =========================================================================
-   AUDIO / SUBTITLE MENU
-   ========================================================================= */
-function toggleAudioSubtitleMenu() {
-    const hidden=audioSubtitleMenu.classList.contains('hidden');
-    if(hidden){renderTracksMenu();audioSubtitleMenu.classList.remove('hidden');clearTimeout(inactivityTimer);showControls();}
-    else{audioSubtitleMenu.classList.add('hidden');resetInactivityTimer();}
-}
-function handleDocumentClick(e) {
-    if(!audioSubtitleMenu.classList.contains('hidden')&&!audioSubtitleMenu.contains(e.target)&&!audioSubtitleToggle.contains(e.target)&&window.innerWidth>=1000){audioSubtitleMenu.classList.add('hidden');resetInactivityTimer();}
-    if(!speedMenu.classList.contains('hidden')&&!speedMenu.contains(e.target)&&!speedButton.contains(e.target)){speedMenu.classList.add('hidden');resetInactivityTimer();}
-    const qm=document.getElementById('quality-menu'),qb=document.getElementById('quality-button');
-    if(!qm.classList.contains('hidden')&&!qm.contains(e.target)&&!qb.contains(e.target)){qm.classList.add('hidden');resetInactivityTimer();}
-    const sm=document.getElementById('sub-sync-menu'),sb=document.getElementById('sub-sync-button');
-    if(!sm.classList.contains('hidden')&&!sm.contains(e.target)&&!sb.contains(e.target)&&window.innerWidth>=1000){sm.classList.add('hidden');resetInactivityTimer();}
-}
-function renderTracksMenu() {
-    audioList.innerHTML=''; subtitleList.innerHTML='';
-    const getDisplayName=(track,isHls)=>{
-        const raw=isHls?track.lang:track.language, primary=isHls?track.name:track.label;
-        let name=raw?getFullLanguageName(raw):'';
-        if(primary){const l=primary.toLowerCase();if(languageCodeMap[l])name=languageCodeMap[l];else if(!name||name.toLowerCase()==='undefined'||name.toLowerCase()===raw?.toLowerCase())name=primary;}
-        return name||`Track ${track.id??track.groupId??''}`;
-    };
-    const audioTracks=isHlsJsMode?hlsInstance.audioTracks:(video.audioTracks?Array.from(video.audioTracks):[]);
-    const curAudioIdx=isHlsJsMode?hlsInstance.audioTrack:(video.audioTracks?Array.from(video.audioTracks).findIndex(t=>t.enabled):-1);
-    if(!audioTracks.length){audioList.innerHTML='<li class="text-gray-400">No alternate audio tracks found.</li>';}
-    else{
-        audioTracks.forEach((track,i)=>{
-            const selected=isHlsJsMode?(i===curAudioIdx):track.enabled;
-            const li=document.createElement('li');li.className=`track-selector cursor-pointer flex items-center gap-2 ${selected?'font-bold text-white':'text-gray-400'}`;
-            const check=document.createElement('span');check.style.cssText=`visibility:${selected?'visible':'hidden'};flex-shrink:0;display:inline-flex;align-items:center;`;
-            check.innerHTML=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="14" height="14"><path fill-rule="evenodd" clip-rule="evenodd" d="M21.2928 4.29285L22.7071 5.70706L8.70706 19.7071C8.51952 19.8946 8.26517 20 7.99995 20C7.73474 20 7.48038 19.8946 7.29285 19.7071L0.292847 12.7071L1.70706 11.2928L7.99995 17.5857L21.2928 4.29285Z" fill="white"></path></svg>`;
-            const label=document.createElement('span');label.textContent=getDisplayName(track,isHlsJsMode);
-            li.appendChild(check);li.appendChild(label);li.dataset.index=i;li.dataset.type='audio';
-            li.addEventListener('click',()=>handleTrackSelection('audio',i));audioList.appendChild(li);
-        });
-    }
-    const allTextTracks=video.textTracks?Array.from(video.textTracks).filter(t=>t.kind==='subtitles'||t.kind==='captions'):[];
-    const trackElements=Array.from(video.querySelectorAll('track'));
-    function getTrackSource(textTrack){const el=trackElements.find(el=>el.label===textTrack.label&&el.srclang===textTrack.language);if(!el)return 'hls';if(el.hasAttribute('data-wyzie'))return 'wyzie';if(el.hasAttribute('data-github'))return 'github';return 'hls';}
-    const hlsSubTracks=(isHlsJsMode&&hlsInstance)?hlsInstance.subtitleTracks:[];
-    const SOURCE_ORDER={hls:0,github:1,wyzie:2};
-    const sortedTracks=allTextTracks.map((t,i)=>({track:t,originalIdx:i,source:getTrackSource(t)})).sort((a,b)=>SOURCE_ORDER[a.source]-SOURCE_ORDER[b.source]);
-    const curSubIdx=allTextTracks.findIndex(t=>t.mode==='showing');
-    const offLi=document.createElement('li');offLi.className=`track-selector cursor-pointer flex items-center gap-2 ${curSubIdx===-1?'font-bold text-white':'text-gray-400'}`;
-    const offCheck=document.createElement('span');offCheck.style.cssText=`visibility:${curSubIdx===-1?'visible':'hidden'};flex-shrink:0;display:inline-flex;align-items:center;`;
-    offCheck.innerHTML=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="14" height="14"><path fill-rule="evenodd" clip-rule="evenodd" d="M21.2928 4.29285L22.7071 5.70706L8.70706 19.7071C8.51952 19.8946 8.26517 20 7.99995 20C7.73474 20 7.48038 19.8946 7.29285 19.7071L0.292847 12.7071L1.70706 11.2928L7.99995 17.5857L21.2928 4.29285Z" fill="white"></path></svg>`;
-    const offLabel=document.createElement('span');offLabel.textContent='Off';
-    offLi.appendChild(offCheck);offLi.appendChild(offLabel);offLi.dataset.index=-1;offLi.dataset.type='subtitle';
-    offLi.addEventListener('click',()=>handleTrackSelection('subtitle',-1));subtitleList.appendChild(offLi);
-    if(!sortedTracks.length){
-        if(_wyzieLoading){const li=document.createElement('li');li.className='text-gray-400 flex items-center gap-2';li.style.cssText='padding:6px 10px;font-size:.85em';li.innerHTML=`<svg style="flex-shrink:0;animation:spin 1s linear infinite" width="13" height="13" viewBox="0 0 24 24" fill="none"><path opacity=".3" d="M12 2a10 10 0 1 0 10 10" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/><path d="M12 2a10 10 0 0 1 10 10" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/></svg> Loading subtitles…`;subtitleList.appendChild(li);}
-        else subtitleList.innerHTML+='<li class="text-gray-400">No subtitle tracks found.</li>';
-    } else {
-        let lastSource=null;
-        sortedTracks.forEach(({track,originalIdx,source})=>{
-            const selected=track.mode==='showing';
-            if(source!==lastSource)lastSource=source;
-            const hlsIdx=hlsSubTracks.findIndex(h=>h.name===track.label||h.lang===track.language);
-            const isHlsManaged=source==='hls'&&hlsIdx!==-1;
-            const trackEl=Array.from(video.querySelectorAll('track[data-wyzie]')).find(el=>el.label===track.label&&el.srclang===track.language);
-            const li=document.createElement('li');li.className=`track-selector cursor-pointer flex items-center gap-2 ${selected?'font-bold text-white':'text-gray-400'}`;
-            const check=document.createElement('span');check.style.cssText=`visibility:${selected?'visible':'hidden'};flex-shrink:0;display:inline-flex;align-items:center;`;
-            check.innerHTML=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="14" height="14"><path fill-rule="evenodd" clip-rule="evenodd" d="M21.2928 4.29285L22.7071 5.70706L8.70706 19.7071C8.51952 19.8946 8.26517 20 7.99995 20C7.73474 20 7.48038 19.8946 7.29285 19.7071L0.292847 12.7071L1.70706 11.2928L7.99995 17.5857L21.2928 4.29285Z" fill="white"></path></svg>`;
-            const label=document.createElement('span');
-            label.textContent=(source==='hls'||source==='github')?`${getDisplayName(track,false)} [CC]`:getDisplayName(track,false);
-            li.appendChild(check);li.appendChild(label);li.dataset.index=originalIdx;li.dataset.type='subtitle';li.dataset.hlsIdx=isHlsManaged?hlsIdx:'';
-            li.addEventListener('click',()=>handleTrackSelection('subtitle',originalIdx,isHlsManaged?hlsIdx:-2));
-            subtitleList.appendChild(li);
-            if(!track._menuListenerAttached){track._menuListenerAttached=true;track.addEventListener('change',renderTracksMenu);}
-        });
-        const hasWyzieTracks=sortedTracks.some(t=>t.source==='wyzie');
-        if(_wyzieLoading&&!hasWyzieTracks){const li=document.createElement('li');li.className='text-gray-400 flex items-center gap-2';li.style.cssText='padding:6px 10px;font-size:.85em';li.innerHTML=`<svg style="flex-shrink:0;animation:spin 1s linear infinite" width="13" height="13" viewBox="0 0 24 24" fill="none"><path opacity=".3" d="M12 2a10 10 0 1 0 10 10" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/><path d="M12 2a10 10 0 0 1 10 10" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/></svg> Loading subtitles…`;subtitleList.appendChild(li);}
-    }
-}
-function handleTrackSelection(type,idx,hlsIdx) {
-    if(type==='audio'){
-        if(isHlsJsMode&&hlsInstance)hlsInstance.audioTrack=idx;
-        else if(video.audioTracks){for(let i=0;i<video.audioTracks.length;i++)video.audioTracks[i].enabled=(i===idx);}
-        audioSubtitleMenu.classList.add('hidden');renderTracksMenu();resetInactivityTimer();return;
-    }
-    if(type!=='subtitle')return;
-    const subs=video.textTracks?Array.from(video.textTracks).filter(t=>t.kind==='subtitles'||t.kind==='captions'):[];
-    if(idx===-1){if(isHlsJsMode&&hlsInstance)hlsInstance.subtitleTrack=-1;subs.forEach(t=>t.mode='disabled');audioSubtitleMenu.classList.add('hidden');renderTracksMenu();resetInactivityTimer();return;}
-    const trackElements=Array.from(video.querySelectorAll('track'));
-    const targetTextTrack=subs[idx];
-    const matchingEl=targetTextTrack?trackElements.find(el=>el.hasAttribute('data-wyzie')&&el.hasAttribute('data-lazy-url')&&el.label===targetTextTrack.label&&el.srclang===targetTextTrack.language):null;
-    if(matchingEl){
-        if(isHlsJsMode&&hlsInstance)hlsInstance.subtitleTrack=-1;subs.forEach(t=>{t.mode='disabled';});
-        const menuItems=document.querySelectorAll('#subtitle-list .track-selector');
-        menuItems.forEach((li)=>{if(parseInt(li.dataset.index)===idx){li.style.opacity='.5';li.style.pointerEvents='none';const lbl=li.querySelector('span:last-child');if(lbl)lbl.textContent+=' (loading…)';}});
-        fetchAndActivateWyzieTrack(matchingEl).then(ok=>{
-            if(ok){const freshSubs=Array.from(video.textTracks).filter(t=>t.kind==='subtitles'||t.kind==='captions');freshSubs.forEach((t,i)=>{t.mode=(i===idx)?'showing':'disabled';});const showing=freshSubs.filter(t=>t.mode==='showing');if(showing.length>1)showing.slice(1).forEach(t=>{t.mode='disabled';});}
-            audioSubtitleMenu.classList.add('hidden');renderTracksMenu();resetInactivityTimer();
-        });return;
-    }
-    if(hlsIdx!==undefined&&hlsIdx>=0){if(isHlsJsMode&&hlsInstance)hlsInstance.subtitleTrack=hlsIdx;subs.forEach((t,i)=>{t.mode=(i===idx)?'showing':'disabled';});}
-    else{if(isHlsJsMode&&hlsInstance)hlsInstance.subtitleTrack=-1;subs.forEach((t,i)=>{t.mode=(i===idx)?'showing':'disabled';});}
-    const showingTracks=subs.filter(t=>t.mode==='showing');if(showingTracks.length>1)showingTracks.slice(1).forEach(t=>{t.mode='disabled';});
-    audioSubtitleMenu.classList.add('hidden');renderTracksMenu();resetInactivityTimer();
-}
-
-/* =========================================================================
-   SPEED LOGIC
-   ========================================================================= */
 function renderSpeedMenu() {
-    speedList.innerHTML='';
-    SPEED_OPTIONS.forEach(opt=>{
-        const li=document.createElement('li');li.className=`cursor-pointer hover:opacity-80 p-1 rounded transition text-sm ${video.playbackRate===opt.value?'font-bold text-white':'text-gray-400'}`;
-        li.textContent=opt.label;li.dataset.speed=opt.value;li.addEventListener('click',()=>setPlaybackSpeed(opt.value));speedList.appendChild(li);
+    speedList.innerHTML = '';
+    SPEED_OPTIONS.forEach(opt => {
+        const li = document.createElement('li');
+        li.className = `cursor-pointer hover:opacity-80 p-1 rounded transition text-sm ${video.playbackRate === opt.value ? 'font-bold text-white' : 'text-gray-400'}`;
+        li.textContent = opt.label;
+        li.dataset.speed = opt.value;
+        li.addEventListener('click', () => setPlaybackSpeed(opt.value));
+        speedList.appendChild(li);
     });
 }
-function setPlaybackSpeed(rate){video.playbackRate=rate;renderSpeedMenu();speedMenu.classList.add('hidden');resetInactivityTimer();}
-function toggleSpeedMenu(){
-    const hidden=speedMenu.classList.contains('hidden');
-    if(hidden){renderSpeedMenu();speedMenu.classList.remove('hidden');clearTimeout(inactivityTimer);showControls();}
-    else{speedMenu.classList.add('hidden');resetInactivityTimer();}
+
+function setPlaybackSpeed(rate) {
+    video.playbackRate = rate;
+    renderSpeedMenu();
+    speedMenu.classList.add('hidden');
+    resetInactivityTimer();
 }
-function handleSpeedKeyboard(e){
-    if(e.key===','||e.key==='<'){e.preventDefault();const cur=SPEED_OPTIONS.findIndex(o=>o.value===video.playbackRate);if(cur>0)setPlaybackSpeed(SPEED_OPTIONS[cur-1].value);}
-    else if(e.key==='.'||e.key==='>'){e.preventDefault();const cur=SPEED_OPTIONS.findIndex(o=>o.value===video.playbackRate);if(cur<SPEED_OPTIONS.length-1)setPlaybackSpeed(SPEED_OPTIONS[cur+1].value);}
+
+function toggleSpeedMenu() {
+    const hidden = speedMenu.classList.contains('hidden');
+    if (hidden) { renderSpeedMenu(); speedMenu.classList.remove('hidden'); clearTimeout(inactivityTimer); showControls(); }
+    else { speedMenu.classList.add('hidden'); resetInactivityTimer(); }
 }
-speedButton.addEventListener('click',e=>{e.stopPropagation();toggleSpeedMenu();});
-document.addEventListener('click',handleDocumentClick);
-document.addEventListener('keydown',handleSpeedKeyboard);
+
+speedButton.addEventListener('click', e => { e.stopPropagation(); toggleSpeedMenu(); });
 
 /* =========================================================================
-   QUALITY MENU
+   QUALITY MENU (improved)
    ========================================================================= */
 const qualityButton = document.getElementById('quality-button');
-const qualityMenu   = document.getElementById('quality-menu');
-const qualityList   = document.getElementById('quality-list');
+const qualityMenu = document.getElementById('quality-menu');
+const qualityList = document.getElementById('quality-list');
 
 function renderQualityMenu() {
     qualityList.innerHTML = '';
     if (!hlsInstance || !isHlsJsMode) {
-        const li = document.createElement('li'); li.textContent = 'N/A'; li.style.color = '#9ca3af'; qualityList.appendChild(li); return;
-    }
-    const levels  = hlsInstance.levels;
-    const current = hlsInstance.currentLevel;
-    const autoLi = document.createElement('li');
-    autoLi.textContent = 'Auto';
-    autoLi.style.fontWeight = current === -1 ? '700' : '400';
-    autoLi.style.color = current === -1 ? '#fff' : '#9ca3af';
-    autoLi.addEventListener('click', () => { hlsInstance.currentLevel = -1; renderQualityMenu(); qualityMenu.classList.add('hidden'); resetInactivityTimer(); });
-    qualityList.appendChild(autoLi);
-    levels.forEach((level, i) => {
-        const li  = document.createElement('li');
-        const lbl = level.height ? `${level.height}p` : `Level ${i}`;
-        li.textContent = lbl + (level.bitrate ? ` (${Math.round(level.bitrate/1000)}kbps)` : '');
-        li.style.fontWeight = i === current ? '700' : '400';
-        li.style.color = i === current ? '#fff' : '#9ca3af';
-        li.addEventListener('click', () => { hlsInstance.currentLevel = i; renderQualityMenu(); qualityMenu.classList.add('hidden'); resetInactivityTimer(); });
+        const li = document.createElement('li');
+        li.textContent = 'Auto';
+        li.style.color = '#9ca3af';
+        li.style.justifyContent = 'center';
         qualityList.appendChild(li);
+        return;
+    }
+    const levels = hlsInstance.levels;
+    const current = hlsInstance.currentLevel;
+    const addItem = (text, value, isAuto) => {
+        const li = document.createElement('li');
+        li.style.display = 'flex';
+        li.style.justifyContent = 'space-between';
+        li.style.alignItems = 'center';
+        const span = document.createElement('span');
+        span.textContent = text;
+        li.appendChild(span);
+        if (value === current && !isAuto) {
+            const badge = document.createElement('span');
+            badge.className = 'quality-badge';
+            badge.textContent = 'Active';
+            li.appendChild(badge);
+            li.style.color = '#fff';
+            li.style.fontWeight = '700';
+        } else {
+            li.style.color = '#9ca3af';
+        }
+        li.addEventListener('click', () => {
+            if (isAuto) hlsInstance.currentLevel = -1;
+            else hlsInstance.currentLevel = value;
+            renderQualityMenu();
+            qualityMenu.classList.add('hidden');
+            resetInactivityTimer();
+        });
+        qualityList.appendChild(li);
+    };
+    addItem('Auto', -1, true);
+    levels.forEach((level, i) => {
+        const label = level.height ? `${level.height}p` : `Level ${i}`;
+        const bitrateText = level.bitrate ? ` (${Math.round(level.bitrate / 1000)}kbps)` : '';
+        addItem(label + bitrateText, i, false);
     });
 }
+
 function toggleQualityMenu() {
     const hidden = qualityMenu.classList.contains('hidden');
     if (hidden) { renderQualityMenu(); qualityMenu.classList.remove('hidden'); clearTimeout(inactivityTimer); showControls(); }
     else { qualityMenu.classList.add('hidden'); resetInactivityTimer(); }
 }
+
 qualityButton.addEventListener('click', e => { e.stopPropagation(); toggleQualityMenu(); });
 
 /* =========================================================================
-   SUBTITLE SYNC  (added)
-
-   How it works:
-   - _subSyncOffset (seconds) is the current delay applied to all cues.
-   - Positive offset = subtitles appear later (video is ahead of audio).
-   - Negative offset = subtitles appear earlier.
-   - We shift every cue's startTime and endTime by the delta each time
-     the offset changes, so it works for HLS, GitHub, and Wyzie tracks.
+   NEXT EPISODE BUTTON LOGIC
    ========================================================================= */
-let _subSyncOffset = 0; // current total offset in seconds
-
-const subSyncButton      = document.getElementById('sub-sync-button');
-const subSyncMenu        = document.getElementById('sub-sync-menu');
-const subSyncDisplay     = document.getElementById('sub-sync-display');
-const subSyncCustomInput = document.getElementById('sub-sync-custom-input');
-const subSyncPresets     = document.querySelectorAll('.sub-sync-btn');
-
-/** Apply a new total offset to all text track cues (shifts by delta from current). */
-function applySubSyncOffset(newOffset) {
-    const delta = newOffset - _subSyncOffset;
-    _subSyncOffset = newOffset;
-
-    const tracks = video.textTracks ? Array.from(video.textTracks)
-        .filter(t => (t.kind === 'subtitles' || t.kind === 'captions') && t.cues) : [];
-
-    tracks.forEach(track => {
-        Array.from(track.cues).forEach(cue => {
-            cue.startTime += delta;
-            cue.endTime   += delta;
-        });
-    });
-
-    updateSubSyncUI();
+function extractEpisodeInfoFromUrl() {
+    const path = window.location.pathname;
+    const match = path.match(/\/tv\/(\d+)\/S(\d+)\/E(\d+)/i);
+    if (match) {
+        return { seriesId: match[1], season: parseInt(match[2]), episode: parseInt(match[3]) };
+    }
+    return null;
 }
 
-function updateSubSyncUI() {
-    const sign = _subSyncOffset > 0 ? '+' : '';
-    subSyncDisplay.textContent = `${sign}${_subSyncOffset.toFixed(1)}s`;
-
-    // Update active state on preset buttons
-    subSyncPresets.forEach(btn => {
-        // Preset buttons are cumulative increments, not absolute values.
-        // We highlight none (they apply a delta, not set absolute).
-        btn.classList.remove('active');
-    });
-
-    // Show reset button highlighted if offset ≠ 0
-    document.getElementById('sub-sync-reset').style.color = _subSyncOffset !== 0 ? '#fff' : '#9ca3af';
+async function fetchTotalEpisodes(seriesId, season) {
+    try {
+        const response = await fetch(`https://raw.githubusercontent.com/Watchout2025/api/refs/heads/main/hls/tv/${seriesId}/S${season}.json`);
+        if (!response.ok) return null;
+        const data = await response.json();
+        return data.length || Object.keys(data).length;
+    } catch (err) {
+        console.warn('Could not fetch total episodes:', err);
+        return null;
+    }
 }
 
-function toggleSubSyncMenu() {
-    const hidden = subSyncMenu.classList.contains('hidden');
-    if (hidden) {
-        updateSubSyncUI();
-        subSyncMenu.classList.remove('hidden');
-        clearTimeout(inactivityTimer);
-        showControls();
+async function updateNextEpisodeButton() {
+    const info = extractEpisodeInfoFromUrl();
+    if (!info) {
+        nextEpisodeButton.style.display = 'none';
+        return;
+    }
+    currentSeriesId = info.seriesId;
+    currentSeason = info.season;
+    currentEpisode = info.episode;
+    if (totalEpisodes === null) {
+        totalEpisodes = await fetchTotalEpisodes(currentSeriesId, currentSeason);
+    }
+    if (totalEpisodes !== null && currentEpisode < totalEpisodes) {
+        nextEpisodeButton.style.display = 'flex';
+        const nextEpisodeNum = currentEpisode + 1;
+        nextEpisodeButton.onclick = () => {
+            const newPath = `/tv/${currentSeriesId}/S${currentSeason}/E${nextEpisodeNum}`;
+            window.location.href = newPath;
+        };
     } else {
-        subSyncMenu.classList.add('hidden');
-        resetInactivityTimer();
+        nextEpisodeButton.style.display = 'none';
     }
 }
-
-subSyncButton.addEventListener('click', e => { e.stopPropagation(); toggleSubSyncMenu(); });
-
-// Preset buttons apply a DELTA (e.g. clicking -1s subtracts 1 second from current offset)
-subSyncPresets.forEach(btn => {
-    btn.addEventListener('click', e => {
-        e.stopPropagation();
-        const delta = parseFloat(btn.dataset.offset);
-        applySubSyncOffset(_subSyncOffset + delta);
-    });
-});
-
-// Custom input
-document.getElementById('sub-sync-custom-apply').addEventListener('click', e => {
-    e.stopPropagation();
-    const val = parseFloat(subSyncCustomInput.value);
-    if (!isNaN(val)) {
-        applySubSyncOffset(val); // sets ABSOLUTE offset
-        subSyncCustomInput.value = '';
-    }
-});
-subSyncCustomInput.addEventListener('keydown', e => {
-    if (e.key === 'Enter') {
-        e.preventDefault();
-        const val = parseFloat(subSyncCustomInput.value);
-        if (!isNaN(val)) { applySubSyncOffset(val); subSyncCustomInput.value = ''; }
-    }
-    e.stopPropagation(); // prevent player shortcuts while typing
-});
-
-// Reset
-document.getElementById('sub-sync-reset').addEventListener('click', e => {
-    e.stopPropagation();
-    applySubSyncOffset(0);
-});
-
-// When a new track is added (HLS cues load later), re-apply the current offset
-// so sync stays consistent when switching tracks.
-video.textTracks && video.textTracks.addEventListener('addtrack', e => {
-    if (_subSyncOffset === 0) return;
-    const t = e.track;
-    if (t.kind !== 'subtitles' && t.kind !== 'captions') return;
-    // Wait a tick for cues to load
-    setTimeout(() => {
-        if (t.cues) Array.from(t.cues).forEach(cue => {
-            cue.startTime += _subSyncOffset;
-            cue.endTime   += _subSyncOffset;
-        });
-    }, 200);
-});
-
-/* =========================================================================
-   PROGRESS SAVE / RESTORE
-   ========================================================================= */
-function generateStorageKey(url){return `video_progress:${url}`;}
-function saveVideoProgress(){
-    if(!video.duration||isNaN(video.duration)||video.duration===Infinity)return;
-    if(video.currentTime<1||video.currentTime>video.duration-5)return;
-    try{const data={currentTime:video.currentTime,duration:video.duration,timestamp:Date.now(),url:resolvedUrl};localStorage.setItem(videoStorageKey,JSON.stringify(data));}catch(e){console.error('save progress error',e);}
-}
-function restoreVideoProgress(){
-    if(hasRestoredPosition)return;
-    if(!video.duration||isNaN(video.duration)||video.duration===Infinity)return;
-    try{const raw=localStorage.getItem(videoStorageKey);if(!raw)return;const data=JSON.parse(raw);if(data.url!==resolvedUrl||data.currentTime<=1||data.currentTime>=video.duration-5)return;hasRestoredPosition=true;const seek=()=>{video.currentTime=data.currentTime;};if(video.readyState>=2)seek();else video.addEventListener('canplay',seek,{once:true});}catch(e){hasRestoredPosition=true;}
-}
-function clearVideoProgress(){try{localStorage.removeItem(videoStorageKey);}catch(e){console.error(e);}}
-function startProgressSaving(){
-    saveProgressInterval=setInterval(saveVideoProgress,5000);
-    video.addEventListener('pause',saveVideoProgress);video.addEventListener('seeking',saveVideoProgress);
-    video.addEventListener('ended',clearVideoProgress);window.addEventListener('beforeunload',saveVideoProgress);
-}
-function stopProgressSaving(){
-    clearInterval(saveProgressInterval);saveProgressInterval=null;
-    video.removeEventListener('pause',saveVideoProgress);video.removeEventListener('seeking',saveVideoProgress);
-    video.removeEventListener('ended',clearVideoProgress);window.removeEventListener('beforeunload',saveVideoProgress);
-}
-function getMediaInfoFromUrl(){
-    const path=window.location.pathname;
-    const tvMatch=path.match(/\/tv\/(\d+)\/S(\d+)\/E(\d+)/i);
-    if(tvMatch)return{mediaType:'tv',contentId:tvMatch[1],seasonNumber:Number(tvMatch[2]),episodeNumber:Number(tvMatch[3])};
-    const movieMatch=path.match(/\/movie\/(\d+)/i);
-    if(movieMatch)return{mediaType:'movie',contentId:movieMatch[1]};
-    return{mediaType:null,contentId:null};
-}
-function postTimeUpdateToParent(){
-    if(window.parent!==window)window.parent.postMessage({event:'videoTimeUpdate',currentTime:video.currentTime,duration:video.duration,paused:video.paused,...getMediaInfoFromUrl()},'*');
-}
-
-/* =========================================================================
-   UI CONTROL BINDINGS
-   ========================================================================= */
-function setupUIControls() {
-    const container=videoContainer;
-    ['mousemove','mousedown','touchstart','touchend'].forEach(ev=>container.addEventListener(ev,resetInactivityTimer,ev.startsWith('touch')?{passive:true}:false));
-    topOverlay.addEventListener('click',()=>{
-        const mobile=window.innerWidth<=1000;
-        if(mobile){const els=[document.getElementById('center-controls-mobile-only'),document.getElementById('controls-bar')];const anyHidden=els.some(el=>el.style.display==='none');els.forEach(el=>el.style.display=anyHidden?'flex':'none');}
-        else{toggleVideoPlayPause();}
-    });
-    customPlayButton.addEventListener('click',toggleVideoPlayPause);
-    centerPlayPauseButton.addEventListener('click',toggleVideoPlayPause);
-    fullscreenButton.addEventListener('click',toggleFullscreen);
-    skipBackwardButton.addEventListener('click',handleSkipBackward);
-    skipForwardButton.addEventListener('click',handleSkipForward);
-    mobileSkipBackwardButton.addEventListener('click',handleSkipBackward);
-    mobileSkipForwardButton.addEventListener('click',handleSkipForward);
-    muteButton.addEventListener('click',toggleMute);
-    audioSubtitleToggle.addEventListener('click',e=>{e.stopPropagation();toggleAudioSubtitleMenu();});
-    seekBar.addEventListener('mousedown',startSeeking);
-    seekBar.addEventListener('touchstart',startSeeking,{passive:true});
-    volumeControlWrapper.addEventListener('mouseenter',()=>volumeSliderContainer.classList.remove('hidden'));
-    volumeControlWrapper.addEventListener('mouseleave',()=>setTimeout(()=>{if(!isVolumeAdjusting)volumeSliderContainer.classList.add('hidden');},300));
-    document.addEventListener('fullscreenchange',updateFullscreenIcon);
-    document.addEventListener('webkitfullscreenchange',updateFullscreenIcon);
-    video.addEventListener('webkitbeginfullscreen',updateFullscreenIcon);
-    video.addEventListener('webkitendfullscreen',updateFullscreenIcon);
-    video.addEventListener('timeupdate',()=>{updateProgress();postTimeUpdateToParent();});
-    video.addEventListener('progress',updateBufferProgress);
-    video.addEventListener('loadedmetadata',()=>{updateProgress();updateBufferProgress();remainingTimeDisplay.textContent=`-${formatTime(video.duration)}`;});
-    video.addEventListener('volumechange',updateVolumeSlider);
-    video.addEventListener('waiting',showLoader);
-    video.addEventListener('playing',hideLoader);
-    video.addEventListener('canplay',hideLoader);
-    video.addEventListener('pause',()=>{showControls();updateBottomPlayPauseIcon(true);updateCenterPlayPauseIcon(true);clearTimeout(inactivityTimer);});
-    video.addEventListener('play',()=>{updateBottomPlayPauseIcon(false);updateCenterPlayPauseIcon(false);resetInactivityTimer();});
-    video.addEventListener('ended',()=>{showControls();updateBottomPlayPauseIcon(true);updateCenterPlayPauseIcon(true);hideLoader();});
-    /* next episode button removed — no listener needed */
-    updateNextEpisodeButtonVisibility();
-}
-
-async function updateNextEpisodeButtonVisibility() {
-    /* next episode button removed — function kept as no-op to avoid call errors */
-}
-
-function setupInactivityDetection() {
-    if(!isHlsJsMode&&video.audioTracks)video.audioTracks.addEventListener('change',renderTracksMenu);
-    lastKnownVolume=video.volume>0?video.volume:.5;
-    updateProgress();updateBufferProgress();updateVolumeSlider();updateFullscreenIcon();
-    /* reset sub sync offset when new stream starts */
-    _subSyncOffset = 0;
-    updateSubSyncUI();
-    if(video.paused||video.ended){showControls();updateBottomPlayPauseIcon(true);updateCenterPlayPauseIcon(true);}
-    else{updateBottomPlayPauseIcon(false);updateCenterPlayPauseIcon(false);resetInactivityTimer();}
-}
-
-/* =========================================================================
-   VOLUME SLIDER
-   ========================================================================= */
-function calculateNewVolume(clientY){const rect=volumeSliderTrack.getBoundingClientRect();let dist=rect.bottom-clientY;dist=Math.max(0,Math.min(dist,rect.height));return dist/rect.height;}
-function handleVolumeAdjust(e){e.preventDefault();const y=e.touches?e.touches[0].clientY:e.clientY;const vol=calculateNewVolume(y);video.volume=vol;if(vol>0){video.muted=false;lastKnownVolume=vol;}else video.muted=true;updateVolumeSlider();}
-function startVolumeAdjusting(e){isVolumeAdjusting=true;e.preventDefault();window.addEventListener('mousemove',handleVolumeAdjust);window.addEventListener('mouseup',endVolumeAdjusting);window.addEventListener('touchmove',handleVolumeAdjust);window.addEventListener('touchend',endVolumeAdjusting);handleVolumeAdjust(e);}
-function endVolumeAdjusting(){if(!isVolumeAdjusting)return;isVolumeAdjusting=false;window.removeEventListener('mousemove',handleVolumeAdjust);window.removeEventListener('mouseup',endVolumeAdjusting);window.removeEventListener('touchmove',handleVolumeAdjust);window.removeEventListener('touchend',endVolumeAdjusting);resetInactivityTimer();}
-volumeSliderTrack.addEventListener('mousedown',startVolumeAdjusting);
-volumeSliderTrack.addEventListener('touchstart',startVolumeAdjusting,{passive:true});
-
-/* =========================================================================
-   KEYBOARD SHORTCUTS
-   ========================================================================= */
-function handleKeyboardShortcuts(e){
-    if(['INPUT','TEXTAREA'].includes(e.target.tagName))return;
-    const prevent=['Space','ArrowLeft','ArrowRight','ArrowUp','ArrowDown'];
-    if(prevent.includes(e.code))e.preventDefault();
-    switch(e.code){
-        case 'Space':case 'KeyK':toggleVideoPlayPause();break;
-        case 'ArrowLeft':video.currentTime=Math.max(0,video.currentTime-5);resetInactivityTimer();break;
-        case 'ArrowRight':video.currentTime=Math.min(video.duration,video.currentTime+5);resetInactivityTimer();break;
-        case 'KeyJ':handleSkipBackward();break;case 'KeyL':handleSkipForward();break;
-        case 'ArrowUp':e.preventDefault();video.volume=Math.min(1,video.volume+.05);video.muted=false;lastKnownVolume=video.volume;updateVolumeSlider();resetInactivityTimer();break;
-        case 'ArrowDown':e.preventDefault();video.volume=Math.max(0,video.volume-.05);if(video.volume===0)video.muted=true;updateVolumeSlider();resetInactivityTimer();break;
-        case 'KeyM':toggleMute();break;case 'KeyF':toggleFullscreen();break;
-        case 'KeyC':
-            if(isHlsJsMode&&hlsInstance){const cur=hlsInstance.subtitleTrack;const nextIdx=cur===-1?0:-1;hlsInstance.subtitleTrack=nextIdx;const subs=Array.from(video.textTracks).filter(t=>t.kind==='subtitles'||t.kind==='captions');subs.forEach((t,i)=>{t.mode=(nextIdx>=0&&i===nextIdx)?'showing':'disabled';});}
-            else if(video.textTracks){const subs=Array.from(video.textTracks).filter(t=>t.kind==='subtitles'||t.kind==='captions');const showing=subs.some(t=>t.mode==='showing');subs.forEach((t,i)=>t.mode=showing?'disabled':(i===0?'showing':'disabled'));}
-            renderTracksMenu();resetInactivityTimer();break;
-        default:
-            if(e.code.startsWith('Digit')){const d=parseInt(e.code.replace('Digit',''));video.currentTime=(video.duration*d)/10;resetInactivityTimer();}
-            else if(e.code==='Home'){video.currentTime=0;resetInactivityTimer();}
-            else if(e.code==='End'){video.currentTime=video.duration;resetInactivityTimer();}
-            else if(e.code==='Comma'&&video.paused){video.currentTime=Math.max(0,video.currentTime-1/30);resetInactivityTimer();}
-            else if(e.code==='Period'&&video.paused){video.currentTime=Math.min(video.duration,video.currentTime+1/30);resetInactivityTimer();}
-    }
-}
-document.addEventListener('keydown',handleKeyboardShortcuts);
 
 /* =========================================================================
    HLS / DIRECT VIDEO INIT
    ========================================================================= */
-function isDirectVideoUrl(url){try{const path=new URL(url).pathname.toLowerCase();return/\.(mp4|webm|ogg|ogv|mov|mkv|avi|flv|m4v)(\?|$)/.test(path);}catch(e){return/\.(mp4|webm|ogg|ogv|mov|mkv|avi|flv|m4v)(\?|$)/.test(url.toLowerCase());}}
+function isDirectVideoUrl(url) {
+    try {
+        const path = new URL(url).pathname.toLowerCase();
+        return /\.(mp4|webm|ogg|ogv|mov|mkv|avi|flv|m4v)(\?|$)/.test(path);
+    } catch(e) { return /\.(mp4|webm|ogg|ogv|mov|mkv|avi|flv|m4v)(\?|$)/.test(url.toLowerCase()); }
+}
 
-function initHlsPlayer(url){
+function initHlsPlayer(url) {
     saveVideoProgress();
-    if(saveProgressInterval){clearInterval(saveProgressInterval);saveProgressInterval=null;}
-    stopProgressSaving();hasRestoredPosition=false;
-    if(hlsInstance){hlsInstance.destroy();hlsInstance=null;}
-    Array.from(video.querySelectorAll('track[data-github],track[data-wyzie]')).forEach(t=>t.remove());
+    if (saveProgressInterval) { clearInterval(saveProgressInterval); saveProgressInterval = null; }
+    stopProgressSaving();
+    hasRestoredPosition = false;
+    if (hlsInstance) { hlsInstance.destroy(); hlsInstance = null; }
+    revokeAllSubtitleBlobs();
     errorMessageDiv.classList.add('hidden');
-    hasRestoredPosition=false;resolvedUrl=url;videoStorageKey=generateStorageKey(url);
-    if(isDirectVideoUrl(url)){
-        isHlsJsMode=false;showLoader();video.src=url;
-        video.addEventListener('loadedmetadata',()=>{renderTracksMenu();hideLoader();setupInactivityDetection();restoreVideoProgress();startProgressSaving();video.play().catch(()=>{});},{once:true});
-        video.addEventListener('error',()=>{if(video.currentTime>0||video.readyState>=2)return;displayError('Failed to load video: '+(video.error?video.error.message:'unknown error'));hideLoader();},{once:true});
+    hasRestoredPosition = false;
+    resolvedUrl = url;
+    videoStorageKey = generateStorageKey(url);
+    if (isDirectVideoUrl(url)) {
+        isHlsJsMode = false;
+        showLoader();
+        video.src = url;
+        video.addEventListener('loadedmetadata', () => {
+            renderTracksMenu();
+            hideLoader();
+            restoreVideoProgress();
+            startProgressSaving();
+            video.play().catch(()=>{});
+            updateNextEpisodeButton();
+        }, { once: true });
+        video.addEventListener('error', () => {
+            if (video.currentTime > 0 || video.readyState >= 2) return;
+            displayError('Failed to load video: ' + (video.error ? video.error.message : 'unknown error'));
+            hideLoader();
+        }, { once: true });
         return;
     }
-    if(Hls.isSupported()){
-        isHlsJsMode=true;showLoader();
-        const h=new Hls({renderTextTracksNatively:true,subtitleDisplay:true});hlsInstance=h;
-        h.on(Hls.Events.MEDIA_ATTACHED,()=>h.loadSource(url));
-        h.on(Hls.Events.MANIFEST_PARSED,()=>{renderTracksMenu();renderQualityMenu();});
-        h.on(Hls.Events.AUDIO_TRACK_SWITCHED,renderTracksMenu);
-        h.on(Hls.Events.SUBTITLE_TRACK_SWITCHED,renderTracksMenu);
-        h.on(Hls.Events.LEVEL_SWITCHED,renderQualityMenu);
-        h.on(Hls.Events.ERROR,(ev,data)=>{if(data.fatal){displayError('Fatal HLS error');h.destroy();hideLoader();}});
-        function fixHlsCueLine(cue){if(!(cue instanceof VTTCue))return;cue.line=85;cue.snapToLines=false;cue.position=50;cue.align='center';}
-        function patchTrackCues(track){if(track.cues)Array.from(track.cues).forEach(fixHlsCueLine);track.addEventListener('cuechange',()=>{if(track.cues)Array.from(track.cues).forEach(fixHlsCueLine);});}
-        video.textTracks.addEventListener('addtrack',e=>{
-            const t=e.track;if(t.kind!=='subtitles'&&t.kind!=='captions')return;
-            const el=Array.from(video.querySelectorAll('track')).find(el=>el.label===t.label&&el.srclang===t.language);
-            if(!el||(!el.hasAttribute('data-github')&&!el.hasAttribute('data-wyzie')))patchTrackCues(t);
+    if (Hls.isSupported()) {
+        isHlsJsMode = true;
+        showLoader();
+        const h = new Hls({ renderTextTracksNatively: true, subtitleDisplay: true });
+        hlsInstance = h;
+        h.on(Hls.Events.MEDIA_ATTACHED, () => h.loadSource(url));
+        h.on(Hls.Events.MANIFEST_PARSED, () => {
+            renderTracksMenu();
+            renderQualityMenu();
+            updateNextEpisodeButton();
+        });
+        h.on(Hls.Events.AUDIO_TRACK_SWITCHED, renderTracksMenu);
+        h.on(Hls.Events.SUBTITLE_TRACK_SWITCHED, renderTracksMenu);
+        h.on(Hls.Events.LEVEL_SWITCHED, renderQualityMenu);
+        h.on(Hls.Events.ERROR, (ev, data) => {
+            if (data.fatal) { displayError('Fatal HLS error'); h.destroy(); hideLoader(); }
         });
         h.attachMedia(video);
-        video.addEventListener('loadedmetadata',()=>restoreVideoProgress(),{once:true});
-        video.addEventListener('canplay',()=>{hideLoader();setupInactivityDetection();startProgressSaving();video.play().catch(()=>{});},{once:true});
+        video.addEventListener('loadedmetadata', () => restoreVideoProgress(), { once: true });
+        video.addEventListener('canplay', () => {
+            hideLoader();
+            startProgressSaving();
+            video.play().catch(()=>{});
+        }, { once: true });
+    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+        isHlsJsMode = false;
+        showLoader();
+        video.src = url;
+        video.addEventListener('loadedmetadata', () => {
+            renderTracksMenu();
+            hideLoader();
+            restoreVideoProgress();
+            startProgressSaving();
+            video.play().catch(()=>{});
+            updateNextEpisodeButton();
+        }, { once: true });
+        video.addEventListener('error', () => {
+            if (video.currentTime > 0 && !video.paused) return;
+            displayError('Failed to load stream: ' + (video.error ? video.error.message : 'unknown error'));
+            hideLoader();
+        }, { once: true });
+    } else {
+        displayError('Browser does not support HLS');
+        hideLoader();
     }
-    else if(video.canPlayType('application/vnd.apple.mpegurl')){
-        isHlsJsMode=false;showLoader();video.src=url;
-        video.addEventListener('loadedmetadata',()=>{renderTracksMenu();hideLoader();setupInactivityDetection();restoreVideoProgress();startProgressSaving();video.play().catch(()=>{});},{once:true});
-        video.addEventListener('error',()=>{if(video.currentTime>0&&!video.paused)return;displayError('Failed to load stream: '+(video.error?video.error.message:'unknown error'));hideLoader();},{once:true});
-    }
-    else{displayError('Browser does not support HLS');hideLoader();}
 }
 
 /* =========================================================================
    PRIMARY SOURCE — multimovies.fyi via hls-proxy
    ========================================================================= */
-const TMDB_PROXY      = 'https://search-proxy.bingeoutofficial.workers.dev';
+const TMDB_PROXY = 'https://search-proxy.bingeoutofficial.workers.dev';
 const MULTIMOVIES_API = 'https://hls-proxy.vercel.app/api/?url=';
-const PROXY_SOURCE2   = 'https://workingg.vercel.app/api/proxy?source=2&url=';
-const PROXY_SOURCE1   = 'https://workingg.vercel.app/api/proxy?source=1&url=';
+const PROXY_SOURCE2 = 'https://workingg.vercel.app/api/proxy?source=2&url=';
 
 function toSlug(str) {
-    return (str || '')
-        .toLowerCase()
-        .replace(/[^a-z0-9\s-]/g, '')
-        .trim()
-        .replace(/\s+/g, '-');
+    return (str || '').toLowerCase().replace(/[^a-z0-9\s-]/g, '').trim().replace(/\s+/g, '-');
 }
 
 async function fetchTmdbData(type, id, season, episode) {
@@ -1299,11 +1204,12 @@ async function fetchFromMultimovies(multimoviesUrl) {
         if (!r.ok) { console.warn('[Multimovies] HTTP', r.status); return null; }
         const data = await r.json();
         if (data.status !== 'success' || !Array.isArray(data.servers) || !data.servers.length) {
-            console.warn('[Multimovies] Bad response:', data.status); return null;
+            console.warn('[Multimovies] Bad response:', data.status);
+            return null;
         }
         const preferred = data.servers.find(s => s.provider === 'StreamP2p' && s.result?.streaming_url);
-        const fallback  = data.servers.find(s => s.result?.streaming_url);
-        const server    = preferred || fallback;
+        const fallback = data.servers.find(s => s.result?.streaming_url);
+        const server = preferred || fallback;
         if (!server) { console.warn('[Multimovies] No server with streaming_url'); return null; }
         const rawUrl = server.result.streaming_url;
         console.log('[Multimovies] Got stream from', server.provider, rawUrl);
@@ -1314,7 +1220,6 @@ async function fetchFromMultimovies(multimoviesUrl) {
 async function source_multimovies(type, id, season, episode) {
     const tmdb = await fetchTmdbData(type, id, season, episode);
     if (!tmdb) { console.warn('[Multimovies] No TMDB data'); return null; }
-
     let multimoviesUrl;
     if (type === 'movie') {
         const slug = toSlug(tmdb.title);
@@ -1327,7 +1232,6 @@ async function source_multimovies(type, id, season, episode) {
         const e = String(tmdb.episodeNum).padStart(2, '0');
         multimoviesUrl = `https://multimovies.fyi/episodes/${showSlug}-${parseInt(s)}x${parseInt(e)}/`;
     }
-
     console.log('[Multimovies] URL:', multimoviesUrl);
     return fetchFromMultimovies(multimoviesUrl);
 }
@@ -1336,7 +1240,7 @@ async function source_multimovies(type, id, season, episode) {
    GITHUB FALLBACK
    ========================================================================= */
 async function playMovie(movieId) {
-    _revokeAllSubtitleBlobs();
+    revokeAllSubtitleBlobs();
     showLoader();
     const githubUrl = `https://raw.githubusercontent.com/Watchout2025/api/refs/heads/main/hls/movie/${movieId}`;
     try {
@@ -1345,15 +1249,13 @@ async function playMovie(movieId) {
         const cleanUrl = (await res.text()).trim();
         if (cleanUrl && (cleanUrl.includes('.m3u8') || cleanUrl.includes('http'))) {
             initHlsPlayer(cleanUrl);
-            loadSubtitlesFromGithub('movie', movieId);
-            loadSubtitlesFromWyzie('movie', movieId);
             fetchAndSetTitle('movie', movieId);
         } else { displayError(`Invalid stream URL for movie ${movieId}.`); hideLoader(); }
     } catch (err) { displayError(`Failed to fetch movie: ${err.message}`); hideLoader(); }
 }
 
 async function playEpisode(seriesId, seasonNumber, episodeNumber) {
-    _revokeAllSubtitleBlobs();
+    revokeAllSubtitleBlobs();
     const expectedPath = `/tv/${seriesId}/S${seasonNumber}/E${episodeNumber}`;
     if (window.location.pathname !== expectedPath) history.replaceState(null, '', expectedPath);
     showLoader();
@@ -1365,61 +1267,9 @@ async function playEpisode(seriesId, seasonNumber, episodeNumber) {
         const fileId = data[episodeNumber];
         if (fileId) {
             initHlsPlayer(fileId);
-            loadSubtitlesFromGithub('tv', seriesId, seasonNumber, episodeNumber);
-            loadSubtitlesFromWyzie('tv', seriesId, seasonNumber, episodeNumber);
             fetchAndSetTitle('tv', seriesId, seasonNumber, episodeNumber);
         } else { displayError(`Episode ${episodeNumber} not found.`); hideLoader(); }
     } catch (err) { displayError(`Failed to fetch episode: ${err.message}`); hideLoader(); }
-}
-
-/* =========================================================================
-   ROUTE DISPATCHER
-   ========================================================================= */
-async function resolveAndPlay() {
-    const path = window.location.pathname;
-
-    const movieMatch = path.match(/\/movie\/(\d+)/i);
-    if (movieMatch) {
-        const id = movieMatch[1];
-        showLoader();
-        const primaryUrl = await source_multimovies('movie', id, null, null);
-        if (primaryUrl) {
-            console.log('[Router] Movie → multimovies');
-            _revokeAllSubtitleBlobs();
-            initHlsPlayer(primaryUrl);
-            loadSubtitlesFromGithub('movie', id);
-            loadSubtitlesFromWyzie('movie', id);
-            fetchAndSetTitle('movie', id);
-        } else {
-            console.warn('[Router] Movie multimovies failed → GitHub fallback');
-            await playMovie(id);
-        }
-        return;
-    }
-
-    const tvMatch = path.match(/\/tv\/(\d+)\/S(\d+)\/E(\d+)/i);
-    if (tvMatch) {
-        const [, id, season, episode] = tvMatch;
-        showLoader();
-        const primaryUrl = await source_multimovies('tv', id, season, episode);
-        if (primaryUrl) {
-            console.log('[Router] TV → multimovies');
-            _revokeAllSubtitleBlobs();
-            const ep = `/tv/${id}/S${season}/E${episode}`;
-            if (window.location.pathname !== ep) history.replaceState(null, '', ep);
-            initHlsPlayer(primaryUrl);
-            loadSubtitlesFromGithub('tv', id, season, episode);
-            loadSubtitlesFromWyzie('tv', id, season, episode);
-            fetchAndSetTitle('tv', id, season, episode);
-        } else {
-            console.warn('[Router] TV multimovies failed → GitHub fallback');
-            await playEpisode(id, season, episode);
-        }
-        return;
-    }
-
-    const hlsUrl = urlParams.get('url') || 'https://vidmmo.com/hls/ZDBtrL1WMPQipj3EubEdG6tAKeYJ0Nt3/master.m3u8';
-    initHlsPlayer(hlsUrl);
 }
 
 /* =========================================================================
@@ -1428,15 +1278,22 @@ async function resolveAndPlay() {
 async function fetchAndSetTitle(type, id, season, episode) {
     try {
         if (type === 'movie') {
-            const res = await fetch(`${TMDB_PROXY}/movie/${id}`); if (!res.ok) return;
+            const res = await fetch(`${TMDB_PROXY}/movie/${id}`);
+            if (!res.ok) return;
             const data = await res.json();
             document.getElementById('title-main-text').textContent = data.title || '';
             document.getElementById('mobile-title-main').textContent = data.title || '';
             document.title = data.title || document.title;
         } else if (type === 'tv') {
-            const [seriesRes, epRes] = await Promise.all([fetch(`${TMDB_PROXY}/tv/${id}`), fetch(`${TMDB_PROXY}/tv/${id}/season/${season}/episode/${episode}`)]);
-            const series = seriesRes.ok ? await seriesRes.json() : {}, ep = epRes.ok ? await epRes.json() : {};
-            const seriesName = series.name || '', epName = ep.name || '', label = `S${season}:E${episode}`;
+            const [seriesRes, epRes] = await Promise.all([
+                fetch(`${TMDB_PROXY}/tv/${id}`),
+                fetch(`${TMDB_PROXY}/tv/${id}/season/${season}/episode/${episode}`)
+            ]);
+            const series = seriesRes.ok ? await seriesRes.json() : {};
+            const ep = epRes.ok ? await epRes.json() : {};
+            const seriesName = series.name || '';
+            const epName = ep.name || '';
+            const label = `S${season}:E${episode}`;
             const fullTitle = [seriesName, label, epName].filter(Boolean).join(' ');
             const mobileTitle = `${label} "${epName || seriesName}"`;
             document.getElementById('title-main-text').textContent = fullTitle;
@@ -1447,83 +1304,189 @@ async function fetchAndSetTitle(type, id, season, episode) {
 }
 
 /* =========================================================================
-   SUBTITLES — GITHUB
+   ROUTE DISPATCHER
    ========================================================================= */
-const GITHUB_RAW = 'https://raw.githubusercontent.com/Watchout2025/api/refs/heads/main';
-const LANG_LABELS = {eng:'English',hin:'Hindi',ara:'Arabic',fra:'French',spa:'Spanish',por:'Portuguese',rus:'Russian',zho:'Chinese',jpn:'Japanese',kor:'Korean',ger:'German',ita:'Italian',tam:'Tamil',tel:'Telugu',mal:'Malayalam',ben:'Bengali',mar:'Marathi',urd:'Urdu',pol:'Polish',tur:'Turkish',nld:'Dutch',swe:'Swedish',nor:'Norwegian',dan:'Danish',fin:'Finnish',ind:'Indonesian',tha:'Thai',vie:'Vietnamese',ces:'Czech',hun:'Hungarian',ron:'Romanian',bul:'Bulgarian',hrv:'Croatian',srp:'Serbian',slk:'Slovak',ukr:'Ukrainian',heb:'Hebrew',fas:'Persian',msa:'Malay'};
-function langLabel(code){return LANG_LABELS[code]||code.toUpperCase();}
-function srtToVtt(srt){
-    let vtt='WEBVTT\n\n';
-    const body=srt.replace(/\r\n/g,'\n').replace(/\r/g,'\n').replace(/(\d{2}:\d{2}:\d{2}),(\d{3})/g,'$1.$2').trim();
-    vtt+=body.replace(/(\d{2}:\d{2}:\d{2}\.\d{3}\s*-->\s*\d{2}:\d{2}:\d{2}\.\d{3})/g,'$1 line:85% position:50% align:center');
-    return vtt;
-}
-const _subtitleBlobUrls=[];
-function _revokeAllSubtitleBlobs(){while(_subtitleBlobUrls.length)URL.revokeObjectURL(_subtitleBlobUrls.pop());}
-
-async function loadSubtitlesFromGithub(type, id, season, episode) {
-    const jsonPath=type==='movie'?`${GITHUB_RAW}/sub/movie/${id}/subtitles.json`:`${GITHUB_RAW}/sub/tv/${id}/${season}/${episode}/subtitles.json`;
-    try {
-        const res=await fetch(jsonPath,{cache:'no-store'});if(!res.ok)return;
-        const data=await res.json();const subs=data.subtitles||{};const langs=Object.keys(subs);if(!langs.length)return;
-        const trackData=await Promise.all(langs.map(async(lang)=>{try{const srtRes=await fetch(subs[lang],{cache:'no-store'});if(!srtRes.ok)return null;const srtText=await srtRes.text();const vttText=srtToVtt(srtText);const blob=new Blob([vttText],{type:'text/vtt;charset=utf-8'});const blobUrl=URL.createObjectURL(blob);_subtitleBlobUrls.push(blobUrl);return{lang,blobUrl};}catch(err){console.warn(`Failed to load subtitle for ${lang}:`,err.message);return null;}}));
-        const validTracks=trackData.filter(Boolean);if(!validTracks.length)return;
-        const inject=()=>{
-            const allBefore=Array.from(video.textTracks).filter(t=>t.kind==='subtitles'||t.kind==='captions');const showingBefore=allBefore.findIndex(t=>t.mode==='showing');
-            Array.from(video.querySelectorAll('track[data-github]')).forEach(t=>t.remove());
-            validTracks.forEach(({lang,blobUrl})=>{const track=document.createElement('track');track.kind='subtitles';track.label=langLabel(lang);track.srclang=lang;track.src=blobUrl;track.setAttribute('data-github','1');track.default=false;video.appendChild(track);});
-            if(showingBefore!==-1){const allAfter=Array.from(video.textTracks).filter(t=>t.kind==='subtitles'||t.kind==='captions');allAfter.forEach((t,i)=>{t.mode=(i===showingBefore)?'showing':'disabled';});}
-            renderTracksMenu();
-        };
-        if(video.readyState>=1)inject();else video.addEventListener('loadedmetadata',inject,{once:true});
-    }catch(e){console.warn('Could not load subtitles.json:',e.message);}
+async function resolveAndPlay() {
+    const path = window.location.pathname;
+    const movieMatch = path.match(/\/movie\/(\d+)/i);
+    if (movieMatch) {
+        const id = movieMatch[1];
+        showLoader();
+        const primaryUrl = await source_multimovies('movie', id, null, null);
+        if (primaryUrl) {
+            console.log('[Router] Movie → multimovies');
+            revokeAllSubtitleBlobs();
+            initHlsPlayer(primaryUrl);
+            fetchAndSetTitle('movie', id);
+        } else {
+            console.warn('[Router] Movie multimovies failed → GitHub fallback');
+            await playMovie(id);
+        }
+        return;
+    }
+    const tvMatch = path.match(/\/tv\/(\d+)\/S(\d+)\/E(\d+)/i);
+    if (tvMatch) {
+        const [, id, season, episode] = tvMatch;
+        showLoader();
+        const primaryUrl = await source_multimovies('tv', id, season, episode);
+        if (primaryUrl) {
+            console.log('[Router] TV → multimovies');
+            revokeAllSubtitleBlobs();
+            initHlsPlayer(primaryUrl);
+            fetchAndSetTitle('tv', id, season, episode);
+        } else {
+            console.warn('[Router] TV multimovies failed → GitHub fallback');
+            await playEpisode(id, season, episode);
+        }
+        return;
+    }
+    const hlsUrl = 'https://vidmmo.com/hls/ZDBtrL1WMPQipj3EubEdG6tAKeYJ0Nt3/master.m3u8';
+    initHlsPlayer(hlsUrl);
 }
 
 /* =========================================================================
-   SUBTITLES — WYZIE
+   UI CONTROL BINDINGS
    ========================================================================= */
-const WYZIE_API='https://sub.wyzie.io/search';
-const WYZIE_KEY='wyzie-ea127adc7693d78810f9cf157f267ea0';
-async function fetchAndActivateWyzieTrack(trackEl){
-    const lazyUrl=trackEl.getAttribute('data-lazy-url');if(!lazyUrl)return true;
-    try{const srtRes=await fetch(lazyUrl,{cache:'no-store'});if(!srtRes.ok)throw new Error(`HTTP ${srtRes.status}`);const srtText=await srtRes.text();const vttText=srtToVtt(srtText);const blob=new Blob([vttText],{type:'text/vtt;charset=utf-8'});const blobUrl=URL.createObjectURL(blob);_subtitleBlobUrls.push(blobUrl);trackEl.src=blobUrl;trackEl.removeAttribute('data-lazy-url');return true;}
-    catch(err){console.warn('Wyzie lazy fetch failed:',err.message);return false;}
-}
-let _wyzieLoading=false;
-async function loadSubtitlesFromWyzie(type,id,season,episode){
-    _wyzieLoading=true;renderTracksMenu();
-    try{
-        let apiUrl=`${WYZIE_API}?id=${id}&key=${WYZIE_KEY}`;if(type==='tv')apiUrl+=`&season=${season}&episode=${episode}`;
-        const res=await fetch(apiUrl,{cache:'no-store'});if(!res.ok){_wyzieLoading=false;renderTracksMenu();return;}
-        const tracks=await res.json();if(!Array.isArray(tracks)||!tracks.length){_wyzieLoading=false;renderTracksMenu();return;}
-        const inject=()=>{
-            Array.from(video.querySelectorAll('track[data-wyzie]')).forEach(t=>t.remove());
-            tracks.forEach((track)=>{const el=document.createElement('track');el.kind='subtitles';el.label=(track.display||track.language)+(track.isHearingImpaired?' [CC]':'');el.srclang=track.language;el.setAttribute('data-wyzie','1');el.setAttribute('data-lazy-url',track.url);el.default=false;video.appendChild(el);});
-            Array.from(video.textTracks).filter(t=>t.kind==='subtitles'||t.kind==='captions').forEach(t=>{const el=Array.from(video.querySelectorAll('track[data-wyzie]')).find(el=>el.label===t.label&&el.srclang===t.language);if(el&&el.hasAttribute('data-lazy-url'))t.mode='disabled';});
-            _wyzieLoading=false;renderTracksMenu();
-        };
-        if(video.readyState>=1)inject();else video.addEventListener('loadedmetadata',inject,{once:true});
-    }catch(e){_wyzieLoading=false;renderTracksMenu();console.warn('Wyzie subtitle load failed:',e.message);}
+function setupUIControls() {
+    const container = videoContainer;
+    ['mousemove', 'mousedown', 'touchstart', 'touchend'].forEach(ev => container.addEventListener(ev, resetInactivityTimer, ev.startsWith('touch') ? { passive: true } : false));
+    topOverlay.addEventListener('click', () => {
+        const mobile = window.innerWidth <= 1000;
+        if (mobile) {
+            const els = [document.getElementById('center-controls-mobile-only'), document.getElementById('controls-bar')];
+            const anyHidden = els.some(el => el.style.display === 'none');
+            els.forEach(el => el.style.display = anyHidden ? 'flex' : 'none');
+        } else { toggleVideoPlayPause(); }
+    });
+    customPlayButton.addEventListener('click', toggleVideoPlayPause);
+    centerPlayPauseButton.addEventListener('click', toggleVideoPlayPause);
+    fullscreenButton.addEventListener('click', toggleFullscreen);
+    skipBackwardButton.addEventListener('click', () => { video.currentTime = Math.max(0, video.currentTime - 10); resetInactivityTimer(); });
+    skipForwardButton.addEventListener('click', () => { video.currentTime = Math.min(video.duration, video.currentTime + 10); resetInactivityTimer(); });
+    mobileSkipBackwardButton.addEventListener('click', () => { video.currentTime = Math.max(0, video.currentTime - 10); resetInactivityTimer(); });
+    mobileSkipForwardButton.addEventListener('click', () => { video.currentTime = Math.min(video.duration, video.currentTime + 10); resetInactivityTimer(); });
+    muteButton.addEventListener('click', toggleMute);
+    audioSubtitleToggle.addEventListener('click', e => { e.stopPropagation(); toggleAudioSubtitleMenu(); });
+    seekBar.addEventListener('mousedown', startSeeking);
+    seekBar.addEventListener('touchstart', startSeeking, { passive: true });
+    volumeControlWrapper.addEventListener('mouseenter', () => volumeSliderContainer.classList.remove('hidden'));
+    volumeControlWrapper.addEventListener('mouseleave', () => setTimeout(() => { if (!isVolumeAdjusting) volumeSliderContainer.classList.add('hidden'); }, 300));
+    document.addEventListener('fullscreenchange', updateFullscreenIcon);
+    document.addEventListener('webkitfullscreenchange', updateFullscreenIcon);
+    video.addEventListener('webkitbeginfullscreen', updateFullscreenIcon);
+    video.addEventListener('webkitendfullscreen', updateFullscreenIcon);
+    video.addEventListener('timeupdate', () => { updateProgress(); postTimeUpdateToParent(); });
+    video.addEventListener('progress', updateBufferProgress);
+    video.addEventListener('loadedmetadata', () => { updateProgress(); updateBufferProgress(); remainingTimeDisplay.textContent = `-${formatTime(video.duration)}`; });
+    video.addEventListener('volumechange', updateVolumeSlider);
+    video.addEventListener('waiting', showLoader);
+    video.addEventListener('playing', hideLoader);
+    video.addEventListener('canplay', hideLoader);
+    video.addEventListener('pause', () => { showControls(); updateBottomPlayPauseIcon(true); updateCenterPlayPauseIcon(true); clearTimeout(inactivityTimer); });
+    video.addEventListener('play', () => { updateBottomPlayPauseIcon(false); updateCenterPlayPauseIcon(false); resetInactivityTimer(); });
+    video.addEventListener('ended', () => { showControls(); updateBottomPlayPauseIcon(true); updateCenterPlayPauseIcon(true); hideLoader(); });
+    lastKnownVolume = video.volume > 0 ? video.volume : 0.5;
+    updateProgress();
+    updateBufferProgress();
+    updateVolumeSlider();
+    updateFullscreenIcon();
+    if (video.paused || video.ended) { showControls(); updateBottomPlayPauseIcon(true); updateCenterPlayPauseIcon(true); }
+    else { updateBottomPlayPauseIcon(false); updateCenterPlayPauseIcon(false); resetInactivityTimer(); }
 }
 
-window.onload = () => { setupUIControls(); resolveAndPlay(); };
+/* =========================================================================
+   KEYBOARD SHORTCUTS
+   ========================================================================= */
+function handleKeyboardShortcuts(e) {
+    if (['INPUT', 'TEXTAREA'].includes(e.target.tagName)) return;
+    const prevent = ['Space', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'];
+    if (prevent.includes(e.code)) e.preventDefault();
+    switch (e.code) {
+        case 'Space': case 'KeyK': toggleVideoPlayPause(); break;
+        case 'ArrowLeft': video.currentTime = Math.max(0, video.currentTime - 5); resetInactivityTimer(); break;
+        case 'ArrowRight': video.currentTime = Math.min(video.duration, video.currentTime + 5); resetInactivityTimer(); break;
+        case 'KeyJ': video.currentTime = Math.max(0, video.currentTime - 10); resetInactivityTimer(); break;
+        case 'KeyL': video.currentTime = Math.min(video.duration, video.currentTime + 10); resetInactivityTimer(); break;
+        case 'ArrowUp': e.preventDefault(); video.volume = Math.min(1, video.volume + 0.05); video.muted = false; lastKnownVolume = video.volume; updateVolumeSlider(); resetInactivityTimer(); break;
+        case 'ArrowDown': e.preventDefault(); video.volume = Math.max(0, video.volume - 0.05); if (video.volume === 0) video.muted = true; updateVolumeSlider(); resetInactivityTimer(); break;
+        case 'KeyM': toggleMute(); break;
+        case 'KeyF': toggleFullscreen(); break;
+        case 'KeyC':
+            if (isHlsJsMode && hlsInstance) {
+                const cur = hlsInstance.subtitleTrack;
+                const nextIdx = cur === -1 ? 0 : -1;
+                hlsInstance.subtitleTrack = nextIdx;
+                const subs = Array.from(video.textTracks).filter(t => t.kind === 'subtitles' || t.kind === 'captions');
+                subs.forEach((t, i) => { t.mode = (nextIdx >= 0 && i === nextIdx) ? 'showing' : 'disabled'; });
+            } else if (video.textTracks) {
+                const subs = Array.from(video.textTracks).filter(t => t.kind === 'subtitles' || t.kind === 'captions');
+                const showing = subs.some(t => t.mode === 'showing');
+                subs.forEach((t, i) => t.mode = showing ? 'disabled' : (i === 0 ? 'showing' : 'disabled'));
+            }
+            renderTracksMenu();
+            resetInactivityTimer();
+            break;
+        default:
+            if (e.code.startsWith('Digit')) {
+                const d = parseInt(e.code.replace('Digit', ''));
+                video.currentTime = (video.duration * d) / 10;
+                resetInactivityTimer();
+            } else if (e.code === 'Home') { video.currentTime = 0; resetInactivityTimer(); }
+            else if (e.code === 'End') { video.currentTime = video.duration; resetInactivityTimer(); }
+    }
+}
+document.addEventListener('keydown', handleKeyboardShortcuts);
 
 /* =========================================================================
    REPORT ISSUE MODAL
    ========================================================================= */
-const reportModal=document.getElementById('reportModal');
-const issueTypeSelect=document.getElementById('issueType');
-const submitBtn=document.getElementById('submitBtn');
-document.getElementById('report-button').addEventListener('click',openReportModal);
-issueTypeSelect.addEventListener('change',()=>{submitBtn.disabled=issueTypeSelect.value==='';});
-function openReportModal(){reportModal.classList.add('active');}
-function closeReportModal(){reportModal.classList.remove('active');}
-reportModal.addEventListener('click',(e)=>{if(e.target===reportModal)closeReportModal();});
-async function submitIssue(){
-    const type=issueTypeSelect.value,desc=document.getElementById('issueDesc').value;submitBtn.disabled=true;
-    try{const res=await fetch('https://report.bingeoutofficial.workers.dev',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({issueType:type,description:desc,pageUrl:location.href})});if(!res.ok)throw new Error('Failed');alert('Issue reported successfully');closeReportModal();issueTypeSelect.value='';document.getElementById('issueDesc').value='';submitBtn.disabled=true;}
-    catch(e){alert('Failed to report issue. Try again.');}
-    finally{submitBtn.disabled=issueTypeSelect.value==='';}
+const reportModal = document.getElementById('reportModal');
+const issueTypeSelect = document.getElementById('issueType');
+const submitBtn = document.getElementById('submitBtn');
+document.getElementById('report-button').addEventListener('click', openReportModal);
+issueTypeSelect.addEventListener('change', () => { submitBtn.disabled = issueTypeSelect.value === ''; });
+function openReportModal() { reportModal.classList.add('active'); }
+function closeReportModal() { reportModal.classList.remove('active'); }
+reportModal.addEventListener('click', (e) => { if (e.target === reportModal) closeReportModal(); });
+async function submitIssue() {
+    const type = issueTypeSelect.value, desc = document.getElementById('issueDesc').value;
+    submitBtn.disabled = true;
+    try {
+        const res = await fetch('https://report.bingeoutofficial.workers.dev', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ issueType: type, description: desc, pageUrl: location.href })
+        });
+        if (!res.ok) throw new Error('Failed');
+        alert('Issue reported successfully');
+        closeReportModal();
+        issueTypeSelect.value = '';
+        document.getElementById('issueDesc').value = '';
+        submitBtn.disabled = true;
+    } catch(e) { alert('Failed to report issue. Try again.'); }
+    finally { submitBtn.disabled = issueTypeSelect.value === ''; }
 }
+
+/* =========================================================================
+   INITIALIZATION
+   ========================================================================= */
+document.addEventListener('click', function(e) {
+    if (!audioSubtitleMenu.classList.contains('hidden') && !audioSubtitleMenu.contains(e.target) && !audioSubtitleToggle.contains(e.target) && window.innerWidth >= 1000) {
+        audioSubtitleMenu.classList.add('hidden');
+        resetInactivityTimer();
+    }
+    if (!speedMenu.classList.contains('hidden') && !speedMenu.contains(e.target) && !speedButton.contains(e.target)) {
+        speedMenu.classList.add('hidden');
+        resetInactivityTimer();
+    }
+    const qm = document.getElementById('quality-menu');
+    const qb = document.getElementById('quality-button');
+    if (!qm.classList.contains('hidden') && !qm.contains(e.target) && !qb.contains(e.target)) {
+        qm.classList.add('hidden');
+        resetInactivityTimer();
+    }
+});
+window.onload = () => { setupUIControls(); resolveAndPlay(); };
 </script>
 </body></html>
+```
