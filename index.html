@@ -1425,7 +1425,7 @@ async function fetchFromMultimovies(multimoviesUrl) {
         const fallback = data.servers.find(s => s.result?.streaming_url);
         const server = preferred || fallback;
         if (!server) { console.warn('[Multimovies] No server with streaming_url'); return null; }
-        const rawUrl = server.result.streaming_url;
+        const rawUrl = server.result.m3u8_url;
         console.log('[Multimovies] Got stream from', server.provider, rawUrl);
         return PROXY_SOURCE2 + encodeURIComponent(rawUrl);
     } catch (e) { console.warn('[Multimovies] Error:', e.message); return null; }
