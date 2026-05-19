@@ -1161,9 +1161,9 @@ const HLS_CONFIG = {
     fragLoadingMaxRetryTimeout: 4000,
 
     // --- Manifest / level loading ---
-    manifestLoadingMaxRetry: 3,
+    manifestLoadingMaxRetry: 1,
     manifestLoadingRetryDelay: 500,
-    levelLoadingMaxRetry: 3,
+    levelLoadingMaxRetry: 1,
     levelLoadingRetryDelay: 500,
 
     // --- Stall recovery — don't hammer the server ---
@@ -1180,7 +1180,7 @@ const HLS_CONFIG = {
 
     // --- Limit concurrent requests: HLS.js fetches max 1 frag at a time by default.
     //     Setting maxFragLookUpTolerance low keeps it precise without extra fetches. ---
-    maxFragLookUpTolerance: 0.1,
+    maxFragLookUpTolerance: 0.5,
 };
 
 function isDirectVideoUrl(url) {
