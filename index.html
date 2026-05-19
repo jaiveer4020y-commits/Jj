@@ -166,7 +166,7 @@
         .report-submit-btn:disabled { opacity: 0.5; cursor: not-allowed; }
         @media (max-width: 480px) { .report-modal-box { padding: 16px; } .report-modal-title { font-size: 16px; } }
 
-        /* QUALITY MENU - improved design */
+        /* QUALITY MENU */
         #quality-menu {
             position: absolute;
             bottom: 4rem;
@@ -188,34 +188,34 @@
         .quality-active { color: rgb(225,0,0); }
         .quality-active .quality-badge { background: rgb(225,0,0); color: #fff; }
 
-        /* NEXT EPISODE BUTTON - Netflix style */
+        /* NEXT EPISODE BUTTON - matching other bottom buttons */
         #next-episode-button {
-            background: rgba(255,255,255,0.1);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255,255,255,0.2);
+            background: transparent;
+            border: none;
             color: #fff;
-            font-family: 'Netflix Sans', sans-serif;
-            font-weight: 500;
-            font-size: 0.85rem;
-            padding: 8px 16px;
-            border-radius: 30px;
             cursor: pointer;
-            transition: all 0.2s ease;
-            display: flex;
+            display: none;
             align-items: center;
-            gap: 8px;
+            justify-content: center;
+            gap: 4px;
+            width: auto;
+            padding: 0 8px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            font-family: 'Netflix Sans', sans-serif;
+            transition: transform 0.2s ease;
             white-space: nowrap;
         }
-        #next-episode-button:hover {
-            background: rgba(255,255,255,0.2);
-            transform: scale(1.02);
-        }
         #next-episode-button svg {
-            width: 16px;
-            height: 16px;
+            width: 18px;
+            height: 18px;
         }
-        @media (max-width: 999px) {
-            #next-episode-button { font-size: 0.7rem; padding: 6px 12px; }
+        #next-episode-button:hover {
+            transform: scale(1.05);
+        }
+        @media (max-width: 1000px) {
+            #next-episode-button { font-size: 0.7rem; padding: 0 4px; }
+            #next-episode-button svg { width: 14px; height: 14px; }
         }
 
         /* Fix for fullscreen title position */
@@ -336,9 +336,9 @@
                 <!-- RIGHT CONTROLS -->
                 <div id="right-controlbuttons" class="flex items-center space-x-1 md:space-x-2 relative">
 
-                    <!-- NEXT EPISODE BUTTON -->
+                    <!-- NEXT EPISODE BUTTON - compact, matches other buttons -->
                     <button id="next-episode-button" style="display:none;">
-                        <span>Next Episode</span>
+                        <span>Next Ep</span>
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
                         </svg>
@@ -383,7 +383,7 @@
                         <ul id="speed-list" class="space-y-1 text-sm"></ul>
                     </div>
 
-                    <!-- QUALITY BUTTON (improved icon) -->
+                    <!-- QUALITY BUTTON -->
                     <div style="position:relative;">
                         <button id="quality-button" class="bottom-control-button text-white flex items-center justify-center md:h-9 md:w-9 flex-shrink-0 cursor-pointer focus:outline-none mobile-labeled-btn" title="Video Quality">
                             <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" fill="none" aria-hidden="true" class="w-6 h-6 md:w-full md:h-full flex-shrink-0" viewBox="0 0 24 24">
@@ -583,7 +583,10 @@ function resetInactivityTimer() {
     }
 }
 
-function generateStorageKey(url) { return `video_progress:${url}`; }
+function generateStorageKey(url) { 
+    // Use raw URL as key for multimovies StreamP2p URLs (the ID is part of the URL)
+    return `video_progress:${url}`; 
+}
 
 function saveVideoProgress() {
     if (!video.duration || isNaN(video.duration) || video.duration === Infinity) return;
@@ -601,6 +604,7 @@ function restoreVideoProgress() {
         const raw = localStorage.getItem(videoStorageKey);
         if (!raw) return;
         const data = JSON.parse(raw);
+        // For multimovies StreamP2p URLs, the file ID is embedded, but we're using the full URL as key which is stable.
         if (data.url !== resolvedUrl || data.currentTime <= 1 || data.currentTime >= video.duration - 5) return;
         hasRestoredPosition = true;
         const seek = () => { video.currentTime = data.currentTime; };
@@ -971,7 +975,7 @@ function toggleSpeedMenu() {
 speedButton.addEventListener('click', e => { e.stopPropagation(); toggleSpeedMenu(); });
 
 /* =========================================================================
-   QUALITY MENU (improved)
+   QUALITY MENU
    ========================================================================= */
 const qualityButton = document.getElementById('quality-button');
 const qualityMenu = document.getElementById('quality-menu');
@@ -1101,6 +1105,7 @@ function initHlsPlayer(url) {
     hasRestoredPosition = false;
     resolvedUrl = url;
     videoStorageKey = generateStorageKey(url);
+    
     if (isDirectVideoUrl(url)) {
         isHlsJsMode = false;
         showLoader();
@@ -1168,7 +1173,103 @@ function initHlsPlayer(url) {
 }
 
 /* =========================================================================
-   PRIMARY SOURCE — multimovies.fyi via hls-proxy
+   STREMIO / OPENSUBTITLES SUBTITLES (replaces Wyzie)
+   ========================================================================= */
+async function loadStremioSubtitles(type, tmdbId, season, episode) {
+    // Remove existing Stremio tracks to avoid duplicates
+    Array.from(video.querySelectorAll('track[data-stremio]')).forEach(t => t.remove());
+    
+    let imdbId = null;
+    
+    // Step 1: Get IMDb ID from TMDB using our proxy
+    try {
+        const tmdbRes = await fetch(`https://search-proxy.bingeoutofficial.workers.dev/${type}/${tmdbId}/external_ids`);
+        if (tmdbRes.ok) {
+            const externalIds = await tmdbRes.json();
+            imdbId = externalIds.imdb_id;
+            console.log(`[Stremio] Got IMDb ID: ${imdbId} for TMDB ${tmdbId}`);
+        }
+    } catch (err) {
+        console.warn('[Stremio] Failed to fetch IMDb ID:', err);
+        return;
+    }
+    
+    if (!imdbId) {
+        console.warn('[Stremio] No IMDb ID found for TMDB ID:', tmdbId);
+        return;
+    }
+    
+    // Step 2: Build Stremio subtitle URL
+    let stremioUrl;
+    if (type === 'tv' && season && episode) {
+        stremioUrl = `https://opensubtitles-v3.strem.io/${imdbId}:${season}:${episode}.json`;
+    } else {
+        stremioUrl = `https://opensubtitles-v3.strem.io/${imdbId}.json`;
+    }
+    
+    console.log('[Stremio] Fetching subtitles from:', stremioUrl);
+    
+    try {
+        const subRes = await fetch(stremioUrl);
+        if (!subRes.ok) {
+            console.warn('[Stremio] Subtitle fetch failed:', subRes.status);
+            return;
+        }
+        const subsData = await subRes.json();
+        
+        // subsData format example: { "subtitles": [ { "lang": "en", "url": "https://...", "langName": "English" } ] }
+        const subtitles = subsData.subtitles || [];
+        if (!subtitles.length) {
+            console.warn('[Stremio] No subtitle tracks found');
+            return;
+        }
+        
+        // Step 3: Download and inject each subtitle as a <track> element
+        const inject = () => {
+            subtitles.forEach(async (sub) => {
+                try {
+                    const srtRes = await fetch(sub.url);
+                    if (!srtRes.ok) throw new Error(`HTTP ${srtRes.status}`);
+                    const srtText = await srtRes.text();
+                    const vttText = srtToVtt(srtText);
+                    const blob = new Blob([vttText], { type: 'text/vtt;charset=utf-8' });
+                    const blobUrl = URL.createObjectURL(blob);
+                    _subtitleBlobUrls.push(blobUrl);
+                    
+                    const track = document.createElement('track');
+                    track.kind = 'subtitles';
+                    track.label = sub.langName || getFullLanguageName(sub.lang);
+                    track.srclang = sub.lang;
+                    track.src = blobUrl;
+                    track.setAttribute('data-stremio', '1');
+                    track.default = false;
+                    video.appendChild(track);
+                } catch (err) {
+                    console.warn(`[Stremio] Failed to load subtitle for ${sub.lang}:`, err.message);
+                }
+            });
+            // Refresh subtitle menu after adding tracks
+            setTimeout(renderTracksMenu, 500);
+        };
+        
+        if (video.readyState >= 1) inject();
+        else video.addEventListener('loadedmetadata', inject, { once: true });
+        
+    } catch (err) {
+        console.warn('[Stremio] Error:', err.message);
+    }
+}
+
+function srtToVtt(srt) {
+    let vtt = 'WEBVTT\n\n';
+    const body = srt.replace(/\r\n/g, '\n').replace(/\r/g, '\n')
+        .replace(/(\d{2}:\d{2}:\d{2}),(\d{3})/g, '$1.$2').trim();
+    vtt += body.replace(/(\d{2}:\d{2}:\d{2}\.\d{3}\s*-->\s*\d{2}:\d{2}:\d{2}\.\d{3})/g, '$1 line:85% position:50% align:center');
+    return vtt;
+}
+
+/* =========================================================================
+   PRIMARY SOURCE — multimovies.fyi via hls-proxy (with resume support)
    ========================================================================= */
 const TMDB_PROXY = 'https://search-proxy.bingeoutofficial.workers.dev';
 const MULTIMOVIES_API = 'https://hls-proxy.vercel.app/api/?url=';
@@ -1184,11 +1285,11 @@ async function fetchTmdbData(type, id, season, episode) {
             const r = await fetch(`${TMDB_PROXY}/movie/${id}`);
             if (!r.ok) return null;
             const d = await r.json();
-            return { title: d.title || '', year: (d.release_date || '').slice(0, 4) };
+            return { title: d.title || '', year: (d.release_date || '').slice(0, 4), imdbId: d.imdb_id };
         } else {
             const [sr] = await Promise.all([fetch(`${TMDB_PROXY}/tv/${id}`)]);
             const s = sr.ok ? await sr.json() : {};
-            return { name: s.name || '', seasonNum: Number(season), episodeNum: Number(episode) };
+            return { name: s.name || '', seasonNum: Number(season), episodeNum: Number(episode), imdbId: s.external_ids?.imdb_id || s.imdb_id };
         }
     } catch (e) { console.warn('[TMDB]', e.message); return null; }
 }
@@ -1204,12 +1305,14 @@ async function fetchFromMultimovies(multimoviesUrl) {
             console.warn('[Multimovies] Bad response:', data.status);
             return null;
         }
+        // Prioritize StreamP2p as requested
         const preferred = data.servers.find(s => s.provider === 'StreamP2p' && s.result?.streaming_url);
         const fallback = data.servers.find(s => s.result?.streaming_url);
         const server = preferred || fallback;
         if (!server) { console.warn('[Multimovies] No server with streaming_url'); return null; }
         const rawUrl = server.result.streaming_url;
         console.log('[Multimovies] Got stream from', server.provider, rawUrl);
+        // Proxy the final m3u8 URL to avoid CORS
         return PROXY_SOURCE2 + encodeURIComponent(rawUrl);
     } catch (e) { console.warn('[Multimovies] Error:', e.message); return null; }
 }
@@ -1247,6 +1350,7 @@ async function playMovie(movieId) {
         if (cleanUrl && (cleanUrl.includes('.m3u8') || cleanUrl.includes('http'))) {
             initHlsPlayer(cleanUrl);
             fetchAndSetTitle('movie', movieId);
+            loadStremioSubtitles('movie', movieId); // Use Stremio subtitles
         } else { displayError(`Invalid stream URL for movie ${movieId}.`); hideLoader(); }
     } catch (err) { displayError(`Failed to fetch movie: ${err.message}`); hideLoader(); }
 }
@@ -1265,12 +1369,13 @@ async function playEpisode(seriesId, seasonNumber, episodeNumber) {
         if (fileId) {
             initHlsPlayer(fileId);
             fetchAndSetTitle('tv', seriesId, seasonNumber, episodeNumber);
+            loadStremioSubtitles('tv', seriesId, seasonNumber, episodeNumber); // Use Stremio subtitles
         } else { displayError(`Episode ${episodeNumber} not found.`); hideLoader(); }
     } catch (err) { displayError(`Failed to fetch episode: ${err.message}`); hideLoader(); }
 }
 
 /* =========================================================================
-   TMDB TITLE FETCHING
+   TMDB TITLE FETCHING (also fetches IMDb ID for future use)
    ========================================================================= */
 async function fetchAndSetTitle(type, id, season, episode) {
     try {
@@ -1315,6 +1420,7 @@ async function resolveAndPlay() {
             revokeAllSubtitleBlobs();
             initHlsPlayer(primaryUrl);
             fetchAndSetTitle('movie', id);
+            loadStremioSubtitles('movie', id);
         } else {
             console.warn('[Router] Movie multimovies failed → GitHub fallback');
             await playMovie(id);
@@ -1331,6 +1437,7 @@ async function resolveAndPlay() {
             revokeAllSubtitleBlobs();
             initHlsPlayer(primaryUrl);
             fetchAndSetTitle('tv', id, season, episode);
+            loadStremioSubtitles('tv', id, season, episode);
         } else {
             console.warn('[Router] TV multimovies failed → GitHub fallback');
             await playEpisode(id, season, episode);
