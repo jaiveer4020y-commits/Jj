@@ -1149,9 +1149,9 @@ async function updateNextEpisodeButton() {
    ========================================================================= */
 const HLS_CONFIG = {
     // --- Buffer control (prevents over-eager segment fetching) ---
-    maxBufferLength: 60,          // Only buffer 30s ahead (default: 30, but some builds use 60)
+    maxBufferLength: 20,          // Only buffer 30s ahead (default: 30, but some builds use 60)
     maxMaxBufferLength: 60,       // Absolute max buffer cap
-    backBufferLength: 30,         // Keep 10s behind current position
+    backBufferLength: 10,         // Keep 10s behind current position
 
     // --- Fragment loading throttle ---
     // fragLoadingMaxRetry: max retries before giving up on a fragment
@@ -1180,7 +1180,7 @@ const HLS_CONFIG = {
 
     // --- Limit concurrent requests: HLS.js fetches max 1 frag at a time by default.
     //     Setting maxFragLookUpTolerance low keeps it precise without extra fetches. ---
-    maxFragLookUpTolerance: 0.5,
+    maxFragLookUpTolerance: 1,
 };
 
 function isDirectVideoUrl(url) {
