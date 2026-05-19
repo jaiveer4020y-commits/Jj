@@ -188,7 +188,7 @@
         .quality-active { color: rgb(225,0,0); }
         .quality-active .quality-badge { background: rgb(225,0,0); color: #fff; }
 
-        /* NEXT EPISODE BUTTON - matching other bottom buttons */
+        /* NEXT EPISODE BUTTON */
         #next-episode-button {
             background: transparent;
             border: none;
@@ -218,13 +218,11 @@
             #next-episode-button svg { width: 14px; height: 14px; }
         }
 
-        /* Fix for fullscreen title position */
         :-webkit-full-screen #title-display { bottom: 80px; top: auto; transform: translateX(-50%); }
         :fullscreen #title-display { bottom: 80px; top: auto; transform: translateX(-50%); }
         :-webkit-full-screen .controls-visible #title-display { opacity: 1; }
         :fullscreen .controls-visible #title-display { opacity: 1; }
         
-        /* Safari/WebKit fullscreen specific fixes */
         video::-webkit-media-controls { display: none !important; }
         video::-webkit-media-controls-enclosure { display: none !important; }
     </style>
@@ -336,7 +334,7 @@
                 <!-- RIGHT CONTROLS -->
                 <div id="right-controlbuttons" class="flex items-center space-x-1 md:space-x-2 relative">
 
-                    <!-- NEXT EPISODE BUTTON - compact, matches other buttons -->
+                    <!-- NEXT EPISODE BUTTON -->
                     <button id="next-episode-button" style="display:none;">
                         <span>Next Ep</span>
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -509,6 +507,40 @@ let currentContentId = null;
 let _subtitleBlobUrls = [];
 
 /* =========================================================================
+   FIX 1: STABLE STORAGE KEY
+   =========================================================================
+   StreamP2p URLs rotate tokens on every fetch:
+     https://203.x.x.x/v4/-sOzDEL.../1779210662/s93/njwims/master.m3u8?v=...
+   The stable part is the short alphanumeric folder just before /master.m3u8
+   e.g. "njwims". We use the page path + that stable segment as the key so
+   resume survives token rotation. Falls back to a path-based key for other
+   sources (GitHub direct URLs, etc).
+   ========================================================================= */
+function extractStableStreamId(url) {
+    if (!url) return null;
+    try {
+        // Match StreamP2p pattern: short alphanum segment right before /master.m3u8
+        // e.g. .../njwims/master.m3u8  →  "njwims"
+        const m = url.match(/\/([a-z0-9]{4,12})\/master\.m3u8/i);
+        if (m) return m[1];
+    } catch(e) {}
+    return null;
+}
+
+function generateStorageKey(url) {
+    // Always prefix with the page path (e.g. /tv/12345/S1/E3 or /movie/67890)
+    // so the same stream ID used in different content doesn't collide.
+    const pagePath = window.location.pathname;
+    const stableId = extractStableStreamId(url);
+    if (stableId) {
+        // e.g.  "vp:/tv/12345/S1/E3:njwims"
+        return `vp:${pagePath}:${stableId}`;
+    }
+    // Fallback: use page path only (good for GitHub/direct URLs that don't change)
+    return `vp:${pagePath}`;
+}
+
+/* =========================================================================
    HELPER FUNCTIONS
    ========================================================================= */
 function revokeAllSubtitleBlobs() {
@@ -583,16 +615,18 @@ function resetInactivityTimer() {
     }
 }
 
-function generateStorageKey(url) { 
-    // Use raw URL as key for multimovies StreamP2p URLs (the ID is part of the URL)
-    return `video_progress:${url}`; 
-}
-
 function saveVideoProgress() {
     if (!video.duration || isNaN(video.duration) || video.duration === Infinity) return;
     if (video.currentTime < 1 || video.currentTime > video.duration - 5) return;
+    if (!videoStorageKey) return;
     try {
-        const data = { currentTime: video.currentTime, duration: video.duration, timestamp: Date.now(), url: resolvedUrl };
+        const data = {
+            currentTime: video.currentTime,
+            duration: video.duration,
+            timestamp: Date.now(),
+            // Store the stable key used, not the raw URL (which rotates)
+            stableKey: videoStorageKey
+        };
         localStorage.setItem(videoStorageKey, JSON.stringify(data));
     } catch(e) { console.error('save progress error', e); }
 }
@@ -600,20 +634,30 @@ function saveVideoProgress() {
 function restoreVideoProgress() {
     if (hasRestoredPosition) return;
     if (!video.duration || isNaN(video.duration) || video.duration === Infinity) return;
+    if (!videoStorageKey) return;
     try {
         const raw = localStorage.getItem(videoStorageKey);
         if (!raw) return;
         const data = JSON.parse(raw);
-        // For multimovies StreamP2p URLs, the file ID is embedded, but we're using the full URL as key which is stable.
-        if (data.url !== resolvedUrl || data.currentTime <= 1 || data.currentTime >= video.duration - 5) return;
+        // Validate: must have meaningful time and not be near end
+        if (!data.currentTime || data.currentTime <= 5 || data.currentTime >= (data.duration || Infinity) - 10) return;
         hasRestoredPosition = true;
-        const seek = () => { video.currentTime = data.currentTime; };
-        if (video.readyState >= 2) seek();
-        else video.addEventListener('canplay', seek, { once: true });
-    } catch(e) { hasRestoredPosition = true; }
+        const doSeek = () => {
+            video.currentTime = data.currentTime;
+            console.log(`[Resume] Restored to ${formatTime(data.currentTime)} (key: ${videoStorageKey})`);
+        };
+        if (video.readyState >= 2) doSeek();
+        else video.addEventListener('canplay', doSeek, { once: true });
+    } catch(e) {
+        console.warn('[Resume] Failed to restore:', e);
+        hasRestoredPosition = true;
+    }
 }
 
-function clearVideoProgress() { try { localStorage.removeItem(videoStorageKey); } catch(e) { console.error(e); } }
+function clearVideoProgress() {
+    if (!videoStorageKey) return;
+    try { localStorage.removeItem(videoStorageKey); } catch(e) { console.error(e); }
+}
 
 function startProgressSaving() {
     saveProgressInterval = setInterval(saveVideoProgress, 5000);
@@ -1085,8 +1129,60 @@ async function updateNextEpisodeButton() {
 }
 
 /* =========================================================================
-   HLS / DIRECT VIDEO INIT
+   FIX 3: HLS PLAYER INIT WITH THROTTLED FRAGMENT LOADING (~5 req/sec)
+   =========================================================================
+   Key HLS.js config params explained:
+   - maxBufferLength: only buffer 30s ahead (reduces pre-fetching requests)
+   - maxMaxBufferLength: hard cap on buffer
+   - fragLoadingMaxRetry: limit retries per fragment
+   - fragLoadingRetryDelay / fragLoadingMaxRetryTimeout: back-off timing
+   - manifestLoadingMaxRetry / levelLoadingMaxRetry: same for manifest/levels
+   - maxFragLookUpTolerance: fragment lookup precision
+   - highBufferWatchdogPeriod: how often to check if buffer is high enough
+   - nudgeMaxRetry: stall recovery attempts
+   
+   For ~5 req/sec at 2x: typical HLS segments are 2–10s each. At 2x speed
+   you consume them 2× faster. With 6s segments → 1 req per 3s ≈ 0.33/sec.
+   The real "fast requesting" issue is usually aggressive prefetch/retry.
+   We cap maxBufferLength to stop over-eager buffering and set a 200ms
+   minimum delay between fragment load retries.
    ========================================================================= */
+const HLS_CONFIG = {
+    // --- Buffer control (prevents over-eager segment fetching) ---
+    maxBufferLength: 30,          // Only buffer 30s ahead (default: 30, but some builds use 60)
+    maxMaxBufferLength: 60,       // Absolute max buffer cap
+    backBufferLength: 10,         // Keep 10s behind current position
+
+    // --- Fragment loading throttle ---
+    // fragLoadingMaxRetry: max retries before giving up on a fragment
+    fragLoadingMaxRetry: 3,
+    // Initial retry delay (ms) — doubles each attempt (exponential backoff)
+    fragLoadingRetryDelay: 500,
+    fragLoadingMaxRetryTimeout: 4000,
+
+    // --- Manifest / level loading ---
+    manifestLoadingMaxRetry: 3,
+    manifestLoadingRetryDelay: 500,
+    levelLoadingMaxRetry: 3,
+    levelLoadingRetryDelay: 500,
+
+    // --- Stall recovery — don't hammer the server ---
+    nudgeMaxRetry: 3,
+    highBufferWatchdogPeriod: 2,  // Check buffer every 2s (default: 3)
+
+    // --- Native subtitle rendering ---
+    renderTextTracksNatively: true,
+    subtitleDisplay: true,
+
+    // --- ABR: start at a moderate level, don't immediately jump to highest ---
+    startLevel: -1,               // -1 = auto (ABR decides)
+    abrEwmaDefaultEstimate: 1000000, // Start bandwidth estimate: 1 Mbps
+
+    // --- Limit concurrent requests: HLS.js fetches max 1 frag at a time by default.
+    //     Setting maxFragLookUpTolerance low keeps it precise without extra fetches. ---
+    maxFragLookUpTolerance: 0.1,
+};
+
 function isDirectVideoUrl(url) {
     try {
         const path = new URL(url).pathname.toLowerCase();
@@ -1096,16 +1192,16 @@ function isDirectVideoUrl(url) {
 
 function initHlsPlayer(url) {
     saveVideoProgress();
-    if (saveProgressInterval) { clearInterval(saveProgressInterval); saveProgressInterval = null; }
     stopProgressSaving();
     hasRestoredPosition = false;
     if (hlsInstance) { hlsInstance.destroy(); hlsInstance = null; }
     revokeAllSubtitleBlobs();
     errorMessageDiv.classList.add('hidden');
-    hasRestoredPosition = false;
     resolvedUrl = url;
+    // Generate stable key NOW so save/restore use the same key across sessions
     videoStorageKey = generateStorageKey(url);
-    
+    console.log(`[Player] Storage key: ${videoStorageKey}`);
+
     if (isDirectVideoUrl(url)) {
         isHlsJsMode = false;
         showLoader();
@@ -1125,10 +1221,12 @@ function initHlsPlayer(url) {
         }, { once: true });
         return;
     }
+
     if (Hls.isSupported()) {
         isHlsJsMode = true;
         showLoader();
-        const h = new Hls({ renderTextTracksNatively: true, subtitleDisplay: true });
+        // Use throttled config
+        const h = new Hls(HLS_CONFIG);
         hlsInstance = h;
         h.on(Hls.Events.MEDIA_ATTACHED, () => h.loadSource(url));
         h.on(Hls.Events.MANIFEST_PARSED, () => {
@@ -1173,60 +1271,77 @@ function initHlsPlayer(url) {
 }
 
 /* =========================================================================
-   STREMIO / OPENSUBTITLES SUBTITLES (replaces Wyzie)
+   FIX 2: STREMIO / OPENSUBTITLES SUBTITLES — FIRST 10 ONLY, CONCURRENCY=3
+   =========================================================================
+   Previously all subtitle tracks were fetched simultaneously, creating a
+   burst of requests. Now:
+   1. Slice subtitles to first 10 unique languages
+   2. Fetch SRT files with a concurrency limiter (max 3 in-flight at once)
+   3. 200ms stagger between batches to avoid overwhelming the CDN
    ========================================================================= */
 async function loadStremioSubtitles(type, tmdbId, season, episode) {
-    // Remove existing Stremio tracks to avoid duplicates
+    // Remove existing Stremio tracks
     Array.from(video.querySelectorAll('track[data-stremio]')).forEach(t => t.remove());
-    
+
     let imdbId = null;
-    
-    // Step 1: Get IMDb ID from TMDB using our proxy
     try {
         const tmdbRes = await fetch(`https://search-proxy.bingeoutofficial.workers.dev/${type}/${tmdbId}/external_ids`);
         if (tmdbRes.ok) {
             const externalIds = await tmdbRes.json();
             imdbId = externalIds.imdb_id;
-            console.log(`[Stremio] Got IMDb ID: ${imdbId} for TMDB ${tmdbId}`);
+            console.log(`[Stremio] IMDb ID: ${imdbId}`);
         }
     } catch (err) {
         console.warn('[Stremio] Failed to fetch IMDb ID:', err);
         return;
     }
-    
-    if (!imdbId) {
-        console.warn('[Stremio] No IMDb ID found for TMDB ID:', tmdbId);
-        return;
-    }
-    
-    // Step 2: Build Stremio subtitle URL
+    if (!imdbId) { console.warn('[Stremio] No IMDb ID'); return; }
+
     let stremioUrl;
     if (type === 'tv' && season && episode) {
         stremioUrl = `https://opensubtitles-v3.strem.io/subtitles/series/${imdbId}:${season}:${episode}.json`;
     } else {
         stremioUrl = `https://opensubtitles-v3.strem.io/subtitles/movie/${imdbId}.json`;
     }
-    
-    console.log('[Stremio] Fetching subtitles from:', stremioUrl);
-    
+
     try {
         const subRes = await fetch(stremioUrl);
-        if (!subRes.ok) {
-            console.warn('[Stremio] Subtitle fetch failed:', subRes.status);
-            return;
-        }
+        if (!subRes.ok) { console.warn('[Stremio] Subtitle fetch failed:', subRes.status); return; }
         const subsData = await subRes.json();
-        
-        // subsData format example: { "subtitles": [ { "lang": "en", "url": "https://...", "langName": "English" } ] }
-        const subtitles = subsData.subtitles || [];
-        if (!subtitles.length) {
-            console.warn('[Stremio] No subtitle tracks found');
-            return;
+        let subtitles = subsData.subtitles || [];
+        if (!subtitles.length) { console.warn('[Stremio] No subtitles'); return; }
+
+        // --- LIMIT: keep only first occurrence of each language, max 10 total ---
+        const seenLangs = new Set();
+        const filtered = [];
+        for (const sub of subtitles) {
+            const lang = (sub.lang || 'und').toLowerCase();
+            if (!seenLangs.has(lang)) {
+                seenLangs.add(lang);
+                filtered.push(sub);
+                if (filtered.length >= 10) break;
+            }
         }
-        
-        // Step 3: Download and inject each subtitle as a <track> element
-        const inject = () => {
-            subtitles.forEach(async (sub) => {
+        console.log(`[Stremio] Loading ${filtered.length} subtitle tracks (of ${subtitles.length} available)`);
+        subtitles = filtered;
+
+        // --- Concurrency-limited fetcher ---
+        async function fetchWithConcurrency(items, concurrency, delay, fn) {
+            const results = [];
+            for (let i = 0; i < items.length; i += concurrency) {
+                const batch = items.slice(i, i + concurrency);
+                const batchResults = await Promise.allSettled(batch.map(fn));
+                results.push(...batchResults);
+                // Stagger batches to stay ~5 req/sec
+                if (i + concurrency < items.length) {
+                    await new Promise(r => setTimeout(r, delay));
+                }
+            }
+            return results;
+        }
+
+        const inject = async () => {
+            await fetchWithConcurrency(subtitles, 3, 200, async (sub) => {
                 try {
                     const srtRes = await fetch(sub.url);
                     if (!srtRes.ok) throw new Error(`HTTP ${srtRes.status}`);
@@ -1235,7 +1350,7 @@ async function loadStremioSubtitles(type, tmdbId, season, episode) {
                     const blob = new Blob([vttText], { type: 'text/vtt;charset=utf-8' });
                     const blobUrl = URL.createObjectURL(blob);
                     _subtitleBlobUrls.push(blobUrl);
-                    
+
                     const track = document.createElement('track');
                     track.kind = 'subtitles';
                     track.label = sub.langName || getFullLanguageName(sub.lang);
@@ -1244,17 +1359,18 @@ async function loadStremioSubtitles(type, tmdbId, season, episode) {
                     track.setAttribute('data-stremio', '1');
                     track.default = false;
                     video.appendChild(track);
+                    console.log(`[Stremio] Loaded: ${track.label}`);
                 } catch (err) {
-                    console.warn(`[Stremio] Failed to load subtitle for ${sub.lang}:`, err.message);
+                    console.warn(`[Stremio] Failed ${sub.lang}:`, err.message);
                 }
             });
-            // Refresh subtitle menu after adding tracks
-            setTimeout(renderTracksMenu, 500);
+            // Refresh subtitle menu once all tracks attempted
+            setTimeout(renderTracksMenu, 300);
         };
-        
+
         if (video.readyState >= 1) inject();
         else video.addEventListener('loadedmetadata', inject, { once: true });
-        
+
     } catch (err) {
         console.warn('[Stremio] Error:', err.message);
     }
@@ -1269,7 +1385,7 @@ function srtToVtt(srt) {
 }
 
 /* =========================================================================
-   PRIMARY SOURCE — multimovies.fyi via hls-proxy (with resume support)
+   PRIMARY SOURCE — multimovies.fyi via hls-proxy
    ========================================================================= */
 const TMDB_PROXY = 'https://search-proxy.bingeoutofficial.workers.dev';
 const MULTIMOVIES_API = 'https://hls-proxy.vercel.app/api/?url=';
@@ -1305,14 +1421,12 @@ async function fetchFromMultimovies(multimoviesUrl) {
             console.warn('[Multimovies] Bad response:', data.status);
             return null;
         }
-        // Prioritize StreamP2p as requested
         const preferred = data.servers.find(s => s.provider === 'StreamP2p' && s.result?.streaming_url);
         const fallback = data.servers.find(s => s.result?.streaming_url);
         const server = preferred || fallback;
         if (!server) { console.warn('[Multimovies] No server with streaming_url'); return null; }
         const rawUrl = server.result.streaming_url;
         console.log('[Multimovies] Got stream from', server.provider, rawUrl);
-        // Proxy the final m3u8 URL to avoid CORS
         return PROXY_SOURCE2 + encodeURIComponent(rawUrl);
     } catch (e) { console.warn('[Multimovies] Error:', e.message); return null; }
 }
@@ -1350,7 +1464,7 @@ async function playMovie(movieId) {
         if (cleanUrl && (cleanUrl.includes('.m3u8') || cleanUrl.includes('http'))) {
             initHlsPlayer(cleanUrl);
             fetchAndSetTitle('movie', movieId);
-            loadStremioSubtitles('movie', movieId); // Use Stremio subtitles
+            loadStremioSubtitles('movie', movieId);
         } else { displayError(`Invalid stream URL for movie ${movieId}.`); hideLoader(); }
     } catch (err) { displayError(`Failed to fetch movie: ${err.message}`); hideLoader(); }
 }
@@ -1369,13 +1483,13 @@ async function playEpisode(seriesId, seasonNumber, episodeNumber) {
         if (fileId) {
             initHlsPlayer(fileId);
             fetchAndSetTitle('tv', seriesId, seasonNumber, episodeNumber);
-            loadStremioSubtitles('tv', seriesId, seasonNumber, episodeNumber); // Use Stremio subtitles
+            loadStremioSubtitles('tv', seriesId, seasonNumber, episodeNumber);
         } else { displayError(`Episode ${episodeNumber} not found.`); hideLoader(); }
     } catch (err) { displayError(`Failed to fetch episode: ${err.message}`); hideLoader(); }
 }
 
 /* =========================================================================
-   TMDB TITLE FETCHING (also fetches IMDb ID for future use)
+   TMDB TITLE FETCHING
    ========================================================================= */
 async function fetchAndSetTitle(type, id, season, episode) {
     try {
