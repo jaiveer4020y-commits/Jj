@@ -1149,9 +1149,9 @@ async function updateNextEpisodeButton() {
    ========================================================================= */
 const HLS_CONFIG = {
     // --- Buffer control (prevents over-eager segment fetching) ---
-    maxBufferLength: 30,          // Only buffer 30s ahead (default: 30, but some builds use 60)
+    maxBufferLength: 60,          // Only buffer 30s ahead (default: 30, but some builds use 60)
     maxMaxBufferLength: 60,       // Absolute max buffer cap
-    backBufferLength: 10,         // Keep 10s behind current position
+    backBufferLength: 30,         // Keep 10s behind current position
 
     // --- Fragment loading throttle ---
     // fragLoadingMaxRetry: max retries before giving up on a fragment
