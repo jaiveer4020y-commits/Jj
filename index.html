@@ -1202,9 +1202,9 @@ async function loadStremioSubtitles(type, tmdbId, season, episode) {
     // Step 2: Build Stremio subtitle URL
     let stremioUrl;
     if (type === 'tv' && season && episode) {
-        stremioUrl = `https://opensubtitles-v3.strem.io/${imdbId}:${season}:${episode}.json`;
+        stremioUrl = `https://opensubtitles-v3.strem.io/subtitles/series/${imdbId}:${season}:${episode}.json`;
     } else {
-        stremioUrl = `https://opensubtitles-v3.strem.io/${imdbId}.json`;
+        stremioUrl = `https://opensubtitles-v3.strem.io/subtitles/movie/${imdbId}.json`;
     }
     
     console.log('[Stremio] Fetching subtitles from:', stremioUrl);
