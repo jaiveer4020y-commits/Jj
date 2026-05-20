@@ -708,7 +708,7 @@ function updateBufferProgress() {
 }
 
 function updateProgress() {
-    if (!video.duration || isSeeking) return;
+    if (!video.duration || isSeeking) return; // never overwrite visual during drag
     const pct = (video.currentTime / video.duration) * 100;
     progressIndicator.style.width = `${pct}%`;
     seekThumb.style.left = `calc(${pct}% - 3px)`;
@@ -757,6 +757,8 @@ function toggleVideoPlayPause() {
 /* =========================================================================
    SEEKING
    ========================================================================= */
+let _lastSeekClientX = 0; // tracks last known pointer X during drag
+
 function calculateNewTime(clientX) {
     const rect = seekBar.getBoundingClientRect();
     let pos = clientX - rect.left;
@@ -766,6 +768,7 @@ function calculateNewTime(clientX) {
 
 function handleSeek(clientX) {
     if (!video.duration || video.duration === Infinity) return;
+    _lastSeekClientX = clientX; // always store latest position
     const newTime = calculateNewTime(clientX), pct = (newTime / video.duration) * 100;
     progressIndicator.style.width = `${pct}%`;
     seekThumb.style.left = `calc(${pct}% - 3px)`;
@@ -774,25 +777,33 @@ function handleSeek(clientX) {
 
 function startSeeking(e) {
     if (!video.duration || video.duration === Infinity) return;
-    isSeeking = true; showControls(); seekThumb.classList.add('scale-100');
+    e.preventDefault(); // prevent scroll hijacking the seek drag
+    isSeeking = true;
+    showControls();
+    seekThumb.classList.add('scale-100');
+    _lastSeekClientX = e.touches ? e.touches[0].clientX : e.clientX;
     currentMouseMoveHandler = ev => handleSeek(ev.clientX);
-    currentTouchMoveHandler = ev => handleSeek(ev.touches[0].clientX);
+    currentTouchMoveHandler = ev => { ev.preventDefault(); handleSeek(ev.touches[0].clientX); };
     window.addEventListener('mousemove', currentMouseMoveHandler);
     window.addEventListener('mouseup', endSeeking);
-    window.addEventListener('touchmove', currentTouchMoveHandler, { passive: true });
+    window.addEventListener('touchmove', currentTouchMoveHandler, { passive: false });
     window.addEventListener('touchend', endSeeking);
-    handleSeek(e.touches ? e.touches[0].clientX : e.clientX);
+    handleSeek(_lastSeekClientX);
 }
 
 function endSeeking(e) {
     if (!isSeeking) return;
-    const x = e.changedTouches ? e.changedTouches[0].clientX : e.clientX;
-    video.currentTime = calculateNewTime(x);
-    isSeeking = false;
+    // Use _lastSeekClientX — the last position recorded during drag/touch.
+    // Do NOT use e.changedTouches/e.clientX from touchend because on iOS
+    // changedTouches[0] is the lift point which may differ from last drag position.
+    const targetTime = calculateNewTime(_lastSeekClientX);
+    isSeeking = false; // reset BEFORE setting currentTime so timeupdate doesn't fight us
     seekThumb.classList.remove('scale-100');
     if (currentMouseMoveHandler) { window.removeEventListener('mousemove', currentMouseMoveHandler); currentMouseMoveHandler = null; }
+    if (currentTouchMoveHandler) { window.removeEventListener('touchmove', currentTouchMoveHandler); currentTouchMoveHandler = null; }
     window.removeEventListener('mouseup', endSeeking);
     window.removeEventListener('touchend', endSeeking);
+    video.currentTime = targetTime;
     resetInactivityTimer();
 }
 
@@ -1321,13 +1332,28 @@ function initHlsPlayer(url) {
         video.src = url;
         video.addEventListener('loadedmetadata', () => {
             renderTracksMenu();
-            hideLoader();
             restoreVideoProgress();
             startProgressSaving();
-            video.play().catch(()=>{});
             updateNextEpisodeButton();
+            video.play().catch(()=>{});
         }, { once: true });
+        video.addEventListener('canplaythrough', () => {
+            hideLoader();
+        }, { once: true });
+        // On iOS the loader can get stuck if canplaythrough fires before playing
+        // Use a polling check: once video is actually advancing, hide loader
+        const iosLoaderGuard = setInterval(() => {
+            if (!loadingIndicator.classList.contains('hidden')) {
+                if (video.currentTime > 0 && !video.paused) {
+                    hideLoader();
+                    clearInterval(iosLoaderGuard);
+                }
+            } else {
+                clearInterval(iosLoaderGuard);
+            }
+        }, 500);
         video.addEventListener('error', () => {
+            clearInterval(iosLoaderGuard);
             if (video.currentTime > 0 && !video.paused) return;
             displayError('Failed to load stream: ' + (video.error ? video.error.message : 'unknown error'));
             hideLoader();
@@ -1663,7 +1689,7 @@ function setupUIControls() {
     muteButton.addEventListener('click', toggleMute);
     audioSubtitleToggle.addEventListener('click', e => { e.stopPropagation(); toggleAudioSubtitleMenu(); });
     seekBar.addEventListener('mousedown', startSeeking);
-    seekBar.addEventListener('touchstart', startSeeking, { passive: true });
+    seekBar.addEventListener('touchstart', startSeeking, { passive: false });
     volumeControlWrapper.addEventListener('mouseenter', () => volumeSliderContainer.classList.remove('hidden'));
     volumeControlWrapper.addEventListener('mouseleave', () => setTimeout(() => { if (!isVolumeAdjusting) volumeSliderContainer.classList.add('hidden'); }, 300));
     document.addEventListener('fullscreenchange', updateFullscreenIcon);
@@ -1674,9 +1700,24 @@ function setupUIControls() {
     video.addEventListener('progress', updateBufferProgress);
     video.addEventListener('loadedmetadata', () => { updateProgress(); updateBufferProgress(); remainingTimeDisplay.textContent = `-${formatTime(video.duration)}`; });
     video.addEventListener('volumechange', updateVolumeSlider);
-    video.addEventListener('waiting', showLoader);
-    video.addEventListener('playing', hideLoader);
-    video.addEventListener('canplay', hideLoader);
+    video.addEventListener('waiting', () => {
+        // Only show loader if we're genuinely stalled, not just seeking
+        if (!isSeeking) showLoader();
+    });
+    video.addEventListener('stalled', () => {
+        if (!isSeeking) showLoader();
+    });
+    video.addEventListener('playing', () => {
+        hideLoader();
+    });
+    video.addEventListener('canplay', () => {
+        // On iOS native HLS, 'playing' may not fire after buffering — 'canplay' is the reliable signal
+        hideLoader();
+    });
+    video.addEventListener('seeked', () => {
+        // After seek completes, hide loader (seek causes waiting → loader, seeked means ready)
+        if (!video.paused) hideLoader();
+    });
     video.addEventListener('pause', () => { showControls(); updateBottomPlayPauseIcon(true); updateCenterPlayPauseIcon(true); clearTimeout(inactivityTimer); });
     video.addEventListener('play', () => { updateBottomPlayPauseIcon(false); updateCenterPlayPauseIcon(false); resetInactivityTimer(); });
     video.addEventListener('ended', () => { showControls(); updateBottomPlayPauseIcon(true); updateCenterPlayPauseIcon(true); hideLoader(); });
