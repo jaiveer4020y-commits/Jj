@@ -855,10 +855,8 @@ function initHlsPlayer(url) {
     }
     else {
         displayError('Browser does not support HLS');
-        hideLoader();
-    }
-}//* =====================================================================
-   SUBTITLES - NO BLOBS, DIRECT RAW URLS
+        /* =====================================================================
+SUBTITLES - NO BLOBS, DIRECT RAW URLS
    ===================================================================== */
 
 async function loadStremioSubtitles(type, tmdbId, season, episode) {
