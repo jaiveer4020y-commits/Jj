@@ -856,38 +856,55 @@ function initHlsPlayer(url) {
     else {
         displayError('Browser does not support HLS');
         /* =====================================================================
-SUBTITLES - NO BLOBS, DIRECT RAW URLS
+   SUBTITLES - OPENSUBTITLES VIA STREMIO (DIRECT RAW URLS, NO BLOBS)
    ===================================================================== */
 
-   async function loadStremioSubtitles(type, tmdbId, season, episode) {
+async function loadStremioSubtitles(type, tmdbId, season, episode) {
     // Remove existing Stremio tracks
     Array.from(video.querySelectorAll('track[data-stremio]')).forEach(t => t.remove());
     
     let imdbId = null;
     try {
         const r = await fetch(`https://search-proxy.bingeoutofficial.workers.dev/${type}/${tmdbId}/external_ids`);
-        if (r.ok) imdbId = (await r.json()).imdb_id;
+        if (r.ok) {
+            const data = await r.json();
+            imdbId = data.imdb_id;
+            console.log('[OpenSubtitles] Got IMDb ID:', imdbId);
+        }
     } catch(e) {
-        console.warn('[Sub] IMDb fetch failed');
+        console.warn('[OpenSubtitles] IMDb fetch failed:', e.message);
         return;
     }
     
     if (!imdbId) {
-        console.warn('[Sub] No IMDb ID');
+        console.warn('[OpenSubtitles] No IMDb ID found for TMDB ID:', tmdbId);
         return;
     }
     
-    // Build Stremio subtitle URL
-    const url = type === 'tv' && season && episode 
-        ? `https://opensubtitles-v3.strem.io/subtitles/series/${imdbId}:${season}:${episode}.json`
-        : `https://opensubtitles-v3.strem.io/subtitles/movie/${imdbId}.json`;
+    // Build OpenSubtitles URL via Stremio API
+    let url;
+    if (type === 'tv' && season && episode) {
+        url = `https://opensubtitles-v3.strem.io/subtitles/series/${imdbId}:${season}:${episode}.json`;
+    } else {
+        url = `https://opensubtitles-v3.strem.io/subtitles/movie/${imdbId}.json`;
+    }
+    
+    console.log('[OpenSubtitles] Fetching from:', url);
     
     try {
         const r = await fetch(url);
-        if (!r.ok) return;
+        if (!r.ok) {
+            console.warn('[OpenSubtitles] API returned', r.status);
+            return;
+        }
         
-        let subs = (await r.json()).subtitles || [];
-        if (!subs.length) return;
+        const data = await r.json();
+        let subs = data.subtitles || [];
+        
+        if (!subs.length) {
+            console.log('[OpenSubtitles] No subtitles available');
+            return;
+        }
         
         // Limit to first 10 unique languages
         const seen = new Set();
@@ -902,19 +919,21 @@ SUBTITLES - NO BLOBS, DIRECT RAW URLS
         }
         subs = filtered;
         
-        // DIRECT RAW URLS - NO BLOBS, NO CONVERSION
+        console.log(`[OpenSubtitles] Found ${subs.length} subtitle tracks`);
+        
+        // Inject subtitle tracks with DIRECT RAW URLs (NO BLOBS)
         const inject = () => {
             subs.forEach(sub => {
                 const track = document.createElement('track');
                 track.kind = 'subtitles';
                 track.label = sub.langName || getLang(sub.lang);
                 track.srclang = sub.lang;
-                // USE RAW URL DIRECTLY - NO BLOB CREATION
+                // DIRECT RAW URL - NO BLOB CONVERSION
                 track.src = sub.url;
                 track.setAttribute('data-stremio', '1');
                 track.default = false;
                 video.appendChild(track);
-                console.log(`[Sub] Added direct track: ${track.label} (${sub.lang})`);
+                console.log(`[OpenSubtitles] Added track: ${track.label} (${sub.lang}) - ${sub.url.substring(0, 60)}...`);
             });
             // Refresh subtitle menu
             setTimeout(renderTracksMenu, 300);
@@ -927,12 +946,44 @@ SUBTITLES - NO BLOBS, DIRECT RAW URLS
         }
         
     } catch(e) {
-        console.warn('[Sub] Error', e.message);
+        console.warn('[OpenSubtitles] Error:', e.message);
     }
 }
 
-// srtToVtt function is NO LONGER NEEDED - can be deleted
-// The browser handles SRT format natively when using raw URLs
+// Helper function for language names
+function getLang(code) {
+    if (!code) return '';
+    const lc = code.toLowerCase();
+    const languageMap = {
+        'eng': 'English', 'en': 'English',
+        'hin': 'Hindi', 'hi': 'Hindi',
+        'tel': 'Telugu', 'te': 'Telugu',
+        'tam': 'Tamil', 'ta': 'Tamil',
+        'kan': 'Kannada', 'kn': 'Kannada',
+        'mal': 'Malayalam', 'ml': 'Malayalam',
+        'ben': 'Bengali', 'bn': 'Bengali',
+        'mar': 'Marathi', 'mr': 'Marathi',
+        'spa': 'Spanish', 'es': 'Spanish',
+        'fre': 'French', 'fr': 'French',
+        'ger': 'German', 'de': 'German',
+        'ita': 'Italian', 'it': 'Italian',
+        'por': 'Portuguese', 'pt': 'Portuguese',
+        'rus': 'Russian', 'ru': 'Russian',
+        'zho': 'Chinese', 'zh': 'Chinese',
+        'jpn': 'Japanese', 'ja': 'Japanese',
+        'kor': 'Korean', 'ko': 'Korean',
+        'ara': 'Arabic', 'ar': 'Arabic',
+        'tur': 'Turkish', 'tr': 'Turkish',
+        'pol': 'Polish', 'pl': 'Polish',
+        'nld': 'Dutch', 'nl': 'Dutch',
+        'swe': 'Swedish', 'sv': 'Swedish',
+        'nor': 'Norwegian', 'no': 'Norwegian',
+        'dan': 'Danish', 'da': 'Danish',
+        'fin': 'Finnish', 'fi': 'Finnish',
+        'ind': 'Indonesian', 'id': 'Indonesian'
+    };
+    return languageMap[lc] || code.toUpperCase();
+}
 /* =====================================================================
    SOURCE — multimovies only, NO GitHub fallback
    ===================================================================== */
