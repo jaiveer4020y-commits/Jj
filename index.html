@@ -732,7 +732,10 @@ async function updateNextEpisodeButton(){
    HLS PLAYER INIT - FULLY FIXED FOR iOS/SAFARI
    ===================================================================== */
 
-// Optimized HLS config for better compatibility
+/* =====================================================================
+   HLS PLAYER INIT - FIXED FOR iOS MEDIA_ERROR (code 4)
+   ===================================================================== */
+
 const HLS_CONFIG = {
     maxBufferLength: 30,
     maxMaxBufferLength: 60,
@@ -766,21 +769,18 @@ function isDirectVideoUrl(url) {
 
 // Buffer monitor variables
 let bufferMonitorInterval = null;
-let iosGuardInterval = null;
 
 function startBufferMonitor() {
     if (bufferMonitorInterval) clearInterval(bufferMonitorInterval);
     
     bufferMonitorInterval = setInterval(() => {
-        // Check if video has buffered enough data
         if (video.buffered.length > 0) {
             const bufferedEnd = video.buffered.end(video.buffered.length - 1);
             const currentTime = video.currentTime || 0;
             const bufferAhead = bufferedEnd - currentTime;
             
-            // If we have at least 2 seconds of buffer ahead, hide loader
             if (bufferAhead >= 2 && !loadingIndicator.classList.contains('hidden')) {
-                console.log(`[Buffer] Enough data (${bufferAhead.toFixed(1)}s ahead), hiding loader`);
+                console.log(`[Buffer] Enough data (${bufferAhead.toFixed(1)}s), hiding loader`);
                 hideLoader();
                 if (video.paused && !video.ended && video.readyState >= 2) {
                     video.play().catch(e => console.warn('Play after buffer:', e));
@@ -788,7 +788,6 @@ function startBufferMonitor() {
             }
         }
         
-        // Also check readyState - if we have future data, hide loader
         if (video.readyState >= 3 && !loadingIndicator.classList.contains('hidden')) {
             console.log(`[Buffer] ReadyState ${video.readyState}, hiding loader`);
             hideLoader();
@@ -806,11 +805,16 @@ function stopBufferMonitor() {
     }
 }
 
-function stopIOSGuard() {
-    if (iosGuardInterval) {
-        clearInterval(iosGuardInterval);
-        iosGuardInterval = null;
+// Validate if URL is playable on iOS
+function isPlayableHlsUrl(url) {
+    // iOS requires .m3u8 extension and proper format
+    if (!url.includes('.m3u8')) return false;
+    // Check for common iOS-incompatible patterns
+    const invalidPatterns = ['.ts?', '&token=', '?v=', '/ts/'];
+    for (const pattern of invalidPatterns) {
+        if (url.includes(pattern)) return false;
     }
+    return true;
 }
 
 function initHlsPlayer(url) {
@@ -830,8 +834,13 @@ function initHlsPlayer(url) {
     resolvedUrl = url;
     videoStorageKey = generateStorageKey(url);
     console.log('[Player] Key:', videoStorageKey);
+    console.log('[Player] URL:', url.substring(0, 200));
 
-    // Direct video URL (MP4, etc.)
+    // Detect Safari/iOS
+    const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent) || 
+                     /iPad|iPhone|iPod/.test(navigator.userAgent);
+
+    // Direct video URL
     if (isDirectVideoUrl(url)) {
         isHlsJsMode = false;
         showLoader();
@@ -844,20 +853,166 @@ function initHlsPlayer(url) {
             video.play().catch(() => {});
             updateNextEpisodeButton();
         }, { once: true });
-        video.addEventListener('error', () => {
+        video.addEventListener('error', (e) => {
+            console.error('[Direct] Error:', video.error);
             if (video.currentTime > 0 || video.readyState >= 2) return;
-            displayError('Failed to load video');
+            displayError('Failed to load video: ' + (video.error?.message || 'Unknown error'));
             hideLoader();
         }, { once: true });
         return;
     }
 
-    // Detect Safari/iOS
-    const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent) || 
-                     /iPad|iPhone|iPod/.test(navigator.userAgent);
-
-    // HLS.js for Android/Desktop browsers
-    if (Hls.isSupported() && !isSafari) {
+    // iOS Safari - must use native HLS with validated URL
+    if (isSafari && video.canPlayType('application/vnd.apple.mpegurl')) {
+        isHlsJsMode = false;
+        showLoader();
+        startBufferMonitor();
+        
+        // iOS requires the URL to be properly formatted
+        let finalUrl = url;
+        
+        // If URL has query parameters that might break iOS, try to clean them
+        if (url.includes('?') && url.includes('.m3u8')) {
+            const baseUrl = url.split('?')[0];
+            // Only keep essential params
+            const params = new URLSearchParams(url.split('?')[1]);
+            const keepParams = [];
+            // Keep only v= parameter if present (sometimes needed)
+            if (params.has('v')) keepParams.push(`v=${params.get('v')}`);
+            finalUrl = keepParams.length ? `${baseUrl}?${keepParams.join('&')}` : baseUrl;
+            console.log('[iOS] Cleaned URL:', finalUrl);
+        }
+        
+        video.src = finalUrl;
+        video.load();
+        
+        let started = false;
+        let errorCount = 0;
+        
+        const onCanPlay = () => {
+            if (!started) {
+                console.log('[iOS] Can play event');
+                started = true;
+                stopBufferMonitor();
+                hideLoader();
+                startProgressSaving();
+                restoreVideoProgress();
+                video.play().catch(e => console.warn('Play:', e));
+                cleanup();
+            }
+        };
+        
+        const onPlaying = () => {
+            console.log('[iOS] Playing event');
+            started = true;
+            stopBufferMonitor();
+            hideLoader();
+            cleanup();
+        };
+        
+        const onError = (e) => {
+            errorCount++;
+            console.error(`[iOS] Error ${errorCount}:`, video.error);
+            
+            if (video.error && video.error.code === 4) {
+                // MEDIA_ERR_SRC_NOT_SUPPORTED - URL not supported
+                console.error('[iOS] Source not supported - URL may be invalid');
+                if (errorCount === 1) {
+                    // Try one more time with a different approach
+                    console.log('[iOS] Retrying with direct HLS.js fallback...');
+                    if (Hls.isSupported()) {
+                        // Fall back to HLS.js on iOS (sometimes works better)
+                        isHlsJsMode = true;
+                        const h = new Hls(HLS_CONFIG);
+                        hlsInstance = h;
+                        h.on(Hls.Events.MEDIA_ATTACHED, () => h.loadSource(url));
+                        h.on(Hls.Events.MANIFEST_PARSED, () => {
+                            renderTracksMenu();
+                            renderQualityMenu();
+                            updateNextEpisodeButton();
+                        });
+                        h.on(Hls.Events.ERROR, (ev, data) => {
+                            if (data.fatal) {
+                                displayError('Cannot play this stream');
+                                h.destroy();
+                                hideLoader();
+                                stopBufferMonitor();
+                                cleanup();
+                            }
+                        });
+                        h.attachMedia(video);
+                        started = true;
+                        hideLoader();
+                        stopBufferMonitor();
+                        cleanup();
+                        return;
+                    }
+                }
+                displayError('This video format is not supported on your device');
+            } else if (video.error && video.error.code === 2) {
+                displayError('Network error - please check your connection');
+            } else {
+                displayError('Failed to load stream: ' + (video.error?.message || 'Unknown error'));
+            }
+            hideLoader();
+            stopBufferMonitor();
+            cleanup();
+        };
+        
+        const onProgress = () => {
+            if (!started && video.buffered.length > 0) {
+                const bufferedEnd = video.buffered.end(video.buffered.length - 1);
+                if (bufferedEnd - (video.currentTime || 0) >= 1.5) {
+                    console.log('[iOS] Progress buffer OK, starting');
+                    started = true;
+                    stopBufferMonitor();
+                    hideLoader();
+                    startProgressSaving();
+                    restoreVideoProgress();
+                    video.play().catch(() => {});
+                    cleanup();
+                }
+            }
+        };
+        
+        const cleanup = () => {
+            video.removeEventListener('canplay', onCanPlay);
+            video.removeEventListener('playing', onPlaying);
+            video.removeEventListener('error', onError);
+            video.removeEventListener('progress', onProgress);
+            clearTimeout(timeoutId);
+        };
+        
+        video.addEventListener('canplay', onCanPlay);
+        video.addEventListener('playing', onPlaying);
+        video.addEventListener('error', onError);
+        video.addEventListener('progress', onProgress);
+        
+        const timeoutId = setTimeout(() => {
+            if (!started) {
+                console.warn('[iOS] Timeout - stream may be slow');
+                // Don't show error, just keep loader and hope it works
+                if (video.buffered.length > 0) {
+                    const bufferedEnd = video.buffered.end(video.buffered.length - 1);
+                    if (bufferedEnd > 0) {
+                        started = true;
+                        stopBufferMonitor();
+                        hideLoader();
+                        startProgressSaving();
+                        video.play().catch(() => {});
+                    }
+                }
+                cleanup();
+            }
+        }, 15000);
+        
+        renderTracksMenu();
+        updateNextEpisodeButton();
+        return;
+    }
+    
+    // HLS.js for Android/Desktop
+    if (Hls.isSupported()) {
         isHlsJsMode = true;
         showLoader();
         startBufferMonitor();
@@ -882,7 +1037,6 @@ function initHlsPlayer(url) {
             if (!fragmentLoaded) {
                 fragmentLoaded = true;
                 console.log('[HLS] First fragment loaded');
-                // Check buffer immediately
                 if (video.buffered.length > 0) {
                     const bufferedEnd = video.buffered.end(video.buffered.length - 1);
                     if (bufferedEnd - (video.currentTime || 0) >= 1) {
@@ -910,7 +1064,7 @@ function initHlsPlayer(url) {
                     console.log('[HLS] Media error, recovering...');
                     h.recoverMediaError();
                 } else {
-                    displayError('Playback error');
+                    displayError('Cannot play this stream');
                     h.destroy();
                     hlsInstance = null;
                     hideLoader();
@@ -934,7 +1088,6 @@ function initHlsPlayer(url) {
             }
         }, { once: true });
         
-        // Safety timeout
         setTimeout(() => {
             if (!fragmentLoaded && loadingIndicator && !loadingIndicator.classList.contains('hidden')) {
                 console.warn('[HLS] Timeout - forcing start');
@@ -945,119 +1098,6 @@ function initHlsPlayer(url) {
                 video.play().catch(() => {});
             }
         }, 12000);
-        
-    } 
-    // Native HLS for Safari/iOS - WITH BUFFER MONITORING
-    else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-        isHlsJsMode = false;
-        showLoader();
-        startBufferMonitor();
-        
-        // Remove cache-busting params that might break Safari
-        const cleanUrl = url.split('?')[0];
-        video.src = cleanUrl;
-        video.load();
-        
-        let started = false;
-        let progressCount = 0;
-        
-        // Monitor progress events
-        const onProgress = () => {
-            progressCount++;
-            console.log(`[iOS] Progress ${progressCount}, readyState: ${video.readyState}`);
-            
-            if (video.buffered.length > 0) {
-                const bufferedEnd = video.buffered.end(video.buffered.length - 1);
-                const currentTime = video.currentTime || 0;
-                const bufferAhead = bufferedEnd - currentTime;
-                
-                if (bufferAhead >= 1.5 && !started) {
-                    started = true;
-                    console.log(`[iOS] Buffer OK (${bufferAhead.toFixed(1)}s), starting`);
-                    hideLoader();
-                    stopBufferMonitor();
-                    startProgressSaving();
-                    restoreVideoProgress();
-                    video.play().catch(e => console.warn('Play:', e));
-                    video.removeEventListener('progress', onProgress);
-                    if (_iosForceStartTimer) clearTimeout(_iosForceStartTimer);
-                }
-            }
-        };
-        
-        video.addEventListener('progress', onProgress);
-        
-        video.addEventListener('loadedmetadata', () => {
-            console.log('[iOS] Loaded metadata');
-            renderTracksMenu();
-            restoreVideoProgress();
-            updateNextEpisodeButton();
-            
-            if (video.buffered.length > 0 && !started) {
-                const bufferedEnd = video.buffered.end(video.buffered.length - 1);
-                if (bufferedEnd - (video.currentTime || 0) >= 1) {
-                    started = true;
-                    hideLoader();
-                    stopBufferMonitor();
-                    startProgressSaving();
-                    video.play().catch(() => {});
-                    if (_iosForceStartTimer) clearTimeout(_iosForceStartTimer);
-                }
-            }
-        });
-        
-        video.addEventListener('canplay', () => {
-            console.log('[iOS] Canplay event');
-            if (!started) {
-                started = true;
-                hideLoader();
-                stopBufferMonitor();
-                startProgressSaving();
-                restoreVideoProgress();
-                video.play().catch(() => {});
-            }
-            if (_iosForceStartTimer) clearTimeout(_iosForceStartTimer);
-        });
-        
-        video.addEventListener('playing', () => {
-            console.log('[iOS] Playing event');
-            started = true;
-            hideLoader();
-            stopBufferMonitor();
-            if (_iosForceStartTimer) clearTimeout(_iosForceStartTimer);
-        });
-        
-        // Fallback timeout - 10 seconds
-        let _iosForceStartTimer = setTimeout(() => {
-            if (!started && video.readyState >= 1) {
-                console.warn('[iOS] Force start timeout - checking buffer');
-                if (video.buffered.length > 0) {
-                    const bufferedEnd = video.buffered.end(video.buffered.length - 1);
-                    if (bufferedEnd > (video.currentTime || 0)) {
-                        started = true;
-                        hideLoader();
-                        stopBufferMonitor();
-                        startProgressSaving();
-                        restoreVideoProgress();
-                        video.play().catch(e => console.warn('Force play:', e));
-                        video.removeEventListener('progress', onProgress);
-                    }
-                }
-            }
-        }, 10000);
-        
-        video.addEventListener('playing', () => clearTimeout(_iosForceStartTimer), { once: true });
-        
-        video.addEventListener('error', (e) => {
-            clearTimeout(_iosForceStartTimer);
-            stopBufferMonitor();
-            video.removeEventListener('progress', onProgress);
-            console.error('[iOS] Error:', video.error);
-            if (!started && video.readyState < 1) {
-                displayError('Failed to load stream');
-                hideLoader();
-            }
-        });
         
     } 
     else {
