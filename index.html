@@ -859,7 +859,7 @@ function initHlsPlayer(url) {
 SUBTITLES - NO BLOBS, DIRECT RAW URLS
    ===================================================================== */
 
-async function loadStremioSubtitles(type, tmdbId, season, episode) {
+   async function loadStremioSubtitles(type, tmdbId, season, episode) {
     // Remove existing Stremio tracks
     Array.from(video.querySelectorAll('track[data-stremio]')).forEach(t => t.remove());
     
