@@ -2,287 +2,161 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Netout Player</title>
-
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
-
     <style>
-        @font-face {
-            font-family: 'Netflix Sans';
-            src: url('https://assets.nflxext.com/ffe/siteui/fonts/netflix-sans/v3/NetflixSans_W_Rg.woff2') format('woff2');
-            font-weight: 400;
-            font-style: normal;
-            font-display: swap;
-        }
-        @font-face {
-            font-family: 'Netflix Sans';
-            src: url('https://assets.nflxext.com/ffe/siteui/fonts/netflix-sans/v3/NetflixSans_W_Md.woff2') format('woff2');
-            font-weight: 500;
-            font-style: normal;
-            font-display: swap;
-        }
-        @font-face {
-            font-family: 'Netflix Sans';
-            src: url('https://assets.nflxext.com/ffe/siteui/fonts/netflix-sans/v3/NetflixSans_W_Bd.woff2') format('woff2');
-            font-weight: 700;
-            font-style: normal;
-            font-display: swap;
-        }
-        @font-face {
-            font-family: 'Netflix Icons';
-            src: url('https://assets.nflxext.com/ffe/siteui/fonts/nf-icon-v1-93.woff') format('woff');
-            font-weight: normal;
-            font-style: normal;
-            font-display: swap;
-        }
-
+        @font-face{font-family:'Netflix Sans';src:url('https://assets.nflxext.com/ffe/siteui/fonts/netflix-sans/v3/NetflixSans_W_Rg.woff2') format('woff2');font-weight:400;font-style:normal;font-display:swap}
+        @font-face{font-family:'Netflix Sans';src:url('https://assets.nflxext.com/ffe/siteui/fonts/netflix-sans/v3/NetflixSans_W_Md.woff2') format('woff2');font-weight:500;font-style:normal;font-display:swap}
+        @font-face{font-family:'Netflix Sans';src:url('https://assets.nflxext.com/ffe/siteui/fonts/netflix-sans/v3/NetflixSans_W_Bd.woff2') format('woff2');font-weight:700;font-style:normal;font-display:swap}
         html,body{height:100%;width:100vw;margin:0;padding:0;overflow:hidden;font-family:'Netflix Sans',sans-serif;background:#000}
         body{padding-bottom:env(safe-area-inset-bottom)}
-        .bottom-control-button:hover {transform:scale(1.1)}
+        .bottom-control-button:hover{transform:scale(1.1)}
         #timeline-row{display:flex;width:100%;box-sizing:border-box;gap:1rem;align-items:center;position:relative}
         #bottom-controls-row{display:flex;width:100%;padding-top:4px;gap:8px;box-sizing:border-box;position:relative;margin-top:0}
-        .bottom-control-button{background:transparent;border-radius:.2rem;border:none;color:#fff;cursor:pointer;padding:0;margin:0 !important;position:relative;transition:transform 200ms;width:3rem;height:3rem;}
-        #mobile-skip-backward-button{margin-right:calc(1.5rem*calc(1-var(--tw-space-x-reverse)))}
-        #mobile-skip-forward-button{margin-left:calc(1.5rem*calc(1-var(--tw-space-x-reverse)))}
+        .bottom-control-button{background:transparent;border-radius:.2rem;border:none;color:#fff;cursor:pointer;padding:0;margin:0!important;position:relative;transition:transform 200ms;width:3rem;height:3rem}
+        #mobile-skip-backward-button{margin-right:calc(1.5rem*calc(1 - var(--tw-space-x-reverse)))}
+        #mobile-skip-forward-button{margin-left:calc(1.5rem*calc(1 - var(--tw-space-x-reverse)))}
         @media(min-width:1000px){
-            #bottom-controls-row{padding-top:24px !important;padding-bottom:24px !important;}
-            #mobile-skip-backward-button{margin-right:calc(2.5rem*calc(1-var(--tw-space-x-reverse)))}
-            #mobile-skip-forward-button{margin-left:calc(2.5rem*calc(1-var(--tw-space-x-reverse)))}
+            #bottom-controls-row{padding-top:24px!important;padding-bottom:24px!important}
+            #mobile-skip-backward-button{margin-right:calc(2.5rem*calc(1 - var(--tw-space-x-reverse)))}
+            #mobile-skip-forward-button{margin-left:calc(2.5rem*calc(1 - var(--tw-space-x-reverse)))}
             .bottom-control-button{width:3rem;height:3rem}
         }
         @media(max-width:1000px){
-            #right-controlbuttons{width:; justify-content:center;}
-            #speed-button{position: relative;left: 0;}
-            #bottom-controls-row{justify-content: center;}
-            #left-controlbuttons{display:none;}
-            #center-controls-mobile-only{width: 50vw;justify-content:space-between!important;}
-            #skip-forward-button, #skip-backward-button{display:none;}
-            .mobile-labeled-btn {
-                width: auto !important;
-                height: auto !important;
-                flex-direction: row !important;
-                gap: 5px;
-                padding: 4px 6px !important;
-            }
-            .mobile-labeled-btn svg {
-                width: 1.4rem !important;
-                height: 1.4rem !important;
-            }
-            .mobile-btn-label {
-                display: inline-block;
-                font-size: 0.7rem;
-                font-weight: 500;
-                color: #fff;
-                white-space: nowrap;
-                line-height: 1;
-            }
+            #right-controlbuttons{justify-content:center}
+            #speed-button{position:relative;left:0}
+            #bottom-controls-row{justify-content:center}
+            #left-controlbuttons{display:none}
+            #center-controls-mobile-only{width:50vw;justify-content:space-between!important}
+            #skip-forward-button,#skip-backward-button{display:none}
+            .mobile-labeled-btn{width:auto!important;height:auto!important;flex-direction:row!important;gap:5px;padding:4px 6px!important}
+            .mobile-labeled-btn svg{width:1.4rem!important;height:1.4rem!important}
+            .mobile-btn-label{display:inline-block;font-size:.7rem;font-weight:500;color:#fff;white-space:nowrap;line-height:1}
         }
-        @media(min-width:1000px){
-            .mobile-btn-label { display: none; }
-        }
+        @media(min-width:1000px){.mobile-btn-label{display:none}}
         @media(max-width:500px){
-            #back-button, #report-button, #mobile-title{display:none !important;}
-            #right-controlbuttons{width:unset; justify-content:space-between;}
-            #speed-button{position:relative;}
+            #back-button,#report-button,#mobile-title{display:none!important}
+            #right-controlbuttons{width:unset;justify-content:space-between}
+            #speed-button{position:relative}
         }
-        #mobile-title { display: none; }
-        @media(max-width:999px){
-            #mobile-title { display: flex; }
-            #mobile-title-main { font-size: 16px !important; font-weight: 400 !important; }
-        }
-        @media(min-width:1000px){ #mobile-title { display: none !important; } }
-        #top-bar { pointer-events: none; }
-        #top-bar > * { pointer-events: auto; }
-        @media(min-width:500px) and (max-width:999px){ #fullscreen-button { display:; } }
-        @media(min-width:500px){
-            #left-controlbuttons, #right-controlbuttons{gap:1.5rem;}
-            #bottom-controls-row{padding-top:24px;padding-bottom:24px;}
-        }
-        #controls-bar{padding: 0 16px;}
+        #mobile-title{display:none}
+        @media(max-width:999px){#mobile-title{display:flex}#mobile-title-main{font-size:16px!important;font-weight:400!important}}
+        @media(min-width:1000px){#mobile-title{display:none!important}}
+        #top-bar{pointer-events:none}
+        #top-bar>*{pointer-events:auto}
+        @media(min-width:500px){#left-controlbuttons,#right-controlbuttons{gap:1.5rem}#bottom-controls-row{padding-top:24px;padding-bottom:24px}}
+        #controls-bar{padding:0 16px}
         #progress-indicator,#seek-thumb{background:rgb(225,0,0)}
-        #center-controls-mobile-only{width: 50vw;justify-content:center;}
-        #seek-bar{height:3px;transition:height 0.15s ease}
+        #center-controls-mobile-only{width:50vw;justify-content:center}
+        #seek-bar{height:3px;transition:height .15s ease;cursor:pointer}
         #seek-bar:hover{height:6px}
         #seek-thumb{height:1rem;width:1rem;transform:translateY(-50%) scale(1)}
         #video-container{width:100vw;height:100vh;background:#000}
         .controls-visible{opacity:1;pointer-events:auto}
         .controls-hidden{opacity:0;pointer-events:none}
-        #seek-bar:hover #seek-thumb{transform:translateY(-50%) scale(1)}
         #volume-slider-track{background:#ffffff33}
         #audio-tracks-container::-webkit-scrollbar,#subtitle-tracks-container::-webkit-scrollbar{width:8px}
         #audio-tracks-container::-webkit-scrollbar-thumb,#subtitle-tracks-container::-webkit-scrollbar-thumb{background:#555;border-radius:4px}
-        #audio-tracks-container::-webkit-scrollbar-track,#subtitle-tracks-container::-webkit-scrollbar-track{background:transparent}
-        @media (max-width: 999px) { #audio-list, #subtitle-list { font-size: 16px !important; } }
-        .track-selector { border-radius: 4px; padding: 8px 10px !important; transition: background 0.15s ease; }
-        .track-selector:hover { background: rgba(255, 255, 255, 0.1) !important; }
-        @media (max-width: 999px) {
-            #audio-subtitle-menu:not(.hidden) {
-                background:black !important; position: fixed !important; top: 0 !important; left: 0 !important;
-                right: 0 !important; bottom: 0 !important; width: 100% !important; max-width: 100% !important;
-                height: 100% !important; max-height: 100% !important; border-radius: 0 !important;
-                display: flex !important; flex-direction: column !important; z-index: 99999 !important;
-                overflow: hidden !important; padding: 0 !important;
-            }
-            #audio-subtitle-menu-inner { flex: 1; overflow: hidden; padding: 16px; display: flex; flex-direction: column; }
-            #audio-subtitle-menu-inner > .flex { flex: 1; min-height: 0; overflow: hidden; }
-            #audio-tracks-container, #subtitle-tracks-container { max-height: unset !important; overflow-y: visible !important; border: none; min-height: 0; }
-            #audio-tracks-container #audio-list, #subtitle-tracks-container #subtitle-list { max-height: unset !important; overflow-y: auto !important; flex: 1; min-height: 0; }
-            #audio-subtitle-menu-footer { display: flex !important; }
+        @media(max-width:999px){#audio-list,#subtitle-list{font-size:16px!important}}
+        .track-selector{border-radius:4px;padding:8px 10px!important;transition:background .15s ease}
+        .track-selector:hover{background:rgba(255,255,255,.1)!important}
+        @media(max-width:999px){
+            #audio-subtitle-menu:not(.hidden){background:black!important;position:fixed!important;top:0!important;left:0!important;right:0!important;bottom:0!important;width:100%!important;max-width:100%!important;height:100%!important;max-height:100%!important;border-radius:0!important;display:flex!important;flex-direction:column!important;z-index:99999!important;overflow:hidden!important;padding:0!important}
+            #audio-subtitle-menu-inner{flex:1;overflow:hidden;padding:16px;display:flex;flex-direction:column}
+            #audio-subtitle-menu-inner>.flex{flex:1;min-height:0;overflow:hidden}
+            #audio-tracks-container,#subtitle-tracks-container{max-height:unset!important;overflow-y:visible!important;border:none;min-height:0}
+            #audio-tracks-container #audio-list,#subtitle-tracks-container #subtitle-list{max-height:unset!important;overflow-y:auto!important;flex:1;min-height:0}
+            #audio-subtitle-menu-footer{display:flex!important}
         }
-        @media (min-width: 1000px) {
-            #audio-subtitle-menu-footer { display: none !important; }
-            #audio-subtitle-menu-inner  { padding: 0 !important; flex: unset !important; overflow-y: unset !important; }
+        @media(min-width:1000px){
+            #audio-subtitle-menu-footer{display:none!important}
+            #audio-subtitle-menu-inner{padding:0!important;flex:unset!important;overflow-y:unset!important}
         }
         #loading-indicator img{width:50px;height:50px;border-radius:50%;animation:spin 1s linear infinite}
         @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
-        ::cue { background: transparent; color: #fff; font-family: 'Netflix Sans', sans-serif; font-size: 1.1em; font-weight: 400; text-shadow: 0 1px 3px rgba(0,0,0,0.9), 0 0 8px rgba(0,0,0,0.7); line-height: 1.4; }
-        video::-webkit-media-text-track-display { overflow: visible !important; }
-        video::cue { background: transparent; }
-        #video { --subtitle-bottom-offset: 80px; }
-        #skip-hint{ position:fixed;top:50%;transform:translateY(-50%); font-weight:700;font-size:3.5rem; text-shadow:0 0 20px rgba(0,0,0,.8); opacity:0; transition:opacity .3s ease,transform .15s ease-out; z-index:40; pointer-events:none; }
-        @media (min-width:768px){ #skip-hint{font-size:5rem;} }
-        #skip-hint.show{opacity:1;transform:translateY(-50%) scale(1);}
-        #skip-hint.left{left:8%;}
-        #skip-hint.right{right:8%;}
-        #title-display { position: absolute; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; pointer-events: none; white-space: nowrap; overflow: hidden; max-width: 40vw; }
-        #title-display .title-main { color: #fff; font-size: 16px; font-weight: 400; letter-spacing: 0.01em; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
-        @media (max-width: 600px) { #title-display { max-width: 28vw; } #title-display .title-main { font-size: 0.75rem; } }
-        @media (max-width: 999px) { #title-display { display: none !important; } }
-        .report-modal { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.75); display: flex; align-items: center; justify-content: center; z-index: 99999; opacity: 0; pointer-events: none; transition: opacity 0.2s ease; padding: 16px; }
-        .report-modal.active { opacity: 1; pointer-events: auto; }
-        .report-modal-box { background: #141414; width: 100%; max-width: 420px; border-radius: 6px; padding: 20px; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8); transform: translateY(10px) scale(0.96); transition: transform 0.2s ease; }
-        .report-modal.active .report-modal-box { transform: translateY(0) scale(1); }
-        .report-modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
-        .report-modal-title { color: #fff; font-size: 18px; margin: 0; font-weight: 700; }
-        .report-close-btn { background: none; border: none; color: #b3b3b3; font-size: 22px; cursor: pointer; line-height: 1; }
-        .report-close-btn:hover { color: #fff; }
-        .report-modal-body label { display: block; margin: 14px 0 6px; font-size: 13px; color: #b3b3b3; }
-        .report-modal-body select, .report-modal-body textarea { width: 100%; padding: 12px 40px 12px 12px; background: #000; border: 1px solid #2a2a2a; color: #fff; border-radius: 4px; font-size: 14px; font-family: 'Netflix Sans', sans-serif; outline: none; box-sizing: border-box; }
-        .report-modal-body select { appearance: none; -webkit-appearance: none; -moz-appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%23b3b3b3' d='M6 8L0 0h12z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 14px center; background-size: 12px; }
-        .report-modal-body select:focus, .report-modal-body textarea:focus { border-color: rgb(225,0,0); }
-        .report-modal-body textarea { resize: none; min-height: 96px; }
-        .report-modal-footer { display: flex; justify-content: flex-end; margin-top: 20px; }
-        .report-submit-btn { padding: 10px 18px; background: rgb(225,0,0); cursor: pointer; border-radius: 4px; font-weight: 700; border: none; color: #fff; }
-        .report-submit-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-        @media (max-width: 480px) { .report-modal-box { padding: 16px; } .report-modal-title { font-size: 16px; } }
-
-        /* QUALITY MENU */
-        #quality-menu {
-            position: absolute;
-            bottom: 4rem;
-            right: 0;
-            width: 13rem;
-            border-radius: 8px;
-            background: rgba(28, 28, 30, 0.95);
-            backdrop-filter: blur(20px);
-            border: 1px solid rgba(255,255,255,0.1);
-            padding: 8px 0;
-            color: #fff;
-            z-index: 50;
-            box-shadow: 0 8px 20px rgba(0,0,0,0.5);
-        }
-        #quality-list { list-style: none; margin: 0; padding: 0; font-size: 0.9rem; }
-        #quality-list li { padding: 10px 16px; cursor: pointer; transition: background 0.15s; display: flex; justify-content: space-between; align-items: center; }
-        #quality-list li:hover { background: rgba(255,255,255,0.1); }
-        #quality-list li .quality-badge { font-size: 0.7rem; background: rgba(255,255,255,0.2); padding: 2px 6px; border-radius: 4px; }
-        .quality-active { color: rgb(225,0,0); }
-        .quality-active .quality-badge { background: rgb(225,0,0); color: #fff; }
-
-        /* NEXT EPISODE BUTTON */
-        #next-episode-button {
-            background: transparent;
-            border: none;
-            color: #fff;
-            cursor: pointer;
-            display: none;
-            align-items: center;
-            justify-content: center;
-            gap: 4px;
-            width: auto;
-            padding: 0 8px;
-            font-size: 0.85rem;
-            font-weight: 500;
-            font-family: 'Netflix Sans', sans-serif;
-            transition: transform 0.2s ease;
-            white-space: nowrap;
-        }
-        #next-episode-button svg {
-            width: 18px;
-            height: 18px;
-        }
-        #next-episode-button:hover {
-            transform: scale(1.05);
-        }
-        @media (max-width: 1000px) {
-            #next-episode-button { font-size: 0.7rem; padding: 0 4px; }
-            #next-episode-button svg { width: 14px; height: 14px; }
-        }
-
-        :-webkit-full-screen #title-display { bottom: 80px; top: auto; transform: translateX(-50%); }
-        :fullscreen #title-display { bottom: 80px; top: auto; transform: translateX(-50%); }
-        :-webkit-full-screen .controls-visible #title-display { opacity: 1; }
-        :fullscreen .controls-visible #title-display { opacity: 1; }
-        
-        video::-webkit-media-controls { display: none !important; }
-        video::-webkit-media-controls-enclosure { display: none !important; }
+        ::cue{background:transparent;color:#fff;font-family:'Netflix Sans',sans-serif;font-size:1.1em;font-weight:400;text-shadow:0 1px 3px rgba(0,0,0,.9),0 0 8px rgba(0,0,0,.7);line-height:1.4}
+        video::-webkit-media-text-track-display{overflow:visible!important}
+        video::cue{background:transparent}
+        #skip-hint{position:fixed;top:50%;transform:translateY(-50%);font-weight:700;font-size:3.5rem;text-shadow:0 0 20px rgba(0,0,0,.8);opacity:0;transition:opacity .3s ease,transform .15s ease-out;z-index:40;pointer-events:none}
+        @media(min-width:768px){#skip-hint{font-size:5rem}}
+        #skip-hint.show{opacity:1;transform:translateY(-50%) scale(1)}
+        #skip-hint.left{left:8%}
+        #skip-hint.right{right:8%}
+        #title-display{position:absolute;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;pointer-events:none;white-space:nowrap;overflow:hidden;max-width:40vw}
+        #title-display .title-main{color:#fff;font-size:16px;font-weight:400;letter-spacing:.01em;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
+        @media(max-width:600px){#title-display{max-width:28vw}#title-display .title-main{font-size:.75rem}}
+        @media(max-width:999px){#title-display{display:none!important}}
+        .report-modal{position:absolute;inset:0;background:rgba(0,0,0,.75);display:flex;align-items:center;justify-content:center;z-index:99999;opacity:0;pointer-events:none;transition:opacity .2s ease;padding:16px}
+        .report-modal.active{opacity:1;pointer-events:auto}
+        .report-modal-box{background:#141414;width:100%;max-width:420px;border-radius:6px;padding:20px;box-shadow:0 20px 60px rgba(0,0,0,.8);transform:translateY(10px) scale(.96);transition:transform .2s ease}
+        .report-modal.active .report-modal-box{transform:translateY(0) scale(1)}
+        .report-modal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+        .report-modal-title{color:#fff;font-size:18px;margin:0;font-weight:700}
+        .report-close-btn{background:none;border:none;color:#b3b3b3;font-size:22px;cursor:pointer;line-height:1}
+        .report-close-btn:hover{color:#fff}
+        .report-modal-body label{display:block;margin:14px 0 6px;font-size:13px;color:#b3b3b3}
+        .report-modal-body select,.report-modal-body textarea{width:100%;padding:12px 40px 12px 12px;background:#000;border:1px solid #2a2a2a;color:#fff;border-radius:4px;font-size:14px;font-family:'Netflix Sans',sans-serif;outline:none;box-sizing:border-box}
+        .report-modal-body select{appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%23b3b3b3' d='M6 8L0 0h12z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;background-size:12px}
+        .report-modal-body select:focus,.report-modal-body textarea:focus{border-color:rgb(225,0,0)}
+        .report-modal-body textarea{resize:none;min-height:96px}
+        .report-modal-footer{display:flex;justify-content:flex-end;margin-top:20px}
+        .report-submit-btn{padding:10px 18px;background:rgb(225,0,0);cursor:pointer;border-radius:4px;font-weight:700;border:none;color:#fff}
+        .report-submit-btn:disabled{opacity:.5;cursor:not-allowed}
+        @media(max-width:480px){.report-modal-box{padding:16px}.report-modal-title{font-size:16px}}
+        #quality-menu{position:absolute;bottom:4rem;right:0;width:13rem;border-radius:8px;background:rgba(28,28,30,.95);backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,.1);padding:8px 0;color:#fff;z-index:50;box-shadow:0 8px 20px rgba(0,0,0,.5)}
+        #quality-list{list-style:none;margin:0;padding:0;font-size:.9rem}
+        #quality-list li{padding:10px 16px;cursor:pointer;transition:background .15s;display:flex;justify-content:space-between;align-items:center}
+        #quality-list li:hover{background:rgba(255,255,255,.1)}
+        #quality-list li .quality-badge{font-size:.7rem;background:rgba(255,255,255,.2);padding:2px 6px;border-radius:4px}
+        .quality-active{color:rgb(225,0,0)}
+        .quality-active .quality-badge{background:rgb(225,0,0);color:#fff}
+        #next-episode-button{background:transparent;border:none;color:#fff;cursor:pointer;display:none;align-items:center;justify-content:center;gap:4px;width:auto;padding:0 8px;font-size:.85rem;font-weight:500;font-family:'Netflix Sans',sans-serif;transition:transform .2s ease;white-space:nowrap}
+        #next-episode-button svg{width:18px;height:18px}
+        #next-episode-button:hover{transform:scale(1.05)}
+        @media(max-width:1000px){#next-episode-button{font-size:.7rem;padding:0 4px}#next-episode-button svg{width:14px;height:14px}}
+        :-webkit-full-screen #title-display{bottom:80px;top:auto;transform:translateX(-50%)}
+        :fullscreen #title-display{bottom:80px;top:auto;transform:translateX(-50%)}
+        video::-webkit-media-controls{display:none!important}
+        video::-webkit-media-controls-enclosure{display:none!important}
     </style>
 </head>
 <body>
-
 <div id="video-container" class="relative">
-    <video id="video" class="w-full h-full object-cover" autoplay="" playsinline="" style="--cue-bottom:80px" disableremoteplayback=""></video>
-
+    <video id="video" class="w-full h-full object-cover" autoplay playsinline style="--cue-bottom:80px" disableremoteplayback></video>
     <div id="skip-hint" class="text-white"></div>
-
     <div id="loading-indicator" class="absolute inset-0 flex items-center justify-center bg-black/50 z-30 hidden">
         <img src="https://assets.nflxext.com/en_us/pages/wiplayer/site-spinner.png" class="w-20 h-20 rounded-full shadow-lg" alt="Loading">
     </div>
-
     <div id="top-overlay" class="absolute inset-0 cursor-pointer z-10"></div>
-
     <div id="center-play-pause-overlay" class="flex-col absolute left-1/2 right-1/2 inset-0 flex items-center justify-center z-10 transition-opacity duration-500 opacity-100 pointer-events-auto">
         <div id="center-controls-mobile-only" class="flex justify-center items-center">
             <button id="mobile-skip-backward-button" class="xl:hidden text-white hover:opacity-80 transition-opacity duration-200 focus:outline-none">
-                <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" fill="none" aria-hidden="true" class="w-10 h-10 md:w-14 md:h-14" viewBox="0 0 24 24">
-                    <path fill="currentColor" fill-rule="evenodd" d="M11.02 2.05A10 10 0 1 1 2 12H0a12 12 0 1 0 5-9.75V1H3v4a1 1 0 0 0 1 1h4V4H6a10 10 0 0 1 5.02-1.95M2 4v3h3v2H1a1 1 0 0 1-1-1V4zm12.13 12q-.88 0-1.53-.42-.64-.44-1-1.22a5 5 0 0 1-.35-1.86q0-1.05.35-1.85.36-.79 1-1.22A2.7 2.7 0 0 1 14.13 9a2.65 2.65 0 0 1 2.52 1.65q.35.79.35 1.85 0 1.07-.35 1.86a3 3 0 0 1-1.01 1.22 2.7 2.7 0 0 1-1.52.42m0-1.35q.59 0 .91-.56.34-.56.34-1.59 0-1.01-.34-1.58-.33-.57-.91-.57-.6 0-.92.57-.34.56-.34 1.58t.34 1.6q.33.54.91.55m-5.53 1.2v-5.13l-1.6.42V9.82l3.2-.8v6.84z" clip-rule="evenodd"></path>
-                </svg>
+                <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" fill="none" class="w-10 h-10 md:w-14 md:h-14" viewBox="0 0 24 24"><path fill="currentColor" fill-rule="evenodd" d="M11.02 2.05A10 10 0 1 1 2 12H0a12 12 0 1 0 5-9.75V1H3v4a1 1 0 0 0 1 1h4V4H6a10 10 0 0 1 5.02-1.95M2 4v3h3v2H1a1 1 0 0 1-1-1V4zm12.13 12q-.88 0-1.53-.42-.64-.44-1-1.22a5 5 0 0 1-.35-1.86q0-1.05.35-1.85.36-.79 1-1.22A2.7 2.7 0 0 1 14.13 9a2.65 2.65 0 0 1 2.52 1.65q.35.79.35 1.85 0 1.07-.35 1.86a3 3 0 0 1-1.01 1.22 2.7 2.7 0 0 1-1.52.42m0-1.35q.59 0 .91-.56.34-.56.34-1.59 0-1.01-.34-1.58-.33-.57-.91-.57-.6 0-.92.57-.34.56-.34 1.58t.34 1.6q.33.54.91.55m-5.53 1.2v-5.13l-1.6.42V9.82l3.2-.8v6.84z" clip-rule="evenodd"/></svg>
             </button>
             <button id="center-play-pause-button" class="text-white md:p-4 hover:opacity-80 transition-opacity duration-200 focus:outline-none">
-                <svg id="center-play-icon" xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" fill="none" aria-hidden="true" class="w-12 h-12 md:w-16 md:h-16" viewBox="0 0 24 24">
-                    <path fill="currentColor" d="M5 2.7a1 1 0 0 1 1.48-.88l16.93 9.3a1 1 0 0 1 0 1.76l-16.93 9.3A1 1 0 0 1 5 21.31z"></path>
-                </svg>
-                <svg id="center-pause-icon" xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" fill="none" aria-hidden="true" class="hidden w-12 h-12 md:w-16 md:h-16" viewBox="0 0 24 24">
-                    <path fill="currentColor" fill-rule="evenodd" d="M4.5 3a.5.5 0 0 0-.5.5v17c0 .28.22.5.5.5h5a.5.5 0 0 0 .5-.5v-17a.5.5 0 0 0-.5-.5zm10 0a.5.5 0 0 0-.5.5v17c0 .28.22.5.5.5h5a.5.5 0 0 0 .5-.5v-17a.5.5 0 0 0-.5-.5z" clip-rule="evenodd"></path>
-                </svg>
+                <svg id="center-play-icon" xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" fill="none" class="w-12 h-12 md:w-16 md:h-16" viewBox="0 0 24 24"><path fill="currentColor" d="M5 2.7a1 1 0 0 1 1.48-.88l16.93 9.3a1 1 0 0 1 0 1.76l-16.93 9.3A1 1 0 0 1 5 21.31z"/></svg>
+                <svg id="center-pause-icon" xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" fill="none" class="hidden w-12 h-12 md:w-16 md:h-16" viewBox="0 0 24 24"><path fill="currentColor" fill-rule="evenodd" d="M4.5 3a.5.5 0 0 0-.5.5v17c0 .28.22.5.5.5h5a.5.5 0 0 0 .5-.5v-17a.5.5 0 0 0-.5-.5zm10 0a.5.5 0 0 0-.5.5v17c0 .28.22.5.5.5h5a.5.5 0 0 0 .5-.5v-17a.5.5 0 0 0-.5-.5z" clip-rule="evenodd"/></svg>
             </button>
             <button id="mobile-skip-forward-button" class="xl:hidden text-white hover:opacity-80 transition-opacity duration-200 focus:outline-none space-x-6">
-                <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" fill="none" aria-hidden="true" class="w-10 h-10 md:w-14 md:h-14" viewBox="0 0 24 24">
-                    <path fill="currentColor" fill-rule="evenodd" d="M6.44 3.69A10 10 0 0 1 18 4h-2v2h4a1 1 0 0 0 1-1V1h-2v1.25A12 12 0 1 0 24 12h-2A10 10 0 1 1 6.44 3.69M22 4v3h-3v2h4a1 1 0 0 0 1-1V4zm-9.4 11.58q.66.42 1.53.42a2.7 2.7 0 0 0 1.5-.42q.67-.44 1.02-1.22.35-.8.35-1.86 0-1.05-.35-1.85A2.65 2.65 0 0 0 14.13 9a2.7 2.7 0 0 0-1.53.43q-.64.44-1 1.22a4.5 4.5 0 0 0-.35 1.85q0 1.07.35 1.86.36.78 1 1.22m2.44-1.49q-.33.56-.91.56-.6 0-.92-.56-.34-.56-.34-1.59 0-1.01.34-1.58.33-.57.91-.57.6 0 .92.57.34.56.34 1.58t-.34 1.6zM8.6 10.72v5.14h1.6V9.02l-3.2.8v1.32z" clip-rule="evenodd"></path>
-                </svg>
+                <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" fill="none" class="w-10 h-10 md:w-14 md:h-14" viewBox="0 0 24 24"><path fill="currentColor" fill-rule="evenodd" d="M6.44 3.69A10 10 0 0 1 18 4h-2v2h4a1 1 0 0 0 1-1V1h-2v1.25A12 12 0 1 0 24 12h-2A10 10 0 1 1 6.44 3.69M22 4v3h-3v2h4a1 1 0 0 0 1-1V4zm-9.4 11.58q.66.42 1.53.42a2.7 2.7 0 0 0 1.5-.42q.67-.44 1.02-1.22.35-.8.35-1.86 0-1.05-.35-1.85A2.65 2.65 0 0 0 14.13 9a2.7 2.7 0 0 0-1.53.43q-.64.44-1 1.22a4.5 4.5 0 0 0-.35 1.85q0 1.07.35 1.86.36.78 1 1.22m2.44-1.49q-.33.56-.91.56-.6 0-.92-.56-.34-.56-.34-1.59 0-1.01.34-1.58.33-.57.91-.57.6 0 .92.57.34.56.34 1.58t-.34 1.6zM8.6 10.72v5.14h1.6V9.02l-3.2.8v1.32z" clip-rule="evenodd"/></svg>
             </button>
         </div>
     </div>
-
     <div id="bottom-overlay" class="absolute inset-0 flex flex-col justify-end transition-opacity duration-500 controls-visible z-20 pointer-events-none">
         <div id="controls-bar" class="w-full bg-gradient-to-t from-black/70 to-transparent flex flex-col space-y-2 md:space-y-3 pointer-events-auto">
-            <div id="top-bar" class="absolute top-0 left-0 right-0 z-20 flex items-center justify-between px-6 transition-opacity duration-500 controls-visible" style="height:4.5rem;">
-                <button id="back-button" class="text-white hover:opacity-80 transition-opacity duration-500 focus:outline-none flex-shrink-0 flex items-center justify-center" style="width:2.2rem;height:2.2rem;" onclick="(function(){ if(document.fullscreenElement && window.innerWidth < 1000){ document.exitFullscreen(); } else { window.history.back(); } })()">
-                    <svg xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 24 24" width="2.2rem" height="2.2rem" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" role="img">
-                        <path fill="#FFFFFF" fill-rule="evenodd" d="M6.414 11H21v2H6.414l5.293 5.293-1.414 1.414-7-7a1 1 0 0 1 0-1.414l7-7 1.414 1.414z" clip-rule="evenodd"></path>
-                    </svg>
+            <div id="top-bar" class="absolute top-0 left-0 right-0 z-20 flex items-center justify-between px-6 transition-opacity duration-500 controls-visible" style="height:4.5rem">
+                <button id="back-button" class="text-white hover:opacity-80 transition-opacity duration-500 focus:outline-none flex-shrink-0 flex items-center justify-center" style="width:2.2rem;height:2.2rem" onclick="(function(){if(document.fullscreenElement&&window.innerWidth<1000){document.exitFullscreen();}else{window.history.back();}})()">
+                    <svg viewBox="0 0 24 24" width="2.2rem" height="2.2rem" xmlns="http://www.w3.org/2000/svg" fill="none"><path fill="#FFFFFF" fill-rule="evenodd" d="M6.414 11H21v2H6.414l5.293 5.293-1.414 1.414-7-7a1 1 0 0 1 0-1.414l7-7 1.414 1.414z" clip-rule="evenodd"/></svg>
                 </button>
-                <div id="mobile-title" class="flex flex-col items-center pointer-events-none" style="max-width:55vw;">
-                    <span id="mobile-title-main" class="text-white font-medium text-sm leading-tight text-center" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%;"></span>
+                <div id="mobile-title" class="flex flex-col items-center pointer-events-none" style="max-width:55vw">
+                    <span id="mobile-title-main" class="text-white font-medium text-sm leading-tight text-center" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%"></span>
                 </div>
-                <button id="report-button" class="text-white hover:opacity-80 transition-opacity duration-500 focus:outline-none flex-shrink-0 flex items-center justify-center" style="width:2.2rem;height:2.2rem;">
-                    <svg xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 24 24" width="2.2rem" height="2.2rem" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" role="img">
-                        <path fill="#FFFFFF" fill-rule="evenodd" d="M3 2a1 1 0 0 0-1 1v19h2V10.579c1.85.029 3.241.142 5 .334v2.658a1 1 0 0 0 .726.962C13.026 15.473 15.873 16 21 16a1 1 0 0 0 1-1V8.429a1 1 0 0 0-1-1c-2.383 0-3.939-.117-6-.342V4.43a1 1 0 0 0-.726-.962C10.974 2.528 8.127 2 3 2m1 6.579c2.257.034 3.859.188 6.113.446l.887.101v3.685c2.616.706 5.052 1.123 9 1.182V9.42c-2.257-.034-3.859-.188-6.113-.446l-.887-.1V5.189c-2.616-.706-5.051-1.123-9-1.182z" clip-rule="evenodd"></path>
-                    </svg>
+                <button id="report-button" class="text-white hover:opacity-80 transition-opacity duration-500 focus:outline-none flex-shrink-0 flex items-center justify-center" style="width:2.2rem;height:2.2rem">
+                    <svg viewBox="0 0 24 24" width="2.2rem" height="2.2rem" xmlns="http://www.w3.org/2000/svg" fill="none"><path fill="#FFFFFF" fill-rule="evenodd" d="M3 2a1 1 0 0 0-1 1v19h2V10.579c1.85.029 3.241.142 5 .334v2.658a1 1 0 0 0 .726.962C13.026 15.473 15.873 16 21 16a1 1 0 0 0 1-1V8.429a1 1 0 0 0-1-1c-2.383 0-3.939-.117-6-.342V4.43a1 1 0 0 0-.726-.962C10.974 2.528 8.127 2 3 2m1 6.579c2.257.034 3.859.188 6.113.446l.887.101v3.685c2.616.706 5.052 1.123 9 1.182V9.42c-2.257-.034-3.859-.188-6.113-.446l-.887-.1V5.189c-2.616-.706-5.051-1.123-9-1.182z" clip-rule="evenodd"/></svg>
                 </button>
             </div>
-
             <div id="timeline-row" class="flex items-center space-x-2 md:space-x-4 w-full">
-                <div id="seek-bar" class="relative flex-grow bg-white/30 cursor-pointer group">
+                <div id="seek-bar" class="relative flex-grow bg-white/30 group">
                     <div id="buffer-indicator" class="absolute inset-y-0 left-0 bg-white/50 transition-all duration-100" style="width:0%"></div>
                     <div id="progress-indicator" class="absolute inset-y-0 left-0 transition-all duration-100" style="width:0%"></div>
                     <div id="seek-thumb" class="absolute top-1/2 -translate-y-1/2 rounded-full transition-transform duration-150" style="left:0%"></div>
@@ -291,1537 +165,778 @@
                     <span id="remaining-time" class="text-white text-xs md:text-sm font-medium select-none w-10 md:w-12 text-center">0:00</span>
                 </div>
             </div>
-
-            <div id="bottom-controls-row" class="flex items-center justify-between" style="position:relative;">
-                <div id="title-display">
-                    <span class="title-main" id="title-main-text"></span>
-                </div>
+            <div id="bottom-controls-row" class="flex items-center justify-between" style="position:relative">
+                <div id="title-display"><span class="title-main" id="title-main-text"></span></div>
                 <div id="left-controlbuttons" class="flex items-center space-x-1 md:space-x-2">
                     <button id="custom-play-button" class="bottom-control-button text-white flex items-center justify-center md:h-9 md:w-9 flex-shrink-0 focus:outline-none">
-                        <svg id="play-icon" xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" fill="none" aria-hidden="true" class="text-white w-6 h-6 md:w-full md:h-full" viewBox="0 0 24 24">
-                            <path fill="currentColor" d="M5 2.7a1 1 0 0 1 1.48-.88l16.93 9.3a1 1 0 0 1 0 1.76l-16.93 9.3A1 1 0 0 1 5 21.31z"></path>
-                        </svg>
-                        <svg id="pause-icon" xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" fill="none" aria-hidden="true" class="text-white hidden w-6 h-6 md:w-full md:h-full" viewBox="0 0 24 24">
-                            <path fill="currentColor" fill-rule="evenodd" d="M4.5 3a.5.5 0 0 0-.5.5v17c0 .28.22.5.5.5h5a.5.5 0 0 0 .5-.5v-17a.5.5 0 0 0-.5-.5zm10 0a.5.5 0 0 0-.5.5v17c0 .28.22.5.5.5h5a.5.5 0 0 0 .5-.5v-17a.5.5 0 0 0-.5-.5z" clip-rule="evenodd"></path>
-                        </svg>
+                        <svg id="play-icon" xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" fill="none" class="text-white w-6 h-6 md:w-full md:h-full" viewBox="0 0 24 24"><path fill="currentColor" d="M5 2.7a1 1 0 0 1 1.48-.88l16.93 9.3a1 1 0 0 1 0 1.76l-16.93 9.3A1 1 0 0 1 5 21.31z"/></svg>
+                        <svg id="pause-icon" xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" fill="none" class="text-white hidden w-6 h-6 md:w-full md:h-full" viewBox="0 0 24 24"><path fill="currentColor" fill-rule="evenodd" d="M4.5 3a.5.5 0 0 0-.5.5v17c0 .28.22.5.5.5h5a.5.5 0 0 0 .5-.5v-17a.5.5 0 0 0-.5-.5zm10 0a.5.5 0 0 0-.5.5v17c0 .28.22.5.5.5h5a.5.5 0 0 0 .5-.5v-17a.5.5 0 0 0-.5-.5z" clip-rule="evenodd"/></svg>
                     </button>
                     <button id="skip-backward-button" class="bottom-control-button text-white flex items-center justify-center md:h-9 md:w-9 flex-shrink-0 focus:outline-none">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" fill="none" aria-hidden="true" class="text-white w-6 h-6 md:w-full md:h-full" viewBox="0 0 24 24">
-                            <path fill="currentColor" fill-rule="evenodd" d="M11.02 2.05A10 10 0 1 1 2 12H0a12 12 0 1 0 5-9.75V1H3v4a1 1 0 0 0 1 1h4V4H6a10 10 0 0 1 5.02-1.95M2 4v3h3v2H1a1 1 0 0 1-1-1V4zm12.13 12q-.88 0-1.53-.42-.64-.44-1-1.22a5 5 0 0 1-.35-1.86q0-1.05.35-1.85.36-.79 1-1.22A2.7 2.7 0 0 1 14.13 9a2.65 2.65 0 0 1 2.52 1.65q.35.79.35 1.85 0 1.07-.35 1.86a3 3 0 0 1-1.01 1.22 2.7 2.7 0 0 1-1.52.42m0-1.35q.59 0 .91-.56.34-.56.34-1.59 0-1.01-.34-1.58-.33-.57-.91-.57-.6 0-.92.57-.34.56-.34 1.58t.34 1.6q.33.54.91.55m-5.53 1.2v-5.13l-1.6.42V9.82l3.2-.8v6.84z" clip-rule="evenodd"></path>
-                        </svg>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" fill="none" class="text-white w-6 h-6 md:w-full md:h-full" viewBox="0 0 24 24"><path fill="currentColor" fill-rule="evenodd" d="M11.02 2.05A10 10 0 1 1 2 12H0a12 12 0 1 0 5-9.75V1H3v4a1 1 0 0 0 1 1h4V4H6a10 10 0 0 1 5.02-1.95M2 4v3h3v2H1a1 1 0 0 1-1-1V4zm12.13 12q-.88 0-1.53-.42-.64-.44-1-1.22a5 5 0 0 1-.35-1.86q0-1.05.35-1.85.36-.79 1-1.22A2.7 2.7 0 0 1 14.13 9a2.65 2.65 0 0 1 2.52 1.65q.35.79.35 1.85 0 1.07-.35 1.86a3 3 0 0 1-1.01 1.22 2.7 2.7 0 0 1-1.52.42m0-1.35q.59 0 .91-.56.34-.56.34-1.59 0-1.01-.34-1.58-.33-.57-.91-.57-.6 0-.92.57-.34.56-.34 1.58t.34 1.6q.33.54.91.55m-5.53 1.2v-5.13l-1.6.42V9.82l3.2-.8v6.84z" clip-rule="evenodd"/></svg>
                     </button>
                     <button id="skip-forward-button" class="bottom-control-button text-white flex items-center justify-center md:h-9 md:w-9 flex-shrink-0 focus:outline-none">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" fill="none" aria-hidden="true" class="text-white w-6 h-6 md:w-full md:h-full" viewBox="0 0 24 24">
-                            <path fill="currentColor" fill-rule="evenodd" d="M6.44 3.69A10 10 0 0 1 18 4h-2v2h4a1 1 0 0 0 1-1V1h-2v1.25A12 12 0 1 0 24 12h-2A10 10 0 1 1 6.44 3.69M22 4v3h-3v2h4a1 1 0 0 0 1-1V4zm-9.4 11.58q.66.42 1.53.42a2.7 2.7 0 0 0 1.5-.42q.67-.44 1.02-1.22.35-.8.35-1.86 0-1.05-.35-1.85A2.65 2.65 0 0 0 14.13 9a2.7 2.7 0 0 0-1.53.43q-.64.44-1 1.22a4.5 4.5 0 0 0-.35 1.85q0 1.07.35 1.86.36.78 1 1.22m2.44-1.49q-.33.56-.91.56-.6 0-.92-.56-.34-.56-.34-1.59 0-1.01.34-1.58.33-.57.91-.57.6 0 .92.57.34.56.34 1.58t-.34 1.6zM8.6 10.72v5.14h1.6V9.02l-3.2.8v1.32z" clip-rule="evenodd"></path>
-                        </svg>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" fill="none" class="text-white w-6 h-6 md:w-full md:h-full" viewBox="0 0 24 24"><path fill="currentColor" fill-rule="evenodd" d="M6.44 3.69A10 10 0 0 1 18 4h-2v2h4a1 1 0 0 0 1-1V1h-2v1.25A12 12 0 1 0 24 12h-2A10 10 0 1 1 6.44 3.69M22 4v3h-3v2h4a1 1 0 0 0 1-1V4zm-9.4 11.58q.66.42 1.53.42a2.7 2.7 0 0 0 1.5-.42q.67-.44 1.02-1.22.35-.8.35-1.86 0-1.05-.35-1.85A2.65 2.65 0 0 0 14.13 9a2.7 2.7 0 0 0-1.53.43q-.64.44-1 1.22a4.5 4.5 0 0 0-.35 1.85q0 1.07.35 1.86.36.78 1 1.22m2.44-1.49q-.33.56-.91.56-.6 0-.92-.56-.34-.56-.34-1.59 0-1.01.34-1.58.33-.57.91-.57.6 0 .92.57.34.56.34 1.58t-.34 1.6zM8.6 10.72v5.14h1.6V9.02l-3.2.8v1.32z" clip-rule="evenodd"/></svg>
                     </button>
                     <div id="volume-control-wrapper" class="relative flex items-center h-10 md:h-9">
                         <div id="volume-slider-container" class="absolute bottom-12 left-1/2 -translate-x-1/2 p-3 bg-black/80 rounded-lg shadow-2xl hidden transition-all duration-200">
-                            <div id="volume-slider-track" class="relative w-2 h-24 bg-white/30 rounded-full cursor-pointer">
+                            <div id="volume-slider-track" class="relative w-2 h-24 rounded-full cursor-pointer">
                                 <div id="volume-level" class="absolute bottom-0 left-0 right-0 rounded-full" style="background:rgb(225,0,0)"></div>
-                                <div id="volume-thumb-control" class="absolute left-1/2 -translate-x-1/2 w-4 h-4 rounded-full transition-transform duration-100" style="bottom:0;background:rgb(225,0,0)"></div>
+                                <div id="volume-thumb-control" class="absolute left-1/2 -translate-x-1/2 w-4 h-4 rounded-full" style="bottom:0;background:rgb(225,0,0)"></div>
                             </div>
                         </div>
                         <button id="mute-button" class="bottom-control-button text-white flex items-center justify-center md:h-9 md:w-9 flex-shrink-0 cursor-pointer focus:outline-none z-30">
-                            <svg id="volume-low-icon" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 24 24" width="100%" height="100%" aria-hidden="true" class="text-white hidden w-6 h-6 md:w-full md:h-full" xmlns="http://www.w3.org/2000/svg" fill="none" role="img"><path fill="#FFFFFF" fill-rule="evenodd" d="M11 4a1 1 0 0 0-1.7-.7L4.58 8H1a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h3.59l4.7 4.7A1 1 0 0 0 11 20zM5.7 9.7 9 6.42V17.6l-3.3-3.3-.29-.29H2v-4h3.41zM16 12a6 6 0 0 0-1.76-4.24l-1.41 1.41a4 4 0 0 1 0 5.66l1.41 1.41A6 6 0 0 0 16 12" clip-rule="evenodd"></path></svg>
-                            <svg id="volume-medium-icon" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 24 24" width="100%" height="100%" aria-hidden="true" class="text-white hidden w-6 h-6 md:w-full md:h-full" xmlns="http://www.w3.org/2000/svg" fill="none" role="img"><path fill="#FFFFFF" fill-rule="evenodd" d="M11 4a1 1 0 0 0-1.7-.7L4.58 8H1a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h3.59l4.7 4.7A1 1 0 0 0 11 20zM5.7 9.7 9 6.42V17.6l-3.3-3.3-.29-.29H2v-4h3.41zm11.37-4.77a10 10 0 0 1 0 14.14l-1.41-1.41a8 8 0 0 0 0-11.32zm-2.83 2.83a6 6 0 0 1 0 8.48l-1.41-1.41a4 4 0 0 0 0-5.66z" clip-rule="evenodd"></path></svg>
-                            <svg id="volume-high-icon" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 24 24" width="100%" height="100%" aria-hidden="true" class="text-white hidden w-6 h-6 md:w-full md:h-full" xmlns="http://www.w3.org/2000/svg" fill="none" role="img"><path fill="#FFFFFF" fill-rule="evenodd" d="M24 12a14 14 0 0 0-4.1-9.9l-1.415 1.415a12 12 0 0 1 0 16.97L19.9 21.9A14 14 0 0 0 24 12M11 4a1 1 0 0 0-1.707-.707L4.586 8H1a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h3.586l4.707 4.707A1 1 0 0 0 11 20zM5.707 9.707 9 6.414v11.172l-3.293-3.293L5.414 14H2v-4h3.414zM16 12a6 6 0 0 0-1.757-4.243l-1.415 1.415a4 4 0 0 1 0 5.656l1.415 1.415A6 6 0 0 0 16 12m1.07-7.071a10 10 0 0 1 0 14.142l-1.413-1.414a8 8 0 0 0 0-11.314z" clip-rule="evenodd"></path></svg>
-                            <svg id="volume-off-icon" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 24 24" width="100%" height="100%" aria-hidden="true" class="text-white w-6 h-6 md:w-full md:h-full" xmlns="http://www.w3.org/2000/svg" fill="none" role="img"><path fill="#FFFFFF" fill-rule="evenodd" d="M11 4a1 1 0 0 0-1.7-.7L4.58 8H1a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h3.59l4.7 4.7A1 1 0 0 0 11 20zM5.7 9.7 9 6.42V17.6l-3.3-3.3-.29-.29H2v-4h3.41zm9.6 0 2.29 2.3-2.3 2.3 1.42 1.4L19 13.42l2.3 2.3 1.4-1.42-2.28-2.3 2.3-2.3-1.42-1.4-2.3 2.28-2.3-2.3z" clip-rule="evenodd"></path></svg>
+                            <svg id="volume-low-icon" viewBox="0 0 24 24" width="100%" height="100%" class="text-white hidden w-6 h-6 md:w-full md:h-full" xmlns="http://www.w3.org/2000/svg" fill="none"><path fill="#FFFFFF" fill-rule="evenodd" d="M11 4a1 1 0 0 0-1.7-.7L4.58 8H1a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h3.59l4.7 4.7A1 1 0 0 0 11 20zM5.7 9.7 9 6.42V17.6l-3.3-3.3-.29-.29H2v-4h3.41zM16 12a6 6 0 0 0-1.76-4.24l-1.41 1.41a4 4 0 0 1 0 5.66l1.41 1.41A6 6 0 0 0 16 12" clip-rule="evenodd"/></svg>
+                            <svg id="volume-medium-icon" viewBox="0 0 24 24" width="100%" height="100%" class="text-white hidden w-6 h-6 md:w-full md:h-full" xmlns="http://www.w3.org/2000/svg" fill="none"><path fill="#FFFFFF" fill-rule="evenodd" d="M11 4a1 1 0 0 0-1.7-.7L4.58 8H1a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h3.59l4.7 4.7A1 1 0 0 0 11 20zM5.7 9.7 9 6.42V17.6l-3.3-3.3-.29-.29H2v-4h3.41zm11.37-4.77a10 10 0 0 1 0 14.14l-1.41-1.41a8 8 0 0 0 0-11.32zm-2.83 2.83a6 6 0 0 1 0 8.48l-1.41-1.41a4 4 0 0 0 0-5.66z" clip-rule="evenodd"/></svg>
+                            <svg id="volume-high-icon" viewBox="0 0 24 24" width="100%" height="100%" class="text-white hidden w-6 h-6 md:w-full md:h-full" xmlns="http://www.w3.org/2000/svg" fill="none"><path fill="#FFFFFF" fill-rule="evenodd" d="M24 12a14 14 0 0 0-4.1-9.9l-1.415 1.415a12 12 0 0 1 0 16.97L19.9 21.9A14 14 0 0 0 24 12M11 4a1 1 0 0 0-1.707-.707L4.586 8H1a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h3.586l4.707 4.707A1 1 0 0 0 11 20zM5.707 9.707 9 6.414v11.172l-3.293-3.293L5.414 14H2v-4h3.414zM16 12a6 6 0 0 0-1.757-4.243l-1.415 1.415a4 4 0 0 1 0 5.656l1.415 1.415A6 6 0 0 0 16 12m1.07-7.071a10 10 0 0 1 0 14.142l-1.413-1.414a8 8 0 0 0 0-11.314z" clip-rule="evenodd"/></svg>
+                            <svg id="volume-off-icon" viewBox="0 0 24 24" width="100%" height="100%" class="text-white w-6 h-6 md:w-full md:h-full" xmlns="http://www.w3.org/2000/svg" fill="none"><path fill="#FFFFFF" fill-rule="evenodd" d="M11 4a1 1 0 0 0-1.7-.7L4.58 8H1a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h3.59l4.7 4.7A1 1 0 0 0 11 20zM5.7 9.7 9 6.42V17.6l-3.3-3.3-.29-.29H2v-4h3.41zm9.6 0 2.29 2.3-2.3 2.3 1.42 1.4L19 13.42l2.3 2.3 1.4-1.42-2.28-2.3 2.3-2.3-1.42-1.4-2.3 2.28-2.3-2.3z" clip-rule="evenodd"/></svg>
                         </button>
                     </div>
                 </div>
-
-                <!-- RIGHT CONTROLS -->
                 <div id="right-controlbuttons" class="flex items-center space-x-1 md:space-x-2 relative">
-
-                    <!-- NEXT EPISODE BUTTON -->
-                    <button id="next-episode-button" style="display:none;">
+                    <button id="next-episode-button" style="display:none">
                         <span>Next Ep</span>
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
-                        </svg>
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
                     </button>
-
-                    <!-- Audio & Subtitles -->
                     <div class="relative" id="audio-subtitle-wrapper">
                         <button id="audio-subtitle-toggle" class="bottom-control-button text-white flex items-center justify-center md:h-9 md:w-9 flex-shrink-0 cursor-pointer focus:outline-none mobile-labeled-btn" title="Audio &amp; Subtitles">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" fill="none" aria-hidden="true" class="w-6 h-6 md:w-full md:h-full flex-shrink-0" viewBox="0 0 24 24">
-                                <path fill="currentColor" fill-rule="evenodd" d="M1 3a1 1 0 0 1 1-1h20a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1h-3v3a1 1 0 0 1-1.55.83L11.7 18H2a1 1 0 0 1-1-1zm2 1v12h9.3l.25.17L17 19.13V16h4V4zm7 5H5V7h5zm9 2h-5v2h5zm-7 2H5v-2h7zm7-6h-7v2h7z" clip-rule="evenodd"></path>
-                            </svg>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" fill="none" class="w-6 h-6 md:w-full md:h-full flex-shrink-0" viewBox="0 0 24 24"><path fill="currentColor" fill-rule="evenodd" d="M1 3a1 1 0 0 1 1-1h20a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1h-3v3a1 1 0 0 1-1.55.83L11.7 18H2a1 1 0 0 1-1-1zm2 1v12h9.3l.25.17L17 19.13V16h4V4zm7 5H5V7h5zm9 2h-5v2h5zm-7 2H5v-2h7zm7-6h-7v2h7z" clip-rule="evenodd"/></svg>
                             <span class="mobile-btn-label">Audio &amp; Subtitles</span>
                         </button>
-                        <div id="audio-subtitle-menu" class="absolute bottom-12 right-0 w-72 max-w-[85vw] md:w-[450px] rounded-[0.4rem] shadow-2xl p-4 hidden text-white transition-opacity duration-200" style="background-color:#262626">
+                        <div id="audio-subtitle-menu" class="absolute bottom-12 right-0 w-72 max-w-[85vw] md:w-[450px] rounded-[0.4rem] shadow-2xl p-4 hidden text-white" style="background-color:#262626">
                             <div id="audio-subtitle-menu-inner">
                                 <div class="flex gap-4">
                                     <div id="audio-tracks-container" class="flex-1 flex flex-col min-h-0 pr-2">
-                                        <h4 class="mb-2 text-gray-200 pb-1 flex-shrink-0" style="font-size:16px;font-weight:700;">Audio</h4>
-                                        <ul id="audio-list" class="space-y-1 text-sm overflow-y-auto max-h-56"><li class="text-gray-400">Loading tracks...</li></ul>
+                                        <h4 class="mb-2 text-gray-200 pb-1 flex-shrink-0" style="font-size:16px;font-weight:700">Audio</h4>
+                                        <ul id="audio-list" class="space-y-1 text-sm overflow-y-auto max-h-56"><li class="text-gray-400">Loading...</li></ul>
                                     </div>
                                     <div id="subtitle-tracks-container" class="flex-1 flex flex-col min-h-0 pl-2 border-l border-gray-700">
-                                        <h4 class="mb-2 text-gray-200 pb-1 flex-shrink-0" style="font-size:16px;font-weight:700;">Subtitles</h4>
-                                        <ul id="subtitle-list" class="space-y-1 text-sm overflow-y-auto max-h-56"><li class="text-gray-400">Loading tracks...</li></ul>
+                                        <h4 class="mb-2 text-gray-200 pb-1 flex-shrink-0" style="font-size:16px;font-weight:700">Subtitles</h4>
+                                        <ul id="subtitle-list" class="space-y-1 text-sm overflow-y-auto max-h-56"><li class="text-gray-400">Loading...</li></ul>
                                     </div>
                                 </div>
                             </div>
-                            <div id="audio-subtitle-menu-footer" style="display:none;position:absolute;width:100%;bottom:0;right:0;background:transparent;justify-content:flex-end;gap:8px;padding:12px 16px;flex-shrink:0;">
-                                <button onclick="toggleAudioSubtitleMenu()" style="background:#242424;color:#fff;padding:8px 20px;font-size:14px;font-weight:700;cursor:pointer;border-radius:2px;">Cancel</button>
-                                <button onclick="toggleAudioSubtitleMenu()" style="background:white;border:none;color:#000;padding:8px 20px;font-size:14px;font-weight:700;cursor:pointer;border-radius:2px;">Apply</button>
+                            <div id="audio-subtitle-menu-footer" style="display:none;position:absolute;width:100%;bottom:0;right:0;background:transparent;justify-content:flex-end;gap:8px;padding:12px 16px;flex-shrink:0">
+                                <button onclick="toggleAudioSubtitleMenu()" style="background:#242424;color:#fff;padding:8px 20px;font-size:14px;font-weight:700;cursor:pointer;border-radius:2px">Cancel</button>
+                                <button onclick="toggleAudioSubtitleMenu()" style="background:white;border:none;color:#000;padding:8px 20px;font-size:14px;font-weight:700;cursor:pointer;border-radius:2px">Apply</button>
                             </div>
                         </div>
                     </div>
-
-                    <!-- PLAYBACK SPEED -->
                     <button id="speed-button" class="bottom-control-button text-white flex items-center justify-center md:h-9 md:w-9 flex-shrink-0 cursor-pointer focus:outline-none mobile-labeled-btn" title="Playback speed">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" fill="none" aria-hidden="true" class="w-6 h-6 md:w-full md:h-full flex-shrink-0" viewBox="0 0 24 24">
-                            <path fill="currentColor" fill-rule="evenodd" d="M19.06 6.27a9.7 9.7 0 0 0-14.12 0 10.8 10.8 0 0 0 0 14.82L3.5 22.47a12.8 12.8 0 0 1 0-17.59 11.7 11.7 0 0 1 17 0 12.8 12.8 0 0 1 0 17.59l-1.44-1.38a10.8 10.8 0 0 0 0-14.82M15 14a3 3 0 1 1-1.7-2.7l3-3 1.4 1.4-3 3q.3.6.3 1.3" clip-rule="evenodd"></path>
-                        </svg>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" fill="none" class="w-6 h-6 md:w-full md:h-full flex-shrink-0" viewBox="0 0 24 24"><path fill="currentColor" fill-rule="evenodd" d="M19.06 6.27a9.7 9.7 0 0 0-14.12 0 10.8 10.8 0 0 0 0 14.82L3.5 22.47a12.8 12.8 0 0 1 0-17.59 11.7 11.7 0 0 1 17 0 12.8 12.8 0 0 1 0 17.59l-1.44-1.38a10.8 10.8 0 0 0 0-14.82M15 14a3 3 0 1 1-1.7-2.7l3-3 1.4 1.4-3 3q.3.6.3 1.3" clip-rule="evenodd"/></svg>
                         <span class="mobile-btn-label">Speed</span>
                     </button>
-                    <div id="speed-menu" class="absolute bottom-12 right-0 w-48 rounded-[0.4rem] shadow-2xl p-3 hidden text-white transition-opacity duration-200" style="background-color:#262626">
-                        <ul id="speed-list" class="space-y-1 text-sm"></ul>
-                    </div>
-
-                    <!-- QUALITY BUTTON -->
-                    <div style="position:relative;">
+                    <div id="speed-menu" class="absolute bottom-12 right-0 w-48 rounded-[0.4rem] shadow-2xl p-3 hidden text-white" style="background-color:#262626"><ul id="speed-list" class="space-y-1 text-sm"></ul></div>
+                    <div style="position:relative">
                         <button id="quality-button" class="bottom-control-button text-white flex items-center justify-center md:h-9 md:w-9 flex-shrink-0 cursor-pointer focus:outline-none mobile-labeled-btn" title="Video Quality">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" fill="none" aria-hidden="true" class="w-6 h-6 md:w-full md:h-full flex-shrink-0" viewBox="0 0 24 24">
-                                <path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-14h2v6h-2zm0 8h2v2h-2z"/>
-                            </svg>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" fill="none" class="w-6 h-6 md:w-full md:h-full flex-shrink-0" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-14h2v6h-2zm0 8h2v2h-2z"/></svg>
                             <span class="mobile-btn-label">Quality</span>
                         </button>
-                        <div id="quality-menu" class="hidden">
-                            <ul id="quality-list"></ul>
-                        </div>
+                        <div id="quality-menu" class="hidden"><ul id="quality-list"></ul></div>
                     </div>
-
-                    <!-- Fullscreen -->
                     <button id="fullscreen-button" class="bottom-control-button text-white flex items-center justify-center md:h-9 md:w-9 flex-shrink-0 cursor-pointer focus:outline-none">
-                        <svg id="fullscreen-enter-icon" xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" fill="none" aria-hidden="true" class="text-white w-6 h-6 md:w-full md:h-full" viewBox="0 0 24 24">
-                            <path fill="currentColor" fill-rule="evenodd" d="M0 5c0-1.1.9-2 2-2h7v2H2v4H0zm22 0h-7V3h7a2 2 0 0 1 2 2v4h-2zM2 15v4h7v2H2a2 2 0 0 1-2-2v-4zm20 4v-4h2v4a2 2 0 0 1-2 2h-7v-2z" clip-rule="evenodd"></path>
-                        </svg>
-                        <svg id="fullscreen-exit-icon" xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" fill="none" aria-hidden="true" class="text-white hidden w-6 h-6 md:w-full md:h-full" viewBox="0 0 24 24">
-                            <path fill="currentColor" fill-rule="evenodd" d="M24 8h-5V3h-2v7h7zM0 16h5v5h2v-7H0zm7-6H0V8h5V3h2zm12 11v-5h5v-2h-7v7z" clip-rule="evenodd"></path>
-                        </svg>
+                        <svg id="fullscreen-enter-icon" xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" fill="none" class="text-white w-6 h-6 md:w-full md:h-full" viewBox="0 0 24 24"><path fill="currentColor" fill-rule="evenodd" d="M0 5c0-1.1.9-2 2-2h7v2H2v4H0zm22 0h-7V3h7a2 2 0 0 1 2 2v4h-2zM2 15v4h7v2H2a2 2 0 0 1-2-2v-4zm20 4v-4h2v4a2 2 0 0 1-2 2h-7v-2z" clip-rule="evenodd"/></svg>
+                        <svg id="fullscreen-exit-icon" xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" fill="none" class="text-white hidden w-6 h-6 md:w-full md:h-full" viewBox="0 0 24 24"><path fill="currentColor" fill-rule="evenodd" d="M24 8h-5V3h-2v7h7zM0 16h5v5h2v-7H0zm7-6H0V8h5V3h2zm12 11v-5h5v-2h-7v7z" clip-rule="evenodd"/></svg>
                     </button>
                 </div>
             </div>
         </div>
     </div>
-
     <div id="error-message" class="absolute top-0 left-1/2 -translate-x-1/2 mt-4 p-3 bg-red-800 text-white text-sm rounded-lg shadow-xl z-30 hidden"></div>
-
     <div class="report-modal" id="reportModal">
-      <div class="report-modal-box">
-        <div class="report-modal-header">
-          <h2 class="report-modal-title">Report an Issue</h2>
-          <button class="report-close-btn" onclick="closeReportModal()">×</button>
+        <div class="report-modal-box">
+            <div class="report-modal-header"><h2 class="report-modal-title">Report an Issue</h2><button class="report-close-btn" onclick="closeReportModal()">×</button></div>
+            <div class="report-modal-body">
+                <label for="issueType">Issue Type</label>
+                <select id="issueType"><option value="">Select an issue</option><option value="video">Video not playing</option><option value="audio">Audio issue</option><option value="subtitle">Subtitle issue</option><option value="buffer">Buffering or slow playback</option><option value="other">Other</option></select>
+                <label for="issueDesc">Description (optional)</label>
+                <textarea id="issueDesc" placeholder="Describe the problem"></textarea>
+            </div>
+            <div class="report-modal-footer"><button class="report-submit-btn" id="submitBtn" onclick="submitIssue()" disabled>Submit</button></div>
         </div>
-        <div class="report-modal-body">
-          <label for="issueType">Issue Type</label>
-          <select id="issueType">
-            <option value="">Select an issue</option>
-            <option value="video">Video not playing</option>
-            <option value="audio">Audio issue</option>
-            <option value="subtitle">Subtitle issue</option>
-            <option value="buffer">Buffering or slow playback</option>
-            <option value="other">Other</option>
-          </select>
-          <label for="issueDesc">Description (optional)</label>
-          <textarea id="issueDesc" placeholder="Describe the problem"></textarea>
-        </div>
-        <div class="report-modal-footer">
-          <button class="report-submit-btn" id="submitBtn" onclick="submitIssue()" disabled="">Submit</button>
-        </div>
-      </div>
     </div>
 </div>
-
 <script>
-/* =========================================================================
-   DOM ELEMENTS
-   ========================================================================= */
-const video                = document.getElementById('video');
-const videoContainer       = document.getElementById('video-container');
-const errorMessageDiv      = document.getElementById('error-message');
-const skipHint             = document.getElementById('skip-hint');
-const topOverlay           = document.getElementById('top-overlay');
-const bottomOverlay        = document.getElementById('bottom-overlay');
-const customPlayButton     = document.getElementById('custom-play-button');
-const playIcon             = document.getElementById('play-icon');
-const pauseIcon            = document.getElementById('pause-icon');
-const volumeControlWrapper = document.getElementById('volume-control-wrapper');
-const muteButton           = document.getElementById('mute-button');
-const volumeLowIcon        = document.getElementById('volume-low-icon');
-const volumeMediumIcon     = document.getElementById('volume-medium-icon');
-const volumeHighIcon       = document.getElementById('volume-high-icon');
-const volumeOffIcon        = document.getElementById('volume-off-icon');
-const volumeSliderContainer= document.getElementById('volume-slider-container');
-const volumeSliderTrack    = document.getElementById('volume-slider-track');
-const volumeLevel          = document.getElementById('volume-level');
-const volumeThumbControl   = document.getElementById('volume-thumb-control');
-const seekBar              = document.getElementById('seek-bar');
-const bufferIndicator      = document.getElementById('buffer-indicator');
-const progressIndicator    = document.getElementById('progress-indicator');
-const seekThumb            = document.getElementById('seek-thumb');
-const remainingTimeDisplay = document.getElementById('remaining-time');
-const fullscreenButton     = document.getElementById('fullscreen-button');
-const fullscreenEnterIcon  = document.getElementById('fullscreen-enter-icon');
-const fullscreenExitIcon   = document.getElementById('fullscreen-exit-icon');
-const skipBackwardButton   = document.getElementById('skip-backward-button');
-const skipForwardButton    = document.getElementById('skip-forward-button');
-const loadingIndicator     = document.getElementById('loading-indicator');
-const audioSubtitleToggle  = document.getElementById('audio-subtitle-toggle');
-const audioSubtitleMenu    = document.getElementById('audio-subtitle-menu');
-const audioList            = document.getElementById('audio-list');
-const subtitleList         = document.getElementById('subtitle-list');
-const centerPlayPauseOverlay = document.getElementById('center-play-pause-overlay');
-const centerPlayPauseButton  = document.getElementById('center-play-pause-button');
-const centerPlayIcon        = document.getElementById('center-play-icon');
-const centerPauseIcon       = document.getElementById('center-pause-icon');
-const mobileSkipBackwardButton = document.getElementById('mobile-skip-backward-button');
-const mobileSkipForwardButton  = document.getElementById('mobile-skip-forward-button');
-const nextEpisodeButton     = document.getElementById('next-episode-button');
+/* =====================================================================
+   DOM REFS
+   ===================================================================== */
+const video=document.getElementById('video'),videoContainer=document.getElementById('video-container'),errorMessageDiv=document.getElementById('error-message'),topOverlay=document.getElementById('top-overlay'),bottomOverlay=document.getElementById('bottom-overlay'),customPlayButton=document.getElementById('custom-play-button'),playIcon=document.getElementById('play-icon'),pauseIcon=document.getElementById('pause-icon'),volumeControlWrapper=document.getElementById('volume-control-wrapper'),muteButton=document.getElementById('mute-button'),volumeLowIcon=document.getElementById('volume-low-icon'),volumeMediumIcon=document.getElementById('volume-medium-icon'),volumeHighIcon=document.getElementById('volume-high-icon'),volumeOffIcon=document.getElementById('volume-off-icon'),volumeSliderContainer=document.getElementById('volume-slider-container'),volumeSliderTrack=document.getElementById('volume-slider-track'),volumeLevel=document.getElementById('volume-level'),volumeThumbControl=document.getElementById('volume-thumb-control'),seekBar=document.getElementById('seek-bar'),bufferIndicator=document.getElementById('buffer-indicator'),progressIndicator=document.getElementById('progress-indicator'),seekThumb=document.getElementById('seek-thumb'),remainingTimeDisplay=document.getElementById('remaining-time'),fullscreenButton=document.getElementById('fullscreen-button'),fullscreenEnterIcon=document.getElementById('fullscreen-enter-icon'),fullscreenExitIcon=document.getElementById('fullscreen-exit-icon'),skipBackwardButton=document.getElementById('skip-backward-button'),skipForwardButton=document.getElementById('skip-forward-button'),loadingIndicator=document.getElementById('loading-indicator'),audioSubtitleToggle=document.getElementById('audio-subtitle-toggle'),audioSubtitleMenu=document.getElementById('audio-subtitle-menu'),audioList=document.getElementById('audio-list'),subtitleList=document.getElementById('subtitle-list'),centerPlayPauseOverlay=document.getElementById('center-play-pause-overlay'),centerPlayPauseButton=document.getElementById('center-play-pause-button'),centerPlayIcon=document.getElementById('center-play-icon'),centerPauseIcon=document.getElementById('center-pause-icon'),mobileSkipBackwardButton=document.getElementById('mobile-skip-backward-button'),mobileSkipForwardButton=document.getElementById('mobile-skip-forward-button'),nextEpisodeButton=document.getElementById('next-episode-button');
 
-/* =========================================================================
-   STATE VARIABLES
-   ========================================================================= */
-let currentSeriesId = null;
-let currentSeason = null;
-let currentEpisode = null;
-let totalEpisodes = null;
-let isHlsJsMode = false;
-let hlsInstance = null;
+/* =====================================================================
+   STATE
+   ===================================================================== */
+let currentSeriesId=null,currentSeason=null,currentEpisode=null,totalEpisodes=null;
+let isHlsJsMode=false,hlsInstance=null;
 let inactivityTimer;
-const INACTIVITY_TIMEOUT = 3000;
-let isSeeking = false;
-let isVolumeAdjusting = false;
-let lastKnownVolume = 0.5;
-let currentMouseMoveHandler = null;
-let currentTouchMoveHandler = null;
-let videoStorageKey = null;
-let hasRestoredPosition = false;
-let saveProgressInterval = null;
-let resolvedUrl = null;
-let currentMediaType = null;
-let currentContentId = null;
-let _subtitleBlobUrls = [];
+const INACTIVITY_TIMEOUT=3000;
+let isSeeking=false,isVolumeAdjusting=false,lastKnownVolume=0.5;
+let currentMouseMoveHandler=null,currentTouchMoveHandler=null;
+let videoStorageKey=null,hasRestoredPosition=false,saveProgressInterval=null;
+let resolvedUrl=null,_subtitleBlobUrls=[];
+// Lazy subtitle state
+let _pendingSubtitleArgs=null,_subtitlesLoaded=false,_subtitlesLoading=false;
+const SUBTITLE_FETCH_TIMEOUT_MS=10000;
+// Loader watchdog — forces hide if video is playing but loader never got hidden
+let _loaderWatchdog=null;
 
-/* Lazy subtitle loading state — subtitles are NOT fetched at playback start.
-   They load only when the user opens the Audio & Subtitles menu for the first time. */
-let _pendingSubtitleArgs = null;   // { type, tmdbId, season, episode }
-let _subtitlesLoaded = false;      // true once load has been triggered
-let _subtitlesLoading = false;     // true while fetch is in progress
-const SUBTITLE_FETCH_TIMEOUT_MS = 10000; // 10 seconds per SRT file fetch
-
-/* =========================================================================
-   FIX 1: STABLE STORAGE KEY
-   =========================================================================
-   StreamP2p URLs rotate tokens on every fetch:
-     https://203.x.x.x/v4/-sOzDEL.../1779210662/s93/njwims/master.m3u8?v=...
-   The stable part is the short alphanumeric folder just before /master.m3u8
-   e.g. "njwims". We use the page path + that stable segment as the key so
-   resume survives token rotation. Falls back to a path-based key for other
-   sources (GitHub direct URLs, etc).
-   ========================================================================= */
-function extractStableStreamId(url) {
-    if (!url) return null;
-    try {
-        // Match StreamP2p pattern: short alphanum segment right before /master.m3u8
-        // e.g. .../njwims/master.m3u8  →  "njwims"
-        const m = url.match(/\/([a-z0-9]{4,12})\/master\.m3u8/i);
-        if (m) return m[1];
-    } catch(e) {}
+/* =====================================================================
+   STABLE STORAGE KEY  (StreamP2p tokens rotate; stable ID = "njwims" etc)
+   ===================================================================== */
+function extractStableStreamId(url){
+    if(!url)return null;
+    try{const m=url.match(/\/([a-z0-9]{4,12})\/master\.m3u8/i);if(m)return m[1];}catch(e){}
     return null;
 }
-
-function generateStorageKey(url) {
-    // Always prefix with the page path (e.g. /tv/12345/S1/E3 or /movie/67890)
-    // so the same stream ID used in different content doesn't collide.
-    const pagePath = window.location.pathname;
-    const stableId = extractStableStreamId(url);
-    if (stableId) {
-        // e.g.  "vp:/tv/12345/S1/E3:njwims"
-        return `vp:${pagePath}:${stableId}`;
-    }
-    // Fallback: use page path only (good for GitHub/direct URLs that don't change)
-    return `vp:${pagePath}`;
+function generateStorageKey(url){
+    const pp=window.location.pathname,sid=extractStableStreamId(url);
+    return sid?`vp:${pp}:${sid}`:`vp:${pp}`;
 }
 
-/* =========================================================================
-   HELPER FUNCTIONS
-   ========================================================================= */
-function revokeAllSubtitleBlobs() {
-    while(_subtitleBlobUrls.length) URL.revokeObjectURL(_subtitleBlobUrls.pop());
-}
-
-function getMediaInfoFromUrl() {
-    const path = window.location.pathname;
-    const tvMatch = path.match(/\/tv\/(\d+)\/S(\d+)\/E(\d+)/i);
-    if (tvMatch) {
-        return { mediaType: 'tv', contentId: tvMatch[1], seasonNumber: Number(tvMatch[2]), episodeNumber: Number(tvMatch[3]) };
-    }
-    const movieMatch = path.match(/\/movie\/(\d+)/i);
-    if (movieMatch) {
-        return { mediaType: 'movie', contentId: movieMatch[1] };
-    }
+/* =====================================================================
+   HELPERS
+   ===================================================================== */
+function revokeAllSubtitleBlobs(){while(_subtitleBlobUrls.length)URL.revokeObjectURL(_subtitleBlobUrls.pop());}
+function getMediaInfoFromUrl(){
+    const p=window.location.pathname;
+    const tv=p.match(/\/tv\/(\d+)\/S(\d+)\/E(\d+)/i);
+    if(tv)return{mediaType:'tv',contentId:tv[1],seasonNumber:Number(tv[2]),episodeNumber:Number(tv[3])};
+    const mv=p.match(/\/movie\/(\d+)/i);
+    if(mv)return{mediaType:'movie',contentId:mv[1]};
     return null;
 }
-
-function formatTime(totalSec) {
-    if (isNaN(totalSec) || totalSec < 0) return '0:00';
-    const sec = Math.floor(totalSec % 60), min = Math.floor(totalSec/60)%60, hrs = Math.floor(totalSec/3600);
-    const pad = n => n.toString().padStart(2,'0');
-    return hrs ? `${hrs}:${pad(min)}:${pad(sec)}` : `${min}:${pad(sec)}`;
+function formatTime(s){
+    if(isNaN(s)||s<0)return'0:00';
+    const sec=Math.floor(s%60),min=Math.floor(s/60)%60,hrs=Math.floor(s/3600);
+    const p=n=>n.toString().padStart(2,'0');
+    return hrs?`${hrs}:${p(min)}:${p(sec)}`:`${min}:${p(sec)}`;
 }
+function displayError(msg){console.error(msg);errorMessageDiv.textContent=msg;errorMessageDiv.classList.remove('hidden');}
 
-function displayError(msg) {
-    console.error(msg);
-    errorMessageDiv.textContent = msg;
-    errorMessageDiv.classList.remove('hidden');
-}
-
-function showLoader() {
+/* =====================================================================
+   LOADER  — with watchdog so a stuck fragment never freezes the UI
+   ===================================================================== */
+function showLoader(){
     loadingIndicator.classList.remove('hidden');
     centerPlayPauseOverlay.classList.remove('opacity-100','pointer-events-auto');
     centerPlayPauseOverlay.classList.add('opacity-0','pointer-events-none');
+    // Watchdog: if video is actually playing after 8s and loader is still shown, force-hide
+    clearTimeout(_loaderWatchdog);
+    _loaderWatchdog=setTimeout(()=>{
+        if(!loadingIndicator.classList.contains('hidden')&&video.currentTime>0&&!video.paused){
+            console.warn('[Loader] Watchdog forced hide — video is playing');
+            hideLoader();
+        }
+    },8000);
 }
-
-function hideLoader() {
+function hideLoader(){
+    clearTimeout(_loaderWatchdog);
+    _loaderWatchdog=null;
     loadingIndicator.classList.add('hidden');
     resetInactivityTimer();
 }
 
-function showControls() {
-    if (!loadingIndicator.classList.contains('hidden')) {
-        bottomOverlay.classList.remove('controls-hidden'); bottomOverlay.classList.add('controls-visible');
-        return;
+function showControls(){
+    bottomOverlay.classList.remove('controls-hidden');bottomOverlay.classList.add('controls-visible');
+    if(loadingIndicator.classList.contains('hidden')){
+        centerPlayPauseOverlay.classList.remove('opacity-0','pointer-events-none');
+        centerPlayPauseOverlay.classList.add('opacity-100','pointer-events-auto');
     }
-    bottomOverlay.classList.remove('controls-hidden'); bottomOverlay.classList.add('controls-visible');
-    centerPlayPauseOverlay.classList.remove('opacity-0','pointer-events-none');
-    centerPlayPauseOverlay.classList.add('opacity-100','pointer-events-auto');
 }
-
-function hideControls() {
-    if (!isAnyMenuOpen()) {
-        bottomOverlay.classList.remove('controls-visible'); bottomOverlay.classList.add('controls-hidden');
+function hideControls(){
+    if(!isAnyMenuOpen()){
+        bottomOverlay.classList.remove('controls-visible');bottomOverlay.classList.add('controls-hidden');
         centerPlayPauseOverlay.classList.remove('opacity-100','pointer-events-auto');
         centerPlayPauseOverlay.classList.add('opacity-0','pointer-events-none');
     }
 }
-
-function isAnyMenuOpen() {
-    return !audioSubtitleMenu.classList.contains('hidden') ||
-           !document.getElementById('speed-menu').classList.contains('hidden') ||
+function isAnyMenuOpen(){
+    return!audioSubtitleMenu.classList.contains('hidden')||
+           !document.getElementById('speed-menu').classList.contains('hidden')||
            !document.getElementById('quality-menu').classList.contains('hidden');
 }
-
-function resetInactivityTimer() {
-    clearTimeout(inactivityTimer); showControls();
-    if (!video.paused && !isSeeking && !isAnyMenuOpen() && loadingIndicator.classList.contains('hidden')) {
-        inactivityTimer = setTimeout(hideControls, INACTIVITY_TIMEOUT);
-    }
+function resetInactivityTimer(){
+    clearTimeout(inactivityTimer);showControls();
+    if(!video.paused&&!isSeeking&&!isAnyMenuOpen()&&loadingIndicator.classList.contains('hidden'))
+        inactivityTimer=setTimeout(hideControls,INACTIVITY_TIMEOUT);
 }
 
-function saveVideoProgress() {
-    if (!video.duration || isNaN(video.duration) || video.duration === Infinity) return;
-    if (video.currentTime < 1 || video.currentTime > video.duration - 5) return;
-    if (!videoStorageKey) return;
-    try {
-        const data = {
-            currentTime: video.currentTime,
-            duration: video.duration,
-            timestamp: Date.now(),
-            // Store the stable key used, not the raw URL (which rotates)
-            stableKey: videoStorageKey
-        };
-        localStorage.setItem(videoStorageKey, JSON.stringify(data));
-    } catch(e) { console.error('save progress error', e); }
+/* =====================================================================
+   PROGRESS SAVE / RESTORE
+   ===================================================================== */
+function saveVideoProgress(){
+    if(!video.duration||isNaN(video.duration)||video.duration===Infinity)return;
+    if(video.currentTime<1||video.currentTime>video.duration-5)return;
+    if(!videoStorageKey)return;
+    try{localStorage.setItem(videoStorageKey,JSON.stringify({currentTime:video.currentTime,duration:video.duration,timestamp:Date.now(),stableKey:videoStorageKey}));}
+    catch(e){console.error('save progress error',e);}
+}
+function restoreVideoProgress(){
+    if(hasRestoredPosition)return;
+    if(!video.duration||isNaN(video.duration)||video.duration===Infinity)return;
+    if(!videoStorageKey)return;
+    try{
+        const raw=localStorage.getItem(videoStorageKey);if(!raw)return;
+        const d=JSON.parse(raw);
+        if(!d.currentTime||d.currentTime<=5||d.currentTime>=(d.duration||Infinity)-10)return;
+        hasRestoredPosition=true;
+        const doSeek=()=>{video.currentTime=d.currentTime;console.log(`[Resume] ${formatTime(d.currentTime)}`);};
+        if(video.readyState>=2)doSeek();else video.addEventListener('canplay',doSeek,{once:true});
+    }catch(e){hasRestoredPosition=true;}
+}
+function clearVideoProgress(){if(videoStorageKey)try{localStorage.removeItem(videoStorageKey);}catch(e){}}
+function startProgressSaving(){
+    saveProgressInterval=setInterval(saveVideoProgress,5000);
+    video.addEventListener('pause',saveVideoProgress);
+    video.addEventListener('seeking',saveVideoProgress);
+    video.addEventListener('ended',clearVideoProgress);
+    window.addEventListener('beforeunload',saveVideoProgress);
+}
+function stopProgressSaving(){
+    clearInterval(saveProgressInterval);saveProgressInterval=null;
+    video.removeEventListener('pause',saveVideoProgress);
+    video.removeEventListener('seeking',saveVideoProgress);
+    video.removeEventListener('ended',clearVideoProgress);
+    window.removeEventListener('beforeunload',saveVideoProgress);
+}
+function postTimeUpdateToParent(){
+    if(window.parent!==window)window.parent.postMessage({event:'videoTimeUpdate',currentTime:video.currentTime,duration:video.duration,paused:video.paused,...getMediaInfoFromUrl()},'*');
 }
 
-function restoreVideoProgress() {
-    if (hasRestoredPosition) return;
-    if (!video.duration || isNaN(video.duration) || video.duration === Infinity) return;
-    if (!videoStorageKey) return;
-    try {
-        const raw = localStorage.getItem(videoStorageKey);
-        if (!raw) return;
-        const data = JSON.parse(raw);
-        // Validate: must have meaningful time and not be near end
-        if (!data.currentTime || data.currentTime <= 5 || data.currentTime >= (data.duration || Infinity) - 10) return;
-        hasRestoredPosition = true;
-        const doSeek = () => {
-            video.currentTime = data.currentTime;
-            console.log(`[Resume] Restored to ${formatTime(data.currentTime)} (key: ${videoStorageKey})`);
-        };
-        if (video.readyState >= 2) doSeek();
-        else video.addEventListener('canplay', doSeek, { once: true });
-    } catch(e) {
-        console.warn('[Resume] Failed to restore:', e);
-        hasRestoredPosition = true;
-    }
+/* =====================================================================
+   PROGRESS BAR UI
+   ===================================================================== */
+function updateBufferProgress(){
+    if(!video.duration||video.duration===Infinity)return;
+    const b=video.buffered;if(!b.length){bufferIndicator.style.width='0%';return;}
+    let f=0;for(let i=0;i<b.length;i++)f=Math.max(f,b.end(i));
+    bufferIndicator.style.width=`${Math.min(100,(f/video.duration)*100)}%`;
 }
-
-function clearVideoProgress() {
-    if (!videoStorageKey) return;
-    try { localStorage.removeItem(videoStorageKey); } catch(e) { console.error(e); }
+function updateProgress(){
+    if(!video.duration||isSeeking)return;
+    const pct=(video.currentTime/video.duration)*100;
+    progressIndicator.style.width=`${pct}%`;
+    seekThumb.style.left=`calc(${pct}% - 3px)`;
+    remainingTimeDisplay.textContent=formatTime(video.duration-video.currentTime);
 }
-
-function startProgressSaving() {
-    saveProgressInterval = setInterval(saveVideoProgress, 5000);
-    video.addEventListener('pause', saveVideoProgress);
-    video.addEventListener('seeking', saveVideoProgress);
-    video.addEventListener('ended', clearVideoProgress);
-    window.addEventListener('beforeunload', saveVideoProgress);
+function updateBottomPlayPauseIcon(p){if(p){playIcon.classList.remove('hidden');pauseIcon.classList.add('hidden');}else{playIcon.classList.add('hidden');pauseIcon.classList.remove('hidden');}}
+function updateCenterPlayPauseIcon(p){if(p){centerPlayIcon.classList.remove('hidden');centerPauseIcon.classList.add('hidden');}else{centerPlayIcon.classList.add('hidden');centerPauseIcon.classList.remove('hidden');}}
+function updateMuteIcon(){
+    const muted=video.muted||video.volume===0,vol=video.muted?0:video.volume;
+    volumeOffIcon.classList.toggle('hidden',!muted);
+    volumeLowIcon.classList.toggle('hidden',muted||vol>0.33);
+    volumeMediumIcon.classList.toggle('hidden',muted||vol<=0.33||vol>0.66);
+    volumeHighIcon.classList.toggle('hidden',muted||vol<=0.66);
 }
-
-function stopProgressSaving() {
-    clearInterval(saveProgressInterval);
-    saveProgressInterval = null;
-    video.removeEventListener('pause', saveVideoProgress);
-    video.removeEventListener('seeking', saveVideoProgress);
-    video.removeEventListener('ended', clearVideoProgress);
-    window.removeEventListener('beforeunload', saveVideoProgress);
-}
-
-function postTimeUpdateToParent() {
-    if (window.parent !== window) {
-        window.parent.postMessage({
-            event: 'videoTimeUpdate',
-            currentTime: video.currentTime,
-            duration: video.duration,
-            paused: video.paused,
-            ...getMediaInfoFromUrl()
-        }, '*');
-    }
-}
-
-/* =========================================================================
-   VIDEO PROGRESS UI
-   ========================================================================= */
-function updateBufferProgress() {
-    if (!video.duration || video.duration === Infinity) return;
-    const buffered = video.buffered;
-    if (!buffered.length) { bufferIndicator.style.width = '0%'; return; }
-    let f = 0;
-    for (let i = 0; i < buffered.length; i++) f = Math.max(f, buffered.end(i));
-    bufferIndicator.style.width = `${Math.min(100, (f / video.duration) * 100)}%`;
-}
-
-function updateProgress() {
-    if (!video.duration || isSeeking) return; // never overwrite visual during drag
-    const pct = (video.currentTime / video.duration) * 100;
-    progressIndicator.style.width = `${pct}%`;
-    seekThumb.style.left = `calc(${pct}% - 3px)`;
-    remainingTimeDisplay.textContent = `${formatTime(video.duration - video.currentTime)}`;
-}
-
-function updateBottomPlayPauseIcon(paused) {
-    if (paused) { playIcon.classList.remove('hidden'); pauseIcon.classList.add('hidden'); }
-    else { playIcon.classList.add('hidden'); pauseIcon.classList.remove('hidden'); }
-}
-
-function updateCenterPlayPauseIcon(paused) {
-    if (paused) { centerPlayIcon.classList.remove('hidden'); centerPauseIcon.classList.add('hidden'); }
-    else { centerPlayIcon.classList.add('hidden'); centerPauseIcon.classList.remove('hidden'); }
-}
-
-function updateMuteIcon() {
-    const muted = video.muted || video.volume === 0, vol = video.muted ? 0 : video.volume;
-    volumeOffIcon.classList.toggle('hidden', !muted);
-    volumeLowIcon.classList.toggle('hidden', muted || vol > 0.33);
-    volumeMediumIcon.classList.toggle('hidden', muted || vol <= 0.33 || vol > 0.66);
-    volumeHighIcon.classList.toggle('hidden', muted || vol <= 0.66);
-}
-
-function updateVolumeSlider() {
-    const vol = video.muted ? 0 : video.volume;
-    volumeLevel.style.height = `${vol * 100}%`;
-    volumeThumbControl.style.bottom = `calc(${vol * 100}% - 8px)`;
+function updateVolumeSlider(){
+    const vol=video.muted?0:video.volume;
+    volumeLevel.style.height=`${vol*100}%`;
+    volumeThumbControl.style.bottom=`calc(${vol*100}% - 8px)`;
     updateMuteIcon();
 }
-
-function toggleMute() {
-    if (video.muted) { video.volume = lastKnownVolume > 0 ? lastKnownVolume : 0.5; video.muted = false; }
-    else { lastKnownVolume = video.volume; video.muted = true; }
-    updateVolumeSlider();
-    resetInactivityTimer();
+function toggleMute(){
+    if(video.muted){video.volume=lastKnownVolume>0?lastKnownVolume:0.5;video.muted=false;}
+    else{lastKnownVolume=video.volume;video.muted=true;}
+    updateVolumeSlider();resetInactivityTimer();
 }
-
-function toggleVideoPlayPause() {
-    if (!isAnyMenuOpen() && loadingIndicator.classList.contains('hidden')) {
-        if (video.paused || video.ended) video.play().catch(e => displayError('Play failed: ' + e.message));
+function toggleVideoPlayPause(){
+    if(!isAnyMenuOpen()&&loadingIndicator.classList.contains('hidden')){
+        if(video.paused||video.ended)video.play().catch(e=>displayError('Play failed: '+e.message));
         else video.pause();
     }
 }
 
-/* =========================================================================
-   SEEKING
-   ========================================================================= */
-let _lastSeekClientX = 0; // tracks last known pointer X during drag
-
-function calculateNewTime(clientX) {
-    const rect = seekBar.getBoundingClientRect();
-    let pos = clientX - rect.left;
-    pos = Math.max(0, Math.min(pos, rect.width));
-    return video.duration * (pos / rect.width);
+/* =====================================================================
+   SEEKBAR  — fixed: stores last drag X, endSeeking uses it, not lift point
+   ===================================================================== */
+let _lastSeekClientX=0;
+function calculateNewTime(clientX){
+    const rect=seekBar.getBoundingClientRect();
+    return video.duration*Math.max(0,Math.min(clientX-rect.left,rect.width))/rect.width;
 }
-
-function handleSeek(clientX) {
-    if (!video.duration || video.duration === Infinity) return;
-    _lastSeekClientX = clientX; // always store latest position
-    const newTime = calculateNewTime(clientX), pct = (newTime / video.duration) * 100;
-    progressIndicator.style.width = `${pct}%`;
-    seekThumb.style.left = `calc(${pct}% - 3px)`;
-    remainingTimeDisplay.textContent = `-${formatTime(video.duration - newTime)}`;
+function handleSeek(clientX){
+    if(!video.duration||video.duration===Infinity)return;
+    _lastSeekClientX=clientX;
+    const pct=(calculateNewTime(clientX)/video.duration)*100;
+    progressIndicator.style.width=`${pct}%`;
+    seekThumb.style.left=`calc(${pct}% - 3px)`;
+    remainingTimeDisplay.textContent=`-${formatTime(video.duration-calculateNewTime(clientX))}`;
 }
-
-function startSeeking(e) {
-    if (!video.duration || video.duration === Infinity) return;
-    e.preventDefault(); // prevent scroll hijacking the seek drag
-    isSeeking = true;
-    showControls();
-    seekThumb.classList.add('scale-100');
-    _lastSeekClientX = e.touches ? e.touches[0].clientX : e.clientX;
-    currentMouseMoveHandler = ev => handleSeek(ev.clientX);
-    currentTouchMoveHandler = ev => { ev.preventDefault(); handleSeek(ev.touches[0].clientX); };
-    window.addEventListener('mousemove', currentMouseMoveHandler);
-    window.addEventListener('mouseup', endSeeking);
-    window.addEventListener('touchmove', currentTouchMoveHandler, { passive: false });
-    window.addEventListener('touchend', endSeeking);
+function startSeeking(e){
+    if(!video.duration||video.duration===Infinity)return;
+    e.preventDefault();
+    isSeeking=true;showControls();seekThumb.classList.add('scale-100');
+    _lastSeekClientX=e.touches?e.touches[0].clientX:e.clientX;
+    currentMouseMoveHandler=ev=>handleSeek(ev.clientX);
+    currentTouchMoveHandler=ev=>{ev.preventDefault();handleSeek(ev.touches[0].clientX);};
+    window.addEventListener('mousemove',currentMouseMoveHandler);
+    window.addEventListener('mouseup',endSeeking);
+    window.addEventListener('touchmove',currentTouchMoveHandler,{passive:false});
+    window.addEventListener('touchend',endSeeking);
     handleSeek(_lastSeekClientX);
 }
-
-function endSeeking(e) {
-    if (!isSeeking) return;
-    // Use _lastSeekClientX — the last position recorded during drag/touch.
-    // Do NOT use e.changedTouches/e.clientX from touchend because on iOS
-    // changedTouches[0] is the lift point which may differ from last drag position.
-    const targetTime = calculateNewTime(_lastSeekClientX);
-    isSeeking = false; // reset BEFORE setting currentTime so timeupdate doesn't fight us
-    seekThumb.classList.remove('scale-100');
-    if (currentMouseMoveHandler) { window.removeEventListener('mousemove', currentMouseMoveHandler); currentMouseMoveHandler = null; }
-    if (currentTouchMoveHandler) { window.removeEventListener('touchmove', currentTouchMoveHandler); currentTouchMoveHandler = null; }
-    window.removeEventListener('mouseup', endSeeking);
-    window.removeEventListener('touchend', endSeeking);
-    video.currentTime = targetTime;
+function endSeeking(){
+    if(!isSeeking)return;
+    const t=calculateNewTime(_lastSeekClientX);
+    isSeeking=false;seekThumb.classList.remove('scale-100');
+    if(currentMouseMoveHandler){window.removeEventListener('mousemove',currentMouseMoveHandler);currentMouseMoveHandler=null;}
+    if(currentTouchMoveHandler){window.removeEventListener('touchmove',currentTouchMoveHandler);currentTouchMoveHandler=null;}
+    window.removeEventListener('mouseup',endSeeking);
+    window.removeEventListener('touchend',endSeeking);
+    video.currentTime=t;
     resetInactivityTimer();
 }
 
-/* =========================================================================
+/* =====================================================================
    VOLUME SLIDER
-   ========================================================================= */
-function calculateNewVolume(clientY) {
-    const rect = volumeSliderTrack.getBoundingClientRect();
-    let dist = rect.bottom - clientY;
-    dist = Math.max(0, Math.min(dist, rect.height));
-    return dist / rect.height;
-}
-
-function handleVolumeAdjust(e) {
+   ===================================================================== */
+function calculateNewVolume(clientY){const rect=volumeSliderTrack.getBoundingClientRect();return Math.max(0,Math.min(rect.bottom-clientY,rect.height))/rect.height;}
+function handleVolumeAdjust(e){
     e.preventDefault();
-    const y = e.touches ? e.touches[0].clientY : e.clientY;
-    const vol = calculateNewVolume(y);
-    video.volume = vol;
-    if (vol > 0) { video.muted = false; lastKnownVolume = vol; }
-    else video.muted = true;
+    const vol=calculateNewVolume(e.touches?e.touches[0].clientY:e.clientY);
+    video.volume=vol;
+    if(vol>0){video.muted=false;lastKnownVolume=vol;}else video.muted=true;
     updateVolumeSlider();
 }
-
-function startVolumeAdjusting(e) {
-    isVolumeAdjusting = true;
-    e.preventDefault();
-    window.addEventListener('mousemove', handleVolumeAdjust);
-    window.addEventListener('mouseup', endVolumeAdjusting);
-    window.addEventListener('touchmove', handleVolumeAdjust);
-    window.addEventListener('touchend', endVolumeAdjusting);
+function startVolumeAdjusting(e){
+    isVolumeAdjusting=true;e.preventDefault();
+    window.addEventListener('mousemove',handleVolumeAdjust);window.addEventListener('mouseup',endVolumeAdjusting);
+    window.addEventListener('touchmove',handleVolumeAdjust);window.addEventListener('touchend',endVolumeAdjusting);
     handleVolumeAdjust(e);
 }
-
-function endVolumeAdjusting() {
-    if (!isVolumeAdjusting) return;
-    isVolumeAdjusting = false;
-    window.removeEventListener('mousemove', handleVolumeAdjust);
-    window.removeEventListener('mouseup', endVolumeAdjusting);
-    window.removeEventListener('touchmove', handleVolumeAdjust);
-    window.removeEventListener('touchend', endVolumeAdjusting);
+function endVolumeAdjusting(){
+    if(!isVolumeAdjusting)return;isVolumeAdjusting=false;
+    window.removeEventListener('mousemove',handleVolumeAdjust);window.removeEventListener('mouseup',endVolumeAdjusting);
+    window.removeEventListener('touchmove',handleVolumeAdjust);window.removeEventListener('touchend',endVolumeAdjusting);
     resetInactivityTimer();
 }
+volumeSliderTrack.addEventListener('mousedown',startVolumeAdjusting);
+volumeSliderTrack.addEventListener('touchstart',startVolumeAdjusting,{passive:true});
 
-volumeSliderTrack.addEventListener('mousedown', startVolumeAdjusting);
-volumeSliderTrack.addEventListener('touchstart', startVolumeAdjusting, { passive: true });
-
-/* =========================================================================
+/* =====================================================================
    FULLSCREEN
-   ========================================================================= */
-function isMobileDevice() { return /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && window.innerWidth <= 1024); }
-function lockLandscape() { try { if (screen.orientation?.lock) screen.orientation.lock('landscape').catch(()=>{}); } catch(e){} }
-function unlockOrientation() { try { if (screen.orientation?.unlock) screen.orientation.unlock(); } catch(e){} }
-function isInFullscreen() { return !!(document.fullscreenElement || document.webkitFullscreenElement || video.webkitDisplayingFullscreen); }
-function toggleFullscreen() {
-    if (video.webkitEnterFullscreen && !document.fullscreenElement && !document.webkitFullscreenElement) { video.webkitEnterFullscreen(); return; }
-    if (document.fullscreenElement || document.webkitFullscreenElement) {
-        const exit = document.exitFullscreen || document.webkitExitFullscreen;
-        if (exit) exit.call(document);
-        if (isMobileDevice()) unlockOrientation();
-    } else {
-        const req = videoContainer.requestFullscreen || videoContainer.webkitRequestFullscreen;
-        if (req) req.call(videoContainer, { navigationUI: 'hide' }).then(() => { if (isMobileDevice()) lockLandscape(); }).catch(err => displayError('Fullscreen error: ' + err.message));
+   ===================================================================== */
+function isMobileDevice(){return/Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent)||(navigator.maxTouchPoints>1&&window.innerWidth<=1024);}
+function lockLandscape(){try{if(screen.orientation?.lock)screen.orientation.lock('landscape').catch(()=>{});}catch(e){}}
+function unlockOrientation(){try{if(screen.orientation?.unlock)screen.orientation.unlock();}catch(e){}}
+function isInFullscreen(){return!!(document.fullscreenElement||document.webkitFullscreenElement||video.webkitDisplayingFullscreen);}
+function toggleFullscreen(){
+    if(video.webkitEnterFullscreen&&!document.fullscreenElement&&!document.webkitFullscreenElement){video.webkitEnterFullscreen();return;}
+    if(document.fullscreenElement||document.webkitFullscreenElement){
+        (document.exitFullscreen||document.webkitExitFullscreen).call(document);
+        if(isMobileDevice())unlockOrientation();
+    }else{
+        const req=videoContainer.requestFullscreen||videoContainer.webkitRequestFullscreen;
+        if(req)req.call(videoContainer,{navigationUI:'hide'}).then(()=>{if(isMobileDevice())lockLandscape();}).catch(err=>displayError('Fullscreen: '+err.message));
     }
 }
-function updateFullscreenIcon() {
-    const inFs = isInFullscreen();
-    fullscreenEnterIcon.classList.toggle('hidden', inFs);
-    fullscreenExitIcon.classList.toggle('hidden', !inFs);
-    if (!inFs && isMobileDevice()) unlockOrientation();
+function updateFullscreenIcon(){
+    const fs=isInFullscreen();
+    fullscreenEnterIcon.classList.toggle('hidden',fs);fullscreenExitIcon.classList.toggle('hidden',!fs);
+    if(!fs&&isMobileDevice())unlockOrientation();
 }
 
-/* =========================================================================
-   AUDIO / SUBTITLE MENU
-   ========================================================================= */
-const languageCodeMap = {
-    'eng':'English','en':'English','und':'Undefined',
-    'hin':'Hindi','hi':'Hindi','tel':'Telugu','te':'Telugu',
-    'tam':'Tamil','ta':'Tamil','kan':'Kannada','kn':'Kannada',
-    'spa':'Spanish','es':'Spanish','fre':'French','fr':'French',
-    'ger':'German','de':'German','ita':'Italian','it':'Italian',
-    'jpn':'Japanese','ja':'Japanese','por':'Portuguese','pt':'Portuguese',
-    'rus':'Russian','ru':'Russian','zho':'Chinese','zh':'Chinese',
-    'ara':'Arabic','ar':'Arabic','kor':'Korean','ko':'Korean','tl':'Filipino'
-};
-function getFullLanguageName(code) {
-    if (!code) return '';
-    const lc = code.toLowerCase();
-    return languageCodeMap[lc] || code.charAt(0).toUpperCase() + code.slice(1);
-}
+/* =====================================================================
+   LANGUAGE MAP
+   ===================================================================== */
+const LM={'eng':'English','en':'English','und':'Undefined','hin':'Hindi','hi':'Hindi','tel':'Telugu','te':'Telugu','tam':'Tamil','ta':'Tamil','kan':'Kannada','kn':'Kannada','spa':'Spanish','es':'Spanish','fre':'French','fr':'French','ger':'German','de':'German','ita':'Italian','it':'Italian','jpn':'Japanese','ja':'Japanese','por':'Portuguese','pt':'Portuguese','rus':'Russian','ru':'Russian','zho':'Chinese','zh':'Chinese','ara':'Arabic','ar':'Arabic','kor':'Korean','ko':'Korean','tl':'Filipino'};
+function getLang(code){if(!code)return'';const lc=code.toLowerCase();return LM[lc]||code.charAt(0).toUpperCase()+code.slice(1);}
 
-function toggleAudioSubtitleMenu() {
-    const hidden = audioSubtitleMenu.classList.contains('hidden');
-    if (hidden) {
-        // Lazy-load subtitles the very first time user opens this menu
-        if (!_subtitlesLoaded && !_subtitlesLoading && _pendingSubtitleArgs) {
-            _subtitlesLoading = true;
-            const { type, tmdbId, season, episode } = _pendingSubtitleArgs;
-            // Show spinner in subtitle column immediately
-            subtitleList.innerHTML = '<li class="text-gray-400" style="padding:8px 10px;">Loading subtitles…</li>';
-            loadStremioSubtitles(type, tmdbId, season, episode).then(() => {
-                _subtitlesLoaded = true;
-                _subtitlesLoading = false;
-                renderTracksMenu();
-            }).catch(() => {
-                _subtitlesLoaded = true;
-                _subtitlesLoading = false;
-                renderTracksMenu();
-            });
-            // Render audio tracks now (subtitleList already pre-filled above)
+/* =====================================================================
+   AUDIO / SUBTITLE MENU  — lazy loads subtitles on first open
+   ===================================================================== */
+function toggleAudioSubtitleMenu(){
+    const hidden=audioSubtitleMenu.classList.contains('hidden');
+    if(hidden){
+        if(!_subtitlesLoaded&&!_subtitlesLoading&&_pendingSubtitleArgs){
+            _subtitlesLoading=true;
+            const{type,tmdbId,season,episode}=_pendingSubtitleArgs;
+            subtitleList.innerHTML='<li class="text-gray-400" style="padding:8px 10px">Loading subtitles…</li>';
+            loadStremioSubtitles(type,tmdbId,season,episode).then(()=>{_subtitlesLoaded=true;_subtitlesLoading=false;renderTracksMenu();}).catch(()=>{_subtitlesLoaded=true;_subtitlesLoading=false;renderTracksMenu();});
             renderTracksMenuAudioOnly();
-        } else if (_subtitlesLoading) {
-            // Still loading — just refresh audio side, keep subtitle spinner
-            renderTracksMenuAudioOnly();
-        } else {
-            renderTracksMenu();
-        }
-        audioSubtitleMenu.classList.remove('hidden');
-        clearTimeout(inactivityTimer);
-        showControls();
-    } else {
-        audioSubtitleMenu.classList.add('hidden');
-        resetInactivityTimer();
-    }
+        }else if(_subtitlesLoading){renderTracksMenuAudioOnly();}
+        else{renderTracksMenu();}
+        audioSubtitleMenu.classList.remove('hidden');clearTimeout(inactivityTimer);showControls();
+    }else{audioSubtitleMenu.classList.add('hidden');resetInactivityTimer();}
 }
 
-/* Renders only the audio tracks column — used when subtitles are still loading */
-function renderTracksMenuAudioOnly() {
-    audioList.innerHTML = '';
-    const getDisplayName = (track, isHls) => {
-        const raw = isHls ? track.lang : track.language, primary = isHls ? track.name : track.label;
-        let name = raw ? getFullLanguageName(raw) : '';
-        if (primary) { const l = primary.toLowerCase(); if (languageCodeMap[l]) name = languageCodeMap[l]; else if (!name || name.toLowerCase() === 'undefined' || name.toLowerCase() === raw?.toLowerCase()) name = primary; }
-        return name || `Track ${track.id ?? track.groupId ?? ''}`;
-    };
-    const audioTracks = isHlsJsMode ? hlsInstance.audioTracks : (video.audioTracks ? Array.from(video.audioTracks) : []);
-    const curAudioIdx = isHlsJsMode ? hlsInstance.audioTrack : (video.audioTracks ? Array.from(video.audioTracks).findIndex(t => t.enabled) : -1);
-    if (!audioTracks.length) { audioList.innerHTML = '<li class="text-gray-400">No alternate audio tracks found.</li>'; return; }
-    audioTracks.forEach((track, i) => {
-        const selected = isHlsJsMode ? (i === curAudioIdx) : track.enabled;
-        const li = document.createElement('li');
-        li.className = `track-selector cursor-pointer flex items-center gap-2 ${selected ? 'font-bold text-white' : 'text-gray-400'}`;
-        const check = document.createElement('span');
-        check.style.cssText = `visibility:${selected ? 'visible' : 'hidden'};flex-shrink:0;display:inline-flex;align-items:center;`;
-        check.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="14" height="14"><path fill-rule="evenodd" clip-rule="evenodd" d="M21.2928 4.29285L22.7071 5.70706L8.70706 19.7071C8.51952 19.8946 8.26517 20 7.99995 20C7.73474 20 7.48038 19.8946 7.29285 19.7071L0.292847 12.7071L1.70706 11.2928L7.99995 17.5857L21.2928 4.29285Z" fill="white"></path></svg>`;
-        const label = document.createElement('span');
-        label.textContent = getDisplayName(track, isHlsJsMode);
-        li.appendChild(check); li.appendChild(label);
-        li.dataset.index = i; li.dataset.type = 'audio';
-        li.addEventListener('click', () => handleTrackSelection('audio', i));
-        audioList.appendChild(li);
+function _checkmark(visible){
+    const s=document.createElement('span');
+    s.style.cssText=`visibility:${visible?'visible':'hidden'};flex-shrink:0;display:inline-flex;align-items:center`;
+    s.innerHTML='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="14" height="14"><path fill-rule="evenodd" clip-rule="evenodd" d="M21.2928 4.29285L22.7071 5.70706L8.70706 19.7071C8.51952 19.8946 8.26517 20 7.99995 20C7.73474 20 7.48038 19.8946 7.29285 19.7071L0.292847 12.7071L1.70706 11.2928L7.99995 17.5857L21.2928 4.29285Z" fill="white"/></svg>';
+    return s;
+}
+function _trackDisplayName(track,isHls){
+    const raw=isHls?track.lang:track.language,primary=isHls?track.name:track.label;
+    let name=raw?getLang(raw):'';
+    if(primary){const l=primary.toLowerCase();if(LM[l])name=LM[l];else if(!name||name.toLowerCase()==='undefined')name=primary;}
+    return name||`Track ${track.id??track.groupId??''}`;
+}
+
+function renderTracksMenuAudioOnly(){
+    audioList.innerHTML='';
+    const tracks=isHlsJsMode?hlsInstance.audioTracks:(video.audioTracks?Array.from(video.audioTracks):[]);
+    const cur=isHlsJsMode?hlsInstance.audioTrack:(video.audioTracks?Array.from(video.audioTracks).findIndex(t=>t.enabled):-1);
+    if(!tracks.length){audioList.innerHTML='<li class="text-gray-400">No alternate audio</li>';return;}
+    tracks.forEach((t,i)=>{
+        const sel=isHlsJsMode?(i===cur):t.enabled;
+        const li=document.createElement('li');li.className=`track-selector cursor-pointer flex items-center gap-2 ${sel?'font-bold text-white':'text-gray-400'}`;
+        li.appendChild(_checkmark(sel));const lb=document.createElement('span');lb.textContent=_trackDisplayName(t,isHlsJsMode);li.appendChild(lb);
+        li.addEventListener('click',()=>handleTrackSelection('audio',i));audioList.appendChild(li);
     });
 }
-
-function renderTracksMenu() {
-    audioList.innerHTML = ''; subtitleList.innerHTML = '';
-    const getDisplayName = (track, isHls) => {
-        const raw = isHls ? track.lang : track.language, primary = isHls ? track.name : track.label;
-        let name = raw ? getFullLanguageName(raw) : '';
-        if (primary) { const l = primary.toLowerCase(); if (languageCodeMap[l]) name = languageCodeMap[l]; else if (!name || name.toLowerCase() === 'undefined' || name.toLowerCase() === raw?.toLowerCase()) name = primary; }
-        return name || `Track ${track.id ?? track.groupId ?? ''}`;
-    };
-    const audioTracks = isHlsJsMode ? hlsInstance.audioTracks : (video.audioTracks ? Array.from(video.audioTracks) : []);
-    const curAudioIdx = isHlsJsMode ? hlsInstance.audioTrack : (video.audioTracks ? Array.from(video.audioTracks).findIndex(t => t.enabled) : -1);
-    if (!audioTracks.length) { audioList.innerHTML = '<li class="text-gray-400">No alternate audio tracks found.</li>'; }
-    else {
-        audioTracks.forEach((track, i) => {
-            const selected = isHlsJsMode ? (i === curAudioIdx) : track.enabled;
-            const li = document.createElement('li');
-            li.className = `track-selector cursor-pointer flex items-center gap-2 ${selected ? 'font-bold text-white' : 'text-gray-400'}`;
-            const check = document.createElement('span');
-            check.style.cssText = `visibility:${selected ? 'visible' : 'hidden'};flex-shrink:0;display:inline-flex;align-items:center;`;
-            check.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="14" height="14"><path fill-rule="evenodd" clip-rule="evenodd" d="M21.2928 4.29285L22.7071 5.70706L8.70706 19.7071C8.51952 19.8946 8.26517 20 7.99995 20C7.73474 20 7.48038 19.8946 7.29285 19.7071L0.292847 12.7071L1.70706 11.2928L7.99995 17.5857L21.2928 4.29285Z" fill="white"></path></svg>`;
-            const label = document.createElement('span');
-            label.textContent = getDisplayName(track, isHlsJsMode);
-            li.appendChild(check);
-            li.appendChild(label);
-            li.dataset.index = i;
-            li.dataset.type = 'audio';
-            li.addEventListener('click', () => handleTrackSelection('audio', i));
-            audioList.appendChild(li);
-        });
+function renderTracksMenu(){
+    audioList.innerHTML='';subtitleList.innerHTML='';
+    const aTracks=isHlsJsMode?hlsInstance.audioTracks:(video.audioTracks?Array.from(video.audioTracks):[]);
+    const aCur=isHlsJsMode?hlsInstance.audioTrack:(video.audioTracks?Array.from(video.audioTracks).findIndex(t=>t.enabled):-1);
+    if(!aTracks.length){audioList.innerHTML='<li class="text-gray-400">No alternate audio</li>';}
+    else{aTracks.forEach((t,i)=>{const sel=isHlsJsMode?(i===aCur):t.enabled;const li=document.createElement('li');li.className=`track-selector cursor-pointer flex items-center gap-2 ${sel?'font-bold text-white':'text-gray-400'}`;li.appendChild(_checkmark(sel));const lb=document.createElement('span');lb.textContent=_trackDisplayName(t,isHlsJsMode);li.appendChild(lb);li.addEventListener('click',()=>handleTrackSelection('audio',i));audioList.appendChild(li);});}
+    const subs=video.textTracks?Array.from(video.textTracks).filter(t=>t.kind==='subtitles'||t.kind==='captions'):[];
+    const sCur=subs.findIndex(t=>t.mode==='showing');
+    const offLi=document.createElement('li');offLi.className=`track-selector cursor-pointer flex items-center gap-2 ${sCur===-1?'font-bold text-white':'text-gray-400'}`;offLi.appendChild(_checkmark(sCur===-1));const offLb=document.createElement('span');offLb.textContent='Off';offLi.appendChild(offLb);offLi.addEventListener('click',()=>handleTrackSelection('subtitle',-1));subtitleList.appendChild(offLi);
+    if(!subs.length){subtitleList.innerHTML+='<li class="text-gray-400">No subtitles found</li>';}
+    else{subs.forEach((t,idx)=>{const sel=t.mode==='showing';const li=document.createElement('li');li.className=`track-selector cursor-pointer flex items-center gap-2 ${sel?'font-bold text-white':'text-gray-400'}`;li.appendChild(_checkmark(sel));const lb=document.createElement('span');lb.textContent=`${t.label||getLang(t.language)}${t.kind==='captions'?' [CC]':''}`;li.appendChild(lb);li.addEventListener('click',()=>handleTrackSelection('subtitle',idx));subtitleList.appendChild(li);});}
+}
+function handleTrackSelection(type,idx){
+    if(type==='audio'){
+        if(isHlsJsMode&&hlsInstance)hlsInstance.audioTrack=idx;
+        else if(video.audioTracks)for(let i=0;i<video.audioTracks.length;i++)video.audioTracks[i].enabled=(i===idx);
+        audioSubtitleMenu.classList.add('hidden');renderTracksMenu();resetInactivityTimer();return;
     }
-    const allTextTracks = video.textTracks ? Array.from(video.textTracks).filter(t => t.kind === 'subtitles' || t.kind === 'captions') : [];
-    const curSubIdx = allTextTracks.findIndex(t => t.mode === 'showing');
-    const offLi = document.createElement('li');
-    offLi.className = `track-selector cursor-pointer flex items-center gap-2 ${curSubIdx === -1 ? 'font-bold text-white' : 'text-gray-400'}`;
-    const offCheck = document.createElement('span');
-    offCheck.style.cssText = `visibility:${curSubIdx === -1 ? 'visible' : 'hidden'};flex-shrink:0;display:inline-flex;align-items:center;`;
-    offCheck.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="14" height="14"><path fill-rule="evenodd" clip-rule="evenodd" d="M21.2928 4.29285L22.7071 5.70706L8.70706 19.7071C8.51952 19.8946 8.26517 20 7.99995 20C7.73474 20 7.48038 19.8946 7.29285 19.7071L0.292847 12.7071L1.70706 11.2928L7.99995 17.5857L21.2928 4.29285Z" fill="white"></path></svg>`;
-    const offLabel = document.createElement('span');
-    offLabel.textContent = 'Off';
-    offLi.appendChild(offCheck);
-    offLi.appendChild(offLabel);
-    offLi.dataset.index = -1;
-    offLi.dataset.type = 'subtitle';
-    offLi.addEventListener('click', () => handleTrackSelection('subtitle', -1));
-    subtitleList.appendChild(offLi);
-    if (!allTextTracks.length) {
-        subtitleList.innerHTML += '<li class="text-gray-400">No subtitle tracks found.</li>';
-    } else {
-        allTextTracks.forEach((track, idx) => {
-            const selected = track.mode === 'showing';
-            const li = document.createElement('li');
-            li.className = `track-selector cursor-pointer flex items-center gap-2 ${selected ? 'font-bold text-white' : 'text-gray-400'}`;
-            const check = document.createElement('span');
-            check.style.cssText = `visibility:${selected ? 'visible' : 'hidden'};flex-shrink:0;display:inline-flex;align-items:center;`;
-            check.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="14" height="14"><path fill-rule="evenodd" clip-rule="evenodd" d="M21.2928 4.29285L22.7071 5.70706L8.70706 19.7071C8.51952 19.8946 8.26517 20 7.99995 20C7.73474 20 7.48038 19.8946 7.29285 19.7071L0.292847 12.7071L1.70706 11.2928L7.99995 17.5857L21.2928 4.29285Z" fill="white"></path></svg>`;
-            const label = document.createElement('span');
-            label.textContent = `${track.label || getFullLanguageName(track.language)}${track.kind === 'captions' ? ' [CC]' : ''}`;
-            li.appendChild(check);
-            li.appendChild(label);
-            li.dataset.index = idx;
-            li.dataset.type = 'subtitle';
-            li.addEventListener('click', () => handleTrackSelection('subtitle', idx));
-            subtitleList.appendChild(li);
-        });
-    }
+    const subs=video.textTracks?Array.from(video.textTracks).filter(t=>t.kind==='subtitles'||t.kind==='captions'):[];
+    if(idx===-1){if(isHlsJsMode&&hlsInstance)hlsInstance.subtitleTrack=-1;subs.forEach(t=>t.mode='disabled');}
+    else{if(isHlsJsMode&&hlsInstance)hlsInstance.subtitleTrack=-1;subs.forEach((t,i)=>t.mode=(i===idx)?'showing':'disabled');}
+    audioSubtitleMenu.classList.add('hidden');renderTracksMenu();resetInactivityTimer();
 }
 
-function handleTrackSelection(type, idx, hlsIdx) {
-    if (type === 'audio') {
-        if (isHlsJsMode && hlsInstance) hlsInstance.audioTrack = idx;
-        else if (video.audioTracks) { for (let i = 0; i < video.audioTracks.length; i++) video.audioTracks[i].enabled = (i === idx); }
-        audioSubtitleMenu.classList.add('hidden');
-        renderTracksMenu();
-        resetInactivityTimer();
-        return;
-    }
-    if (type !== 'subtitle') return;
-    const subs = video.textTracks ? Array.from(video.textTracks).filter(t => t.kind === 'subtitles' || t.kind === 'captions') : [];
-    if (idx === -1) {
-        if (isHlsJsMode && hlsInstance) hlsInstance.subtitleTrack = -1;
-        subs.forEach(t => t.mode = 'disabled');
-        audioSubtitleMenu.classList.add('hidden');
-        renderTracksMenu();
-        resetInactivityTimer();
-        return;
-    }
-    const targetTrack = subs[idx];
-    if (targetTrack) {
-        if (isHlsJsMode && hlsInstance) hlsInstance.subtitleTrack = -1;
-        subs.forEach((t, i) => { t.mode = (i === idx) ? 'showing' : 'disabled'; });
-        const showingTracks = subs.filter(t => t.mode === 'showing');
-        if (showingTracks.length > 1) showingTracks.slice(1).forEach(t => { t.mode = 'disabled'; });
-    }
-    audioSubtitleMenu.classList.add('hidden');
-    renderTracksMenu();
-    resetInactivityTimer();
-}
-
-/* =========================================================================
+/* =====================================================================
    SPEED MENU
-   ========================================================================= */
-const SPEED_OPTIONS = [
-    { label: '0.25x', value: 0.25 }, { label: '0.5x', value: 0.5 }, { label: '0.75x', value: 0.75 },
-    { label: 'Normal', value: 1 }, { label: '1.25x', value: 1.25 }, { label: '1.5x', value: 1.5 },
-    { label: '1.75x', value: 1.75 }, { label: '2x', value: 2 }
-];
-const speedButton = document.getElementById('speed-button');
-const speedMenu = document.getElementById('speed-menu');
-const speedList = document.getElementById('speed-list');
-
-function renderSpeedMenu() {
-    speedList.innerHTML = '';
-    SPEED_OPTIONS.forEach(opt => {
-        const li = document.createElement('li');
-        li.className = `cursor-pointer hover:opacity-80 p-1 rounded transition text-sm ${video.playbackRate === opt.value ? 'font-bold text-white' : 'text-gray-400'}`;
-        li.textContent = opt.label;
-        li.dataset.speed = opt.value;
-        li.addEventListener('click', () => setPlaybackSpeed(opt.value));
-        speedList.appendChild(li);
-    });
+   ===================================================================== */
+const SPEED_OPTIONS=[{label:'0.25x',value:.25},{label:'0.5x',value:.5},{label:'0.75x',value:.75},{label:'Normal',value:1},{label:'1.25x',value:1.25},{label:'1.5x',value:1.5},{label:'1.75x',value:1.75},{label:'2x',value:2}];
+const speedButton=document.getElementById('speed-button'),speedMenu=document.getElementById('speed-menu'),speedList=document.getElementById('speed-list');
+function renderSpeedMenu(){
+    speedList.innerHTML='';
+    SPEED_OPTIONS.forEach(o=>{const li=document.createElement('li');li.className=`cursor-pointer hover:opacity-80 p-1 rounded transition text-sm ${video.playbackRate===o.value?'font-bold text-white':'text-gray-400'}`;li.textContent=o.label;li.addEventListener('click',()=>{video.playbackRate=o.value;renderSpeedMenu();speedMenu.classList.add('hidden');resetInactivityTimer();});speedList.appendChild(li);});
 }
+function toggleSpeedMenu(){const h=speedMenu.classList.contains('hidden');if(h){renderSpeedMenu();speedMenu.classList.remove('hidden');clearTimeout(inactivityTimer);showControls();}else{speedMenu.classList.add('hidden');resetInactivityTimer();}}
+speedButton.addEventListener('click',e=>{e.stopPropagation();toggleSpeedMenu();});
 
-function setPlaybackSpeed(rate) {
-    video.playbackRate = rate;
-    renderSpeedMenu();
-    speedMenu.classList.add('hidden');
-    resetInactivityTimer();
-}
-
-function toggleSpeedMenu() {
-    const hidden = speedMenu.classList.contains('hidden');
-    if (hidden) { renderSpeedMenu(); speedMenu.classList.remove('hidden'); clearTimeout(inactivityTimer); showControls(); }
-    else { speedMenu.classList.add('hidden'); resetInactivityTimer(); }
-}
-
-speedButton.addEventListener('click', e => { e.stopPropagation(); toggleSpeedMenu(); });
-
-/* =========================================================================
+/* =====================================================================
    QUALITY MENU
-   ========================================================================= */
-const qualityButton = document.getElementById('quality-button');
-const qualityMenu = document.getElementById('quality-menu');
-const qualityList = document.getElementById('quality-list');
+   ===================================================================== */
+const qualityButton=document.getElementById('quality-button'),qualityMenu=document.getElementById('quality-menu'),qualityList=document.getElementById('quality-list');
+function renderQualityMenu(){
+    qualityList.innerHTML='';
+    if(!hlsInstance||!isHlsJsMode){const li=document.createElement('li');li.textContent='Auto';li.style.color='#9ca3af';li.style.justifyContent='center';qualityList.appendChild(li);return;}
+    const levels=hlsInstance.levels,current=hlsInstance.currentLevel;
+    const add=(text,value,isAuto)=>{const li=document.createElement('li');li.style.cssText='display:flex;justify-content:space-between;align-items:center';const sp=document.createElement('span');sp.textContent=text;li.appendChild(sp);if(value===current&&!isAuto){const b=document.createElement('span');b.className='quality-badge';b.textContent='Active';li.appendChild(b);li.style.color='#fff';li.style.fontWeight='700';}else li.style.color='#9ca3af';li.addEventListener('click',()=>{if(isAuto)hlsInstance.currentLevel=-1;else hlsInstance.currentLevel=value;renderQualityMenu();qualityMenu.classList.add('hidden');resetInactivityTimer();});qualityList.appendChild(li);};
+    add('Auto',-1,true);levels.forEach((l,i)=>add(`${l.height?l.height+'p':'Level '+i}${l.bitrate?' ('+Math.round(l.bitrate/1000)+'kbps)':''}`,i,false));
+}
+function toggleQualityMenu(){const h=qualityMenu.classList.contains('hidden');if(h){renderQualityMenu();qualityMenu.classList.remove('hidden');clearTimeout(inactivityTimer);showControls();}else{qualityMenu.classList.add('hidden');resetInactivityTimer();}}
+qualityButton.addEventListener('click',e=>{e.stopPropagation();toggleQualityMenu();});
 
-function renderQualityMenu() {
-    qualityList.innerHTML = '';
-    if (!hlsInstance || !isHlsJsMode) {
-        const li = document.createElement('li');
-        li.textContent = 'Auto';
-        li.style.color = '#9ca3af';
-        li.style.justifyContent = 'center';
-        qualityList.appendChild(li);
-        return;
+/* =====================================================================
+   NEXT EPISODE  (uses multimovies API, not GitHub JSON)
+   ===================================================================== */
+function extractEpisodeInfoFromUrl(){const m=window.location.pathname.match(/\/tv\/(\d+)\/S(\d+)\/E(\d+)/i);return m?{seriesId:m[1],season:parseInt(m[2]),episode:parseInt(m[3])}:null;}
+async function updateNextEpisodeButton(){
+    const info=extractEpisodeInfoFromUrl();
+    if(!info){nextEpisodeButton.style.display='none';return;}
+    currentSeriesId=info.seriesId;currentSeason=info.season;currentEpisode=info.episode;
+    // Try to determine total episodes from TMDB season data via our proxy
+    if(totalEpisodes===null){
+        try{
+            const r=await fetch(`https://search-proxy.bingeoutofficial.workers.dev/tv/${currentSeriesId}/season/${currentSeason}`);
+            if(r.ok){const d=await r.json();totalEpisodes=(d.episodes||[]).length||null;}
+        }catch(e){totalEpisodes=null;}
     }
-    const levels = hlsInstance.levels;
-    const current = hlsInstance.currentLevel;
-    const addItem = (text, value, isAuto) => {
-        const li = document.createElement('li');
-        li.style.display = 'flex';
-        li.style.justifyContent = 'space-between';
-        li.style.alignItems = 'center';
-        const span = document.createElement('span');
-        span.textContent = text;
-        li.appendChild(span);
-        if (value === current && !isAuto) {
-            const badge = document.createElement('span');
-            badge.className = 'quality-badge';
-            badge.textContent = 'Active';
-            li.appendChild(badge);
-            li.style.color = '#fff';
-            li.style.fontWeight = '700';
-        } else {
-            li.style.color = '#9ca3af';
-        }
-        li.addEventListener('click', () => {
-            if (isAuto) hlsInstance.currentLevel = -1;
-            else hlsInstance.currentLevel = value;
-            renderQualityMenu();
-            qualityMenu.classList.add('hidden');
-            resetInactivityTimer();
-        });
-        qualityList.appendChild(li);
-    };
-    addItem('Auto', -1, true);
-    levels.forEach((level, i) => {
-        const label = level.height ? `${level.height}p` : `Level ${i}`;
-        const bitrateText = level.bitrate ? ` (${Math.round(level.bitrate / 1000)}kbps)` : '';
-        addItem(label + bitrateText, i, false);
-    });
+    if(totalEpisodes!==null&&currentEpisode<totalEpisodes){
+        nextEpisodeButton.style.display='flex';
+        nextEpisodeButton.onclick=()=>{window.location.href=`/tv/${currentSeriesId}/S${currentSeason}/E${currentEpisode+1}`;};
+    }else{nextEpisodeButton.style.display='none';}
 }
 
-function toggleQualityMenu() {
-    const hidden = qualityMenu.classList.contains('hidden');
-    if (hidden) { renderQualityMenu(); qualityMenu.classList.remove('hidden'); clearTimeout(inactivityTimer); showControls(); }
-    else { qualityMenu.classList.add('hidden'); resetInactivityTimer(); }
-}
-
-qualityButton.addEventListener('click', e => { e.stopPropagation(); toggleQualityMenu(); });
-
-/* =========================================================================
-   NEXT EPISODE BUTTON LOGIC
-   ========================================================================= */
-function extractEpisodeInfoFromUrl() {
-    const path = window.location.pathname;
-    const match = path.match(/\/tv\/(\d+)\/S(\d+)\/E(\d+)/i);
-    if (match) {
-        return { seriesId: match[1], season: parseInt(match[2]), episode: parseInt(match[3]) };
-    }
-    return null;
-}
-
-async function fetchTotalEpisodes(seriesId, season) {
-    try {
-        const response = await fetch(`https://raw.githubusercontent.com/Watchout2025/api/refs/heads/main/hls/tv/${seriesId}/S${season}.json`);
-        if (!response.ok) return null;
-        const data = await response.json();
-        return data.length || Object.keys(data).length;
-    } catch (err) {
-        console.warn('Could not fetch total episodes:', err);
-        return null;
-    }
-}
-
-async function updateNextEpisodeButton() {
-    const info = extractEpisodeInfoFromUrl();
-    if (!info) {
-        nextEpisodeButton.style.display = 'none';
-        return;
-    }
-    currentSeriesId = info.seriesId;
-    currentSeason = info.season;
-    currentEpisode = info.episode;
-    if (totalEpisodes === null) {
-        totalEpisodes = await fetchTotalEpisodes(currentSeriesId, currentSeason);
-    }
-    if (totalEpisodes !== null && currentEpisode < totalEpisodes) {
-        nextEpisodeButton.style.display = 'flex';
-        const nextEpisodeNum = currentEpisode + 1;
-        nextEpisodeButton.onclick = () => {
-            const newPath = `/tv/${currentSeriesId}/S${currentSeason}/E${nextEpisodeNum}`;
-            window.location.href = newPath;
-        };
-    } else {
-        nextEpisodeButton.style.display = 'none';
-    }
-}
-
-/* =========================================================================
-   FIX 3: HLS PLAYER INIT WITH THROTTLED FRAGMENT LOADING (~5 req/sec)
-   =========================================================================
-   Key HLS.js config params explained:
-   - maxBufferLength: only buffer 30s ahead (reduces pre-fetching requests)
-   - maxMaxBufferLength: hard cap on buffer
-   - fragLoadingMaxRetry: limit retries per fragment
-   - fragLoadingRetryDelay / fragLoadingMaxRetryTimeout: back-off timing
-   - manifestLoadingMaxRetry / levelLoadingMaxRetry: same for manifest/levels
-   - maxFragLookUpTolerance: fragment lookup precision
-   - highBufferWatchdogPeriod: how often to check if buffer is high enough
-   - nudgeMaxRetry: stall recovery attempts
-   
-   For ~5 req/sec at 2x: typical HLS segments are 2–10s each. At 2x speed
-   you consume them 2× faster. With 6s segments → 1 req per 3s ≈ 0.33/sec.
-   The real "fast requesting" issue is usually aggressive prefetch/retry.
-   We cap maxBufferLength to stop over-eager buffering and set a 200ms
-   minimum delay between fragment load retries.
-   ========================================================================= */
-const HLS_CONFIG = {
-    // --- Buffer control (prevents over-eager segment fetching) ---
-    maxBufferLength: 30,          // Only buffer 30s ahead (default: 30, but some builds use 60)
-    maxMaxBufferLength: 60,       // Absolute max buffer cap
-    backBufferLength: 10,         // Keep 10s behind current position
-
-    // --- Fragment loading throttle ---
-    // fragLoadingMaxRetry: max retries before giving up on a fragment
-    fragLoadingMaxRetry: 3,
-    // Initial retry delay (ms) — doubles each attempt (exponential backoff)
-    fragLoadingRetryDelay: 500,
-    fragLoadingMaxRetryTimeout: 4000,
-
-    // --- Manifest / level loading ---
-    manifestLoadingMaxRetry: 3,
-    manifestLoadingRetryDelay: 500,
-    levelLoadingMaxRetry: 3,
-    levelLoadingRetryDelay: 500,
-
-    // --- Stall recovery — don't hammer the server ---
-    nudgeMaxRetry: 3,
-    highBufferWatchdogPeriod: 2,  // Check buffer every 2s (default: 3)
-
-    // --- Native subtitle rendering ---
-    renderTextTracksNatively: true,
-    subtitleDisplay: true,
-
-    // --- ABR: start at a moderate level, don't immediately jump to highest ---
-    startLevel: -1,               // -1 = auto (ABR decides)
-    abrEwmaDefaultEstimate: 1000000, // Start bandwidth estimate: 1 Mbps
-
-    // --- Limit concurrent requests: HLS.js fetches max 1 frag at a time by default.
-    //     Setting maxFragLookUpTolerance low keeps it precise without extra fetches. ---
-    maxFragLookUpTolerance: 0.1,
+/* =====================================================================
+   HLS PLAYER INIT
+   ===================================================================== */
+const HLS_CONFIG={
+    maxBufferLength:30,maxMaxBufferLength:60,backBufferLength:10,
+    fragLoadingMaxRetry:2,fragLoadingRetryDelay:500,fragLoadingMaxRetryTimeout:3000,
+    manifestLoadingMaxRetry:3,manifestLoadingRetryDelay:500,
+    levelLoadingMaxRetry:3,levelLoadingRetryDelay:500,
+    nudgeMaxRetry:3,highBufferWatchdogPeriod:2,
+    renderTextTracksNatively:true,subtitleDisplay:true,
+    startLevel:-1,abrEwmaDefaultEstimate:1000000,
+    maxFragLookUpTolerance:0.1,
 };
 
-function isDirectVideoUrl(url) {
-    try {
-        const path = new URL(url).pathname.toLowerCase();
-        return /\.(mp4|webm|ogg|ogv|mov|mkv|avi|flv|m4v)(\?|$)/.test(path);
-    } catch(e) { return /\.(mp4|webm|ogg|ogv|mov|mkv|avi|flv|m4v)(\?|$)/.test(url.toLowerCase()); }
+function isDirectVideoUrl(url){
+    try{return/\.(mp4|webm|ogg|ogv|mov|mkv|avi|flv|m4v)(\?|$)/.test(new URL(url).pathname.toLowerCase());}
+    catch(e){return/\.(mp4|webm|ogg|ogv|mov|mkv|avi|flv|m4v)(\?|$)/.test(url.toLowerCase());}
 }
 
-function initHlsPlayer(url) {
-    saveVideoProgress();
-    stopProgressSaving();
-    hasRestoredPosition = false;
-    // Reset lazy subtitle state for each new video
-    _pendingSubtitleArgs = null;
-    _subtitlesLoaded = false;
-    _subtitlesLoading = false;
-    if (hlsInstance) { hlsInstance.destroy(); hlsInstance = null; }
+function initHlsPlayer(url){
+    saveVideoProgress();stopProgressSaving();hasRestoredPosition=false;
+    _pendingSubtitleArgs=null;_subtitlesLoaded=false;_subtitlesLoading=false;
+    if(hlsInstance){hlsInstance.destroy();hlsInstance=null;}
     revokeAllSubtitleBlobs();
     errorMessageDiv.classList.add('hidden');
-    resolvedUrl = url;
-    // Generate stable key NOW so save/restore use the same key across sessions
-    videoStorageKey = generateStorageKey(url);
-    console.log(`[Player] Storage key: ${videoStorageKey}`);
+    resolvedUrl=url;videoStorageKey=generateStorageKey(url);
+    console.log('[Player] Key:',videoStorageKey);
 
-    if (isDirectVideoUrl(url)) {
-        isHlsJsMode = false;
-        showLoader();
-        video.src = url;
-        video.addEventListener('loadedmetadata', () => {
-            renderTracksMenu();
-            hideLoader();
-            restoreVideoProgress();
-            startProgressSaving();
-            video.play().catch(()=>{});
-            updateNextEpisodeButton();
-        }, { once: true });
-        video.addEventListener('error', () => {
-            if (video.currentTime > 0 || video.readyState >= 2) return;
-            displayError('Failed to load video: ' + (video.error ? video.error.message : 'unknown error'));
-            hideLoader();
-        }, { once: true });
+    if(isDirectVideoUrl(url)){
+        isHlsJsMode=false;showLoader();video.src=url;
+        video.addEventListener('loadedmetadata',()=>{renderTracksMenu();hideLoader();restoreVideoProgress();startProgressSaving();video.play().catch(()=>{});updateNextEpisodeButton();},{once:true});
+        video.addEventListener('error',()=>{if(video.currentTime>0||video.readyState>=2)return;displayError('Failed to load video');hideLoader();},{once:true});
         return;
     }
 
-    if (Hls.isSupported()) {
-        isHlsJsMode = true;
-        showLoader();
-        // Use throttled config
-        const h = new Hls(HLS_CONFIG);
-        hlsInstance = h;
-        h.on(Hls.Events.MEDIA_ATTACHED, () => h.loadSource(url));
-        h.on(Hls.Events.MANIFEST_PARSED, () => {
-            renderTracksMenu();
-            renderQualityMenu();
-            updateNextEpisodeButton();
-        });
-        h.on(Hls.Events.AUDIO_TRACK_SWITCHED, renderTracksMenu);
-        h.on(Hls.Events.SUBTITLE_TRACK_SWITCHED, renderTracksMenu);
-        h.on(Hls.Events.LEVEL_SWITCHED, renderQualityMenu);
-        h.on(Hls.Events.ERROR, (ev, data) => {
-            if (data.fatal) { displayError('Fatal HLS error'); h.destroy(); hideLoader(); }
+    if(Hls.isSupported()){
+        isHlsJsMode=true;showLoader();
+        const h=new Hls(HLS_CONFIG);hlsInstance=h;
+        h.on(Hls.Events.MEDIA_ATTACHED,()=>h.loadSource(url));
+        h.on(Hls.Events.MANIFEST_PARSED,()=>{renderTracksMenu();renderQualityMenu();updateNextEpisodeButton();});
+        h.on(Hls.Events.AUDIO_TRACK_SWITCHED,renderTracksMenu);
+        h.on(Hls.Events.SUBTITLE_TRACK_SWITCHED,renderTracksMenu);
+        h.on(Hls.Events.LEVEL_SWITCHED,renderQualityMenu);
+        h.on(Hls.Events.ERROR,(ev,data)=>{
+            if(data.fatal){
+                // Fatal error — hide loader and show message, don't loop forever
+                console.error('[HLS] Fatal:',data.type,data.details);
+                h.destroy();hlsInstance=null;
+                hideLoader();
+                displayError('Stream error — please try again');
+            } else if(data.type===Hls.ErrorTypes.NETWORK_ERROR&&data.details===Hls.ErrorDetails.FRAG_LOAD_ERROR){
+                // Non-fatal fragment error — loader is likely shown by 'waiting'; force-hide after 3s
+                // if video was previously playing (it will recover on its own)
+                setTimeout(()=>{if(!loadingIndicator.classList.contains('hidden')&&video.currentTime>0)hideLoader();},3000);
+            }
         });
         h.attachMedia(video);
-        video.addEventListener('loadedmetadata', () => restoreVideoProgress(), { once: true });
-        video.addEventListener('canplay', () => {
-            hideLoader();
-            startProgressSaving();
-            video.play().catch(()=>{});
-        }, { once: true });
-    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-        isHlsJsMode = false;
-        showLoader();
-        video.src = url;
-        video.addEventListener('loadedmetadata', () => {
-            renderTracksMenu();
-            restoreVideoProgress();
-            startProgressSaving();
-            updateNextEpisodeButton();
-            video.play().catch(()=>{});
-        }, { once: true });
-        video.addEventListener('canplaythrough', () => {
-            hideLoader();
-        }, { once: true });
-        // On iOS the loader can get stuck if canplaythrough fires before playing
-        // Use a polling check: once video is actually advancing, hide loader
-        const iosLoaderGuard = setInterval(() => {
-            if (!loadingIndicator.classList.contains('hidden')) {
-                if (video.currentTime > 0 && !video.paused) {
-                    hideLoader();
-                    clearInterval(iosLoaderGuard);
-                }
-            } else {
-                clearInterval(iosLoaderGuard);
-            }
-        }, 500);
-        video.addEventListener('error', () => {
-            clearInterval(iosLoaderGuard);
-            if (video.currentTime > 0 && !video.paused) return;
-            displayError('Failed to load stream: ' + (video.error ? video.error.message : 'unknown error'));
-            hideLoader();
-        }, { once: true });
+        video.addEventListener('loadedmetadata',()=>restoreVideoProgress(),{once:true});
+        video.addEventListener('canplay',()=>{hideLoader();startProgressSaving();video.play().catch(()=>{});},{once:true});
+    } else if(video.canPlayType('application/vnd.apple.mpegurl')){
+        isHlsJsMode=false;showLoader();video.src=url;
+        video.addEventListener('loadedmetadata',()=>{renderTracksMenu();restoreVideoProgress();startProgressSaving();updateNextEpisodeButton();video.play().catch(()=>{});},{once:true});
+        video.addEventListener('canplaythrough',()=>{hideLoader();},{once:true});
+        // iOS polling guard: if loader is still shown but video is playing, force-hide
+        const guard=setInterval(()=>{
+            if(!loadingIndicator.classList.contains('hidden')){if(video.currentTime>0&&!video.paused){hideLoader();clearInterval(guard);}}
+            else clearInterval(guard);
+        },500);
+        video.addEventListener('error',()=>{clearInterval(guard);if(video.currentTime>0&&!video.paused)return;displayError('Failed to load stream');hideLoader();},{once:true});
     } else {
-        displayError('Browser does not support HLS');
-        hideLoader();
+        displayError('Browser does not support HLS');hideLoader();
     }
 }
 
-/* =========================================================================
-   FIX 2: STREMIO / OPENSUBTITLES SUBTITLES — FIRST 10 ONLY, CONCURRENCY=3
-   =========================================================================
-   Previously all subtitle tracks were fetched simultaneously, creating a
-   burst of requests. Now:
-   1. Slice subtitles to first 10 unique languages
-   2. Fetch SRT files with a concurrency limiter (max 3 in-flight at once)
-   3. 200ms stagger between batches to avoid overwhelming the CDN
-   ========================================================================= */
-async function loadStremioSubtitles(type, tmdbId, season, episode) {
-    // Remove existing Stremio tracks
-    Array.from(video.querySelectorAll('track[data-stremio]')).forEach(t => t.remove());
-
-    let imdbId = null;
-    try {
-        const tmdbRes = await fetch(`https://search-proxy.bingeoutofficial.workers.dev/${type}/${tmdbId}/external_ids`);
-        if (tmdbRes.ok) {
-            const externalIds = await tmdbRes.json();
-            imdbId = externalIds.imdb_id;
-            console.log(`[Stremio] IMDb ID: ${imdbId}`);
+/* =====================================================================
+   SUBTITLES  — lazy, first 10 langs, 10s timeout, concurrency=3
+   ===================================================================== */
+async function loadStremioSubtitles(type,tmdbId,season,episode){
+    Array.from(video.querySelectorAll('track[data-stremio]')).forEach(t=>t.remove());
+    let imdbId=null;
+    try{const r=await fetch(`https://search-proxy.bingeoutofficial.workers.dev/${type}/${tmdbId}/external_ids`);if(r.ok)imdbId=(await r.json()).imdb_id;}
+    catch(e){console.warn('[Sub] IMDb fetch failed');return;}
+    if(!imdbId){console.warn('[Sub] No IMDb ID');return;}
+    const url=type==='tv'&&season&&episode?`https://opensubtitles-v3.strem.io/subtitles/series/${imdbId}:${season}:${episode}.json`:`https://opensubtitles-v3.strem.io/subtitles/movie/${imdbId}.json`;
+    try{
+        const r=await fetch(url);if(!r.ok)return;
+        let subs=(await r.json()).subtitles||[];if(!subs.length)return;
+        const seen=new Set(),filtered=[];
+        for(const s of subs){const l=(s.lang||'und').toLowerCase();if(!seen.has(l)){seen.add(l);filtered.push(s);if(filtered.length>=10)break;}}
+        subs=filtered;
+        async function fetchTimeout(u,ms){const c=new AbortController(),t=setTimeout(()=>c.abort(),ms);try{const r=await fetch(u,{signal:c.signal});clearTimeout(t);return r;}catch(e){clearTimeout(t);throw e;}}
+        for(let i=0;i<subs.length;i+=3){
+            await Promise.allSettled(subs.slice(i,i+3).map(async s=>{
+                try{
+                    const r=await fetchTimeout(s.url,SUBTITLE_FETCH_TIMEOUT_MS);if(!r.ok)throw new Error('HTTP '+r.status);
+                    const vtt=srtToVtt(await r.text());
+                    const blob=URL.createObjectURL(new Blob([vtt],{type:'text/vtt;charset=utf-8'}));
+                    _subtitleBlobUrls.push(blob);
+                    const tr=document.createElement('track');tr.kind='subtitles';tr.label=s.langName||getLang(s.lang);tr.srclang=s.lang;tr.src=blob;tr.setAttribute('data-stremio','1');tr.default=false;
+                    video.appendChild(tr);
+                }catch(e){console.warn('[Sub] Failed',s.lang,e.name==='AbortError'?'timeout':e.message);}
+            }));
+            if(i+3<subs.length)await new Promise(r=>setTimeout(r,200));
         }
-    } catch (err) {
-        console.warn('[Stremio] Failed to fetch IMDb ID:', err);
+        setTimeout(renderTracksMenu,300);
+    }catch(e){console.warn('[Sub] Error',e.message);}
+}
+function srtToVtt(srt){
+    return'WEBVTT\n\n'+srt.replace(/\r\n/g,'\n').replace(/\r/g,'\n').replace(/(\d{2}:\d{2}:\d{2}),(\d{3})/g,'$1.$2').trim().replace(/(\d{2}:\d{2}:\d{2}\.\d{3}\s*-->\s*\d{2}:\d{2}:\d{2}\.\d{3})/g,'$1 line:85% position:50% align:center');
+}
+
+/* =====================================================================
+   SOURCE — multimovies only, NO GitHub fallback
+   ===================================================================== */
+const TMDB_PROXY='https://search-proxy.bingeoutofficial.workers.dev';
+const MULTIMOVIES_API='https://hls-proxy.vercel.app/api/?url=';
+const PROXY='https://workingg.vercel.app/api/proxy?source=2&url=';
+function toSlug(s){return(s||'').toLowerCase().replace(/[^a-z0-9\s-]/g,'').trim().replace(/\s+/g,'-');}
+async function fetchTmdbData(type,id,season,episode){
+    try{
+        if(type==='movie'){const r=await fetch(`${TMDB_PROXY}/movie/${id}`);if(!r.ok)return null;const d=await r.json();return{title:d.title||'',year:(d.release_date||'').slice(0,4)};}
+        else{const r=await fetch(`${TMDB_PROXY}/tv/${id}`);if(!r.ok)return null;const d=await r.json();return{name:d.name||'',seasonNum:Number(season),episodeNum:Number(episode)};}
+    }catch(e){return null;}
+}
+async function fetchFromMultimovies(mvUrl){
+    try{
+        const r=await fetch(PROXY+MULTIMOVIES_API+encodeURIComponent(mvUrl),{cache:'no-store'});
+        if(!r.ok)return null;
+        const data=await r.json();
+        if(data.status!=='success'||!Array.isArray(data.servers)||!data.servers.length)return null;
+        const srv=(data.servers.find(s=>s.provider==='StreamP2p'&&s.result?.streaming_url)||data.servers.find(s=>s.result?.streaming_url));
+        if(!srv)return null;
+        const raw=srv.result.streaming_url;
+        console.log('[Multimovies] Got stream from',srv.provider,raw);
+        return PROXY+encodeURIComponent(raw);
+    }catch(e){return null;}
+}
+async function source_multimovies(type,id,season,episode){
+    const tmdb=await fetchTmdbData(type,id,season,episode);if(!tmdb)return null;
+    let url;
+    if(type==='movie'){const slug=toSlug(tmdb.title);if(!slug)return null;url=`https://multimovies.fyi/movie/${slug}/`;}
+    else{const slug=toSlug(tmdb.name);if(!slug)return null;url=`https://multimovies.fyi/episodes/${slug}-${parseInt(String(tmdb.seasonNum).padStart(2,'0'))}x${parseInt(String(tmdb.episodeNum).padStart(2,'0'))}/`;}
+    return fetchFromMultimovies(url);
+}
+
+/* =====================================================================
+   TITLE FETCH
+   ===================================================================== */
+async function fetchAndSetTitle(type,id,season,episode){
+    try{
+        let title='';
+        if(type==='movie'){const r=await fetch(`${TMDB_PROXY}/movie/${id}`);if(r.ok)title=(await r.json()).title||'';}
+        else{
+            const[sr,er]=await Promise.all([fetch(`${TMDB_PROXY}/tv/${id}`),fetch(`${TMDB_PROXY}/tv/${id}/season/${season}/episode/${episode}`)]);
+            const series=sr.ok?await sr.json():{},ep=er.ok?await er.json():{};
+            title=[[series.name,`S${season}:E${episode}`,ep.name].filter(Boolean).join(' ')];
+            document.getElementById('mobile-title-main').textContent=`S${season}:E${episode} "${ep.name||series.name}"`;
+        }
+        document.getElementById('title-main-text').textContent=title;
+        if(type==='movie')document.getElementById('mobile-title-main').textContent=title;
+        document.title=title||document.title;
+    }catch(e){}
+}
+
+/* =====================================================================
+   ROUTER  — multimovies only; shows error if it fails (no GitHub)
+   ===================================================================== */
+async function resolveAndPlay(){
+    const path=window.location.pathname;
+    const mv=path.match(/\/movie\/(\d+)/i);
+    if(mv){
+        const id=mv[1];showLoader();
+        const url=await source_multimovies('movie',id,null,null);
+        if(url){revokeAllSubtitleBlobs();initHlsPlayer(url);fetchAndSetTitle('movie',id);_pendingSubtitleArgs={type:'movie',tmdbId:id,season:null,episode:null};}
+        else{hideLoader();displayError('Could not load movie. Please try again later.');}
         return;
     }
-    if (!imdbId) { console.warn('[Stremio] No IMDb ID'); return; }
-
-    let stremioUrl;
-    if (type === 'tv' && season && episode) {
-        stremioUrl = `https://opensubtitles-v3.strem.io/subtitles/series/${imdbId}:${season}:${episode}.json`;
-    } else {
-        stremioUrl = `https://opensubtitles-v3.strem.io/subtitles/movie/${imdbId}.json`;
-    }
-
-    try {
-        const subRes = await fetch(stremioUrl);
-        if (!subRes.ok) { console.warn('[Stremio] Subtitle fetch failed:', subRes.status); return; }
-        const subsData = await subRes.json();
-        let subtitles = subsData.subtitles || [];
-        if (!subtitles.length) { console.warn('[Stremio] No subtitles'); return; }
-
-        // Keep only first occurrence of each language, max 10 total
-        const seenLangs = new Set();
-        const filtered = [];
-        for (const sub of subtitles) {
-            const lang = (sub.lang || 'und').toLowerCase();
-            if (!seenLangs.has(lang)) {
-                seenLangs.add(lang);
-                filtered.push(sub);
-                if (filtered.length >= 10) break;
-            }
-        }
-        console.log(`[Stremio] Loading ${filtered.length} subtitle tracks (of ${subtitles.length} available)`);
-        subtitles = filtered;
-
-        // Fetch with 10-second per-request timeout and concurrency=3
-        async function fetchWithTimeout(url, timeoutMs) {
-            const controller = new AbortController();
-            const timer = setTimeout(() => controller.abort(), timeoutMs);
-            try {
-                const res = await fetch(url, { signal: controller.signal });
-                clearTimeout(timer);
-                return res;
-            } catch (e) {
-                clearTimeout(timer);
-                throw e;
-            }
-        }
-
-        async function fetchWithConcurrency(items, concurrency, batchDelay, fn) {
-            for (let i = 0; i < items.length; i += concurrency) {
-                const batch = items.slice(i, i + concurrency);
-                await Promise.allSettled(batch.map(fn));
-                if (i + concurrency < items.length) {
-                    await new Promise(r => setTimeout(r, batchDelay));
-                }
-            }
-        }
-
-        await fetchWithConcurrency(subtitles, 3, 200, async (sub) => {
-            try {
-                const srtRes = await fetchWithTimeout(sub.url, SUBTITLE_FETCH_TIMEOUT_MS);
-                if (!srtRes.ok) throw new Error(`HTTP ${srtRes.status}`);
-                const srtText = await srtRes.text();
-                const vttText = srtToVtt(srtText);
-                const blob = new Blob([vttText], { type: 'text/vtt;charset=utf-8' });
-                const blobUrl = URL.createObjectURL(blob);
-                _subtitleBlobUrls.push(blobUrl);
-
-                const track = document.createElement('track');
-                track.kind = 'subtitles';
-                track.label = sub.langName || getFullLanguageName(sub.lang);
-                track.srclang = sub.lang;
-                track.src = blobUrl;
-                track.setAttribute('data-stremio', '1');
-                track.default = false;
-                video.appendChild(track);
-                console.log(`[Stremio] Loaded: ${track.label}`);
-            } catch (err) {
-                const reason = err.name === 'AbortError' ? 'timed out (10s)' : err.message;
-                console.warn(`[Stremio] Failed ${sub.lang}: ${reason}`);
-            }
-        });
-
-        // Final menu refresh after all tracks attempted
-        setTimeout(renderTracksMenu, 300);
-
-    } catch (err) {
-        console.warn('[Stremio] Error:', err.message);
-    }
-}
-
-function srtToVtt(srt) {
-    let vtt = 'WEBVTT\n\n';
-    const body = srt.replace(/\r\n/g, '\n').replace(/\r/g, '\n')
-        .replace(/(\d{2}:\d{2}:\d{2}),(\d{3})/g, '$1.$2').trim();
-    vtt += body.replace(/(\d{2}:\d{2}:\d{2}\.\d{3}\s*-->\s*\d{2}:\d{2}:\d{2}\.\d{3})/g, '$1 line:85% position:50% align:center');
-    return vtt;
-}
-
-/* =========================================================================
-   PRIMARY SOURCE — multimovies.fyi via hls-proxy
-   ========================================================================= */
-const TMDB_PROXY = 'https://search-proxy.bingeoutofficial.workers.dev';
-const MULTIMOVIES_API = 'https://hls-proxy.vercel.app/api/?url=';
-const PROXY_SOURCE2 = 'https://workingg.vercel.app/api/proxy?source=2&url=';
-
-function toSlug(str) {
-    return (str || '').toLowerCase().replace(/[^a-z0-9\s-]/g, '').trim().replace(/\s+/g, '-');
-}
-
-async function fetchTmdbData(type, id, season, episode) {
-    try {
-        if (type === 'movie') {
-            const r = await fetch(`${TMDB_PROXY}/movie/${id}`);
-            if (!r.ok) return null;
-            const d = await r.json();
-            return { title: d.title || '', year: (d.release_date || '').slice(0, 4), imdbId: d.imdb_id };
-        } else {
-            const [sr] = await Promise.all([fetch(`${TMDB_PROXY}/tv/${id}`)]);
-            const s = sr.ok ? await sr.json() : {};
-            return { name: s.name || '', seasonNum: Number(season), episodeNum: Number(episode), imdbId: s.external_ids?.imdb_id || s.imdb_id };
-        }
-    } catch (e) { console.warn('[TMDB]', e.message); return null; }
-}
-
-async function fetchFromMultimovies(multimoviesUrl) {
-    try {
-        const apiUrl = PROXY_SOURCE2 + MULTIMOVIES_API + encodeURIComponent(multimoviesUrl);
-        console.log('[Multimovies] Fetching:', apiUrl);
-        const r = await fetch(apiUrl, { cache: 'no-store' });
-        if (!r.ok) { console.warn('[Multimovies] HTTP', r.status); return null; }
-        const data = await r.json();
-        if (data.status !== 'success' || !Array.isArray(data.servers) || !data.servers.length) {
-            console.warn('[Multimovies] Bad response:', data.status);
-            return null;
-        }
-        const preferred = data.servers.find(s => s.provider === 'StreamP2p' && s.result?.streaming_url);
-        const fallback = data.servers.find(s => s.result?.streaming_url);
-        const server = preferred || fallback;
-        if (!server) { console.warn('[Multimovies] No server with streaming_url'); return null; }
-        const rawUrl = server.result.streaming_url;
-        console.log('[Multimovies] Got stream from', server.provider, rawUrl);
-        // Always proxy through workingg — StreamP2p blocks direct browser requests (CORS/IP-restricted)
-        return PROXY_SOURCE2 + encodeURIComponent(rawUrl);
-    } catch (e) { console.warn('[Multimovies] Error:', e.message); return null; }
-}
-
-async function source_multimovies(type, id, season, episode) {
-    const tmdb = await fetchTmdbData(type, id, season, episode);
-    if (!tmdb) { console.warn('[Multimovies] No TMDB data'); return null; }
-    let multimoviesUrl;
-    if (type === 'movie') {
-        const slug = toSlug(tmdb.title);
-        if (!slug) return null;
-        multimoviesUrl = `https://multimovies.fyi/movie/${slug}/`;
-    } else {
-        const showSlug = toSlug(tmdb.name);
-        if (!showSlug) return null;
-        const s = String(tmdb.seasonNum).padStart(2, '0');
-        const e = String(tmdb.episodeNum).padStart(2, '0');
-        multimoviesUrl = `https://multimovies.fyi/episodes/${showSlug}-${parseInt(s)}x${parseInt(e)}/`;
-    }
-    console.log('[Multimovies] URL:', multimoviesUrl);
-    return fetchFromMultimovies(multimoviesUrl);
-}
-
-/* =========================================================================
-   GITHUB FALLBACK
-   ========================================================================= */
-async function playMovie(movieId) {
-    revokeAllSubtitleBlobs();
-    showLoader();
-    const githubUrl = `https://raw.githubusercontent.com/Watchout2025/api/refs/heads/main/hls/movie/${movieId}`;
-    try {
-        const res = await fetch(githubUrl, { cache: 'no-store' });
-        if (!res.ok) { displayError(`Could not load movie data (HTTP ${res.status}).`); hideLoader(); return; }
-        const cleanUrl = (await res.text()).trim();
-        if (cleanUrl && (cleanUrl.includes('.m3u8') || cleanUrl.includes('http'))) {
-            initHlsPlayer(cleanUrl);
-            fetchAndSetTitle('movie', movieId);
-            // Subtitles load lazily when user opens Audio & Subtitles menu
-            _pendingSubtitleArgs = { type: 'movie', tmdbId: movieId, season: null, episode: null };
-        } else { displayError(`Invalid stream URL for movie ${movieId}.`); hideLoader(); }
-    } catch (err) { displayError(`Failed to fetch movie: ${err.message}`); hideLoader(); }
-}
-
-async function playEpisode(seriesId, seasonNumber, episodeNumber) {
-    revokeAllSubtitleBlobs();
-    const expectedPath = `/tv/${seriesId}/S${seasonNumber}/E${episodeNumber}`;
-    if (window.location.pathname !== expectedPath) history.replaceState(null, '', expectedPath);
-    showLoader();
-    const githubJsonUrl = `https://raw.githubusercontent.com/Watchout2025/api/refs/heads/main/hls/tv/${seriesId}/S${seasonNumber}.json`;
-    try {
-        const res = await fetch(githubJsonUrl, { cache: 'no-store' });
-        if (!res.ok) { displayError(`Could not load season data (HTTP ${res.status}).`); hideLoader(); return; }
-        const data = await res.json();
-        const fileId = data[episodeNumber];
-        if (fileId) {
-            initHlsPlayer(fileId);
-            fetchAndSetTitle('tv', seriesId, seasonNumber, episodeNumber);
-            // Subtitles load lazily when user opens Audio & Subtitles menu
-            _pendingSubtitleArgs = { type: 'tv', tmdbId: seriesId, season: seasonNumber, episode: episodeNumber };
-        } else { displayError(`Episode ${episodeNumber} not found.`); hideLoader(); }
-    } catch (err) { displayError(`Failed to fetch episode: ${err.message}`); hideLoader(); }
-}
-
-/* =========================================================================
-   TMDB TITLE FETCHING
-   ========================================================================= */
-async function fetchAndSetTitle(type, id, season, episode) {
-    try {
-        if (type === 'movie') {
-            const res = await fetch(`${TMDB_PROXY}/movie/${id}`);
-            if (!res.ok) return;
-            const data = await res.json();
-            document.getElementById('title-main-text').textContent = data.title || '';
-            document.getElementById('mobile-title-main').textContent = data.title || '';
-            document.title = data.title || document.title;
-        } else if (type === 'tv') {
-            const [seriesRes, epRes] = await Promise.all([
-                fetch(`${TMDB_PROXY}/tv/${id}`),
-                fetch(`${TMDB_PROXY}/tv/${id}/season/${season}/episode/${episode}`)
-            ]);
-            const series = seriesRes.ok ? await seriesRes.json() : {};
-            const ep = epRes.ok ? await epRes.json() : {};
-            const seriesName = series.name || '';
-            const epName = ep.name || '';
-            const label = `S${season}:E${episode}`;
-            const fullTitle = [seriesName, label, epName].filter(Boolean).join(' ');
-            const mobileTitle = `${label} "${epName || seriesName}"`;
-            document.getElementById('title-main-text').textContent = fullTitle;
-            document.getElementById('mobile-title-main').textContent = mobileTitle;
-            document.title = fullTitle || document.title;
-        }
-    } catch (e) { console.warn('fetchAndSetTitle failed:', e.message); }
-}
-
-/* =========================================================================
-   ROUTE DISPATCHER
-   ========================================================================= */
-async function resolveAndPlay() {
-    const path = window.location.pathname;
-    const movieMatch = path.match(/\/movie\/(\d+)/i);
-    if (movieMatch) {
-        const id = movieMatch[1];
-        showLoader();
-        const primaryUrl = await source_multimovies('movie', id, null, null);
-        if (primaryUrl) {
-            console.log('[Router] Movie → multimovies');
-            revokeAllSubtitleBlobs();
-            initHlsPlayer(primaryUrl);
-            fetchAndSetTitle('movie', id);
-            _pendingSubtitleArgs = { type: 'movie', tmdbId: id, season: null, episode: null };
-        } else {
-            console.warn('[Router] Movie multimovies failed → GitHub fallback');
-            await playMovie(id);
-        }
+    const tv=path.match(/\/tv\/(\d+)\/S(\d+)\/E(\d+)/i);
+    if(tv){
+        const[,id,season,episode]=tv;showLoader();
+        const url=await source_multimovies('tv',id,season,episode);
+        if(url){revokeAllSubtitleBlobs();initHlsPlayer(url);fetchAndSetTitle('tv',id,season,episode);_pendingSubtitleArgs={type:'tv',tmdbId:id,season,episode};}
+        else{hideLoader();displayError('Could not load episode. Please try again later.');}
         return;
     }
-    const tvMatch = path.match(/\/tv\/(\d+)\/S(\d+)\/E(\d+)/i);
-    if (tvMatch) {
-        const [, id, season, episode] = tvMatch;
-        showLoader();
-        const primaryUrl = await source_multimovies('tv', id, season, episode);
-        if (primaryUrl) {
-            console.log('[Router] TV → multimovies');
-            revokeAllSubtitleBlobs();
-            initHlsPlayer(primaryUrl);
-            fetchAndSetTitle('tv', id, season, episode);
-            _pendingSubtitleArgs = { type: 'tv', tmdbId: id, season: season, episode: episode };
-        } else {
-            console.warn('[Router] TV multimovies failed → GitHub fallback');
-            await playEpisode(id, season, episode);
-        }
-        return;
-    }
-    const hlsUrl = 'https://vidmmo.com/hls/ZDBtrL1WMPQipj3EubEdG6tAKeYJ0Nt3/master.m3u8';
-    initHlsPlayer(hlsUrl);
+    // Default test stream
+    initHlsPlayer('https://vidmmo.com/hls/ZDBtrL1WMPQipj3EubEdG6tAKeYJ0Nt3/master.m3u8');
 }
 
-/* =========================================================================
-   UI CONTROL BINDINGS
-   ========================================================================= */
-function setupUIControls() {
-    const container = videoContainer;
-    ['mousemove', 'mousedown', 'touchstart', 'touchend'].forEach(ev => container.addEventListener(ev, resetInactivityTimer, ev.startsWith('touch') ? { passive: true } : false));
-    topOverlay.addEventListener('click', () => {
-        const mobile = window.innerWidth <= 1000;
-        if (mobile) {
-            const els = [document.getElementById('center-controls-mobile-only'), document.getElementById('controls-bar')];
-            const anyHidden = els.some(el => el.style.display === 'none');
-            els.forEach(el => el.style.display = anyHidden ? 'flex' : 'none');
-        } else { toggleVideoPlayPause(); }
+/* =====================================================================
+   UI BINDINGS
+   ===================================================================== */
+function setupUIControls(){
+    ['mousemove','mousedown','touchstart','touchend'].forEach(ev=>videoContainer.addEventListener(ev,resetInactivityTimer,ev.startsWith('touch')?{passive:true}:false));
+    topOverlay.addEventListener('click',()=>{
+        if(window.innerWidth<=1000){const els=[document.getElementById('center-controls-mobile-only'),document.getElementById('controls-bar')];const anyHidden=els.some(el=>el.style.display==='none');els.forEach(el=>el.style.display=anyHidden?'flex':'none');}
+        else toggleVideoPlayPause();
     });
-    customPlayButton.addEventListener('click', toggleVideoPlayPause);
-    centerPlayPauseButton.addEventListener('click', toggleVideoPlayPause);
-    fullscreenButton.addEventListener('click', toggleFullscreen);
-    skipBackwardButton.addEventListener('click', () => { video.currentTime = Math.max(0, video.currentTime - 10); resetInactivityTimer(); });
-    skipForwardButton.addEventListener('click', () => { video.currentTime = Math.min(video.duration, video.currentTime + 10); resetInactivityTimer(); });
-    mobileSkipBackwardButton.addEventListener('click', () => { video.currentTime = Math.max(0, video.currentTime - 10); resetInactivityTimer(); });
-    mobileSkipForwardButton.addEventListener('click', () => { video.currentTime = Math.min(video.duration, video.currentTime + 10); resetInactivityTimer(); });
-    muteButton.addEventListener('click', toggleMute);
-    audioSubtitleToggle.addEventListener('click', e => { e.stopPropagation(); toggleAudioSubtitleMenu(); });
-    seekBar.addEventListener('mousedown', startSeeking);
-    seekBar.addEventListener('touchstart', startSeeking, { passive: false });
-    volumeControlWrapper.addEventListener('mouseenter', () => volumeSliderContainer.classList.remove('hidden'));
-    volumeControlWrapper.addEventListener('mouseleave', () => setTimeout(() => { if (!isVolumeAdjusting) volumeSliderContainer.classList.add('hidden'); }, 300));
-    document.addEventListener('fullscreenchange', updateFullscreenIcon);
-    document.addEventListener('webkitfullscreenchange', updateFullscreenIcon);
-    video.addEventListener('webkitbeginfullscreen', updateFullscreenIcon);
-    video.addEventListener('webkitendfullscreen', updateFullscreenIcon);
-    video.addEventListener('timeupdate', () => { updateProgress(); postTimeUpdateToParent(); });
-    video.addEventListener('progress', updateBufferProgress);
-    video.addEventListener('loadedmetadata', () => { updateProgress(); updateBufferProgress(); remainingTimeDisplay.textContent = `-${formatTime(video.duration)}`; });
-    video.addEventListener('volumechange', updateVolumeSlider);
-    video.addEventListener('waiting', () => {
-        // Only show loader if we're genuinely stalled, not just seeking
-        if (!isSeeking) showLoader();
-    });
-    video.addEventListener('stalled', () => {
-        if (!isSeeking) showLoader();
-    });
-    video.addEventListener('playing', () => {
-        hideLoader();
-    });
-    video.addEventListener('canplay', () => {
-        // On iOS native HLS, 'playing' may not fire after buffering — 'canplay' is the reliable signal
-        hideLoader();
-    });
-    video.addEventListener('seeked', () => {
-        // After seek completes, hide loader (seek causes waiting → loader, seeked means ready)
-        if (!video.paused) hideLoader();
-    });
-    video.addEventListener('pause', () => { showControls(); updateBottomPlayPauseIcon(true); updateCenterPlayPauseIcon(true); clearTimeout(inactivityTimer); });
-    video.addEventListener('play', () => { updateBottomPlayPauseIcon(false); updateCenterPlayPauseIcon(false); resetInactivityTimer(); });
-    video.addEventListener('ended', () => { showControls(); updateBottomPlayPauseIcon(true); updateCenterPlayPauseIcon(true); hideLoader(); });
-    lastKnownVolume = video.volume > 0 ? video.volume : 0.5;
-    updateProgress();
-    updateBufferProgress();
-    updateVolumeSlider();
-    updateFullscreenIcon();
-    if (video.paused || video.ended) { showControls(); updateBottomPlayPauseIcon(true); updateCenterPlayPauseIcon(true); }
-    else { updateBottomPlayPauseIcon(false); updateCenterPlayPauseIcon(false); resetInactivityTimer(); }
+    customPlayButton.addEventListener('click',toggleVideoPlayPause);
+    centerPlayPauseButton.addEventListener('click',toggleVideoPlayPause);
+    fullscreenButton.addEventListener('click',toggleFullscreen);
+    skipBackwardButton.addEventListener('click',()=>{video.currentTime=Math.max(0,video.currentTime-10);resetInactivityTimer();});
+    skipForwardButton.addEventListener('click',()=>{video.currentTime=Math.min(video.duration,video.currentTime+10);resetInactivityTimer();});
+    mobileSkipBackwardButton.addEventListener('click',()=>{video.currentTime=Math.max(0,video.currentTime-10);resetInactivityTimer();});
+    mobileSkipForwardButton.addEventListener('click',()=>{video.currentTime=Math.min(video.duration,video.currentTime+10);resetInactivityTimer();});
+    muteButton.addEventListener('click',toggleMute);
+    audioSubtitleToggle.addEventListener('click',e=>{e.stopPropagation();toggleAudioSubtitleMenu();});
+    seekBar.addEventListener('mousedown',startSeeking);
+    seekBar.addEventListener('touchstart',startSeeking,{passive:false});
+    volumeControlWrapper.addEventListener('mouseenter',()=>volumeSliderContainer.classList.remove('hidden'));
+    volumeControlWrapper.addEventListener('mouseleave',()=>setTimeout(()=>{if(!isVolumeAdjusting)volumeSliderContainer.classList.add('hidden');},300));
+    document.addEventListener('fullscreenchange',updateFullscreenIcon);
+    document.addEventListener('webkitfullscreenchange',updateFullscreenIcon);
+    video.addEventListener('webkitbeginfullscreen',updateFullscreenIcon);
+    video.addEventListener('webkitendfullscreen',updateFullscreenIcon);
+    video.addEventListener('timeupdate',()=>{updateProgress();postTimeUpdateToParent();});
+    video.addEventListener('progress',updateBufferProgress);
+    video.addEventListener('loadedmetadata',()=>{updateProgress();updateBufferProgress();remainingTimeDisplay.textContent=`-${formatTime(video.duration)}`;});
+    video.addEventListener('volumechange',updateVolumeSlider);
+    // Loader: waiting/stalled show it; playing/canplay/seeked hide it
+    video.addEventListener('waiting',()=>{if(!isSeeking)showLoader();});
+    video.addEventListener('stalled',()=>{if(!isSeeking)showLoader();});
+    video.addEventListener('playing',hideLoader);
+    video.addEventListener('canplay',hideLoader);
+    video.addEventListener('seeked',()=>{if(!video.paused)hideLoader();});
+    video.addEventListener('pause',()=>{showControls();updateBottomPlayPauseIcon(true);updateCenterPlayPauseIcon(true);clearTimeout(inactivityTimer);});
+    video.addEventListener('play',()=>{updateBottomPlayPauseIcon(false);updateCenterPlayPauseIcon(false);resetInactivityTimer();});
+    video.addEventListener('ended',()=>{showControls();updateBottomPlayPauseIcon(true);updateCenterPlayPauseIcon(true);hideLoader();});
+    lastKnownVolume=video.volume>0?video.volume:0.5;
+    updateProgress();updateBufferProgress();updateVolumeSlider();updateFullscreenIcon();
+    if(video.paused||video.ended){showControls();updateBottomPlayPauseIcon(true);updateCenterPlayPauseIcon(true);}
+    else{updateBottomPlayPauseIcon(false);updateCenterPlayPauseIcon(false);resetInactivityTimer();}
 }
 
-/* =========================================================================
-   KEYBOARD SHORTCUTS
-   ========================================================================= */
-function handleKeyboardShortcuts(e) {
-    if (['INPUT', 'TEXTAREA'].includes(e.target.tagName)) return;
-    const prevent = ['Space', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'];
-    if (prevent.includes(e.code)) e.preventDefault();
-    switch (e.code) {
-        case 'Space': case 'KeyK': toggleVideoPlayPause(); break;
-        case 'ArrowLeft': video.currentTime = Math.max(0, video.currentTime - 5); resetInactivityTimer(); break;
-        case 'ArrowRight': video.currentTime = Math.min(video.duration, video.currentTime + 5); resetInactivityTimer(); break;
-        case 'KeyJ': video.currentTime = Math.max(0, video.currentTime - 10); resetInactivityTimer(); break;
-        case 'KeyL': video.currentTime = Math.min(video.duration, video.currentTime + 10); resetInactivityTimer(); break;
-        case 'ArrowUp': e.preventDefault(); video.volume = Math.min(1, video.volume + 0.05); video.muted = false; lastKnownVolume = video.volume; updateVolumeSlider(); resetInactivityTimer(); break;
-        case 'ArrowDown': e.preventDefault(); video.volume = Math.max(0, video.volume - 0.05); if (video.volume === 0) video.muted = true; updateVolumeSlider(); resetInactivityTimer(); break;
-        case 'KeyM': toggleMute(); break;
-        case 'KeyF': toggleFullscreen(); break;
-        case 'KeyC':
-            if (isHlsJsMode && hlsInstance) {
-                const cur = hlsInstance.subtitleTrack;
-                const nextIdx = cur === -1 ? 0 : -1;
-                hlsInstance.subtitleTrack = nextIdx;
-                const subs = Array.from(video.textTracks).filter(t => t.kind === 'subtitles' || t.kind === 'captions');
-                subs.forEach((t, i) => { t.mode = (nextIdx >= 0 && i === nextIdx) ? 'showing' : 'disabled'; });
-            } else if (video.textTracks) {
-                const subs = Array.from(video.textTracks).filter(t => t.kind === 'subtitles' || t.kind === 'captions');
-                const showing = subs.some(t => t.mode === 'showing');
-                subs.forEach((t, i) => t.mode = showing ? 'disabled' : (i === 0 ? 'showing' : 'disabled'));
-            }
-            renderTracksMenu();
-            resetInactivityTimer();
-            break;
+/* =====================================================================
+   KEYBOARD
+   ===================================================================== */
+document.addEventListener('keydown',e=>{
+    if(['INPUT','TEXTAREA'].includes(e.target.tagName))return;
+    if(['Space','ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.code))e.preventDefault();
+    switch(e.code){
+        case'Space':case'KeyK':toggleVideoPlayPause();break;
+        case'ArrowLeft':video.currentTime=Math.max(0,video.currentTime-5);resetInactivityTimer();break;
+        case'ArrowRight':video.currentTime=Math.min(video.duration,video.currentTime+5);resetInactivityTimer();break;
+        case'KeyJ':video.currentTime=Math.max(0,video.currentTime-10);resetInactivityTimer();break;
+        case'KeyL':video.currentTime=Math.min(video.duration,video.currentTime+10);resetInactivityTimer();break;
+        case'ArrowUp':video.volume=Math.min(1,video.volume+0.05);video.muted=false;lastKnownVolume=video.volume;updateVolumeSlider();resetInactivityTimer();break;
+        case'ArrowDown':video.volume=Math.max(0,video.volume-0.05);if(video.volume===0)video.muted=true;updateVolumeSlider();resetInactivityTimer();break;
+        case'KeyM':toggleMute();break;
+        case'KeyF':toggleFullscreen();break;
+        case'KeyC':{const subs=Array.from(video.textTracks).filter(t=>t.kind==='subtitles'||t.kind==='captions');const showing=subs.some(t=>t.mode==='showing');subs.forEach((t,i)=>t.mode=showing?'disabled':(i===0?'showing':'disabled'));renderTracksMenu();resetInactivityTimer();break;}
         default:
-            if (e.code.startsWith('Digit')) {
-                const d = parseInt(e.code.replace('Digit', ''));
-                video.currentTime = (video.duration * d) / 10;
-                resetInactivityTimer();
-            } else if (e.code === 'Home') { video.currentTime = 0; resetInactivityTimer(); }
-            else if (e.code === 'End') { video.currentTime = video.duration; resetInactivityTimer(); }
-    }
-}
-document.addEventListener('keydown', handleKeyboardShortcuts);
-
-/* =========================================================================
-   REPORT ISSUE MODAL
-   ========================================================================= */
-const reportModal = document.getElementById('reportModal');
-const issueTypeSelect = document.getElementById('issueType');
-const submitBtn = document.getElementById('submitBtn');
-document.getElementById('report-button').addEventListener('click', openReportModal);
-issueTypeSelect.addEventListener('change', () => { submitBtn.disabled = issueTypeSelect.value === ''; });
-function openReportModal() { reportModal.classList.add('active'); }
-function closeReportModal() { reportModal.classList.remove('active'); }
-reportModal.addEventListener('click', (e) => { if (e.target === reportModal) closeReportModal(); });
-async function submitIssue() {
-    const type = issueTypeSelect.value, desc = document.getElementById('issueDesc').value;
-    submitBtn.disabled = true;
-    try {
-        const res = await fetch('https://report.bingeoutofficial.workers.dev', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ issueType: type, description: desc, pageUrl: location.href })
-        });
-        if (!res.ok) throw new Error('Failed');
-        alert('Issue reported successfully');
-        closeReportModal();
-        issueTypeSelect.value = '';
-        document.getElementById('issueDesc').value = '';
-        submitBtn.disabled = true;
-    } catch(e) { alert('Failed to report issue. Try again.'); }
-    finally { submitBtn.disabled = issueTypeSelect.value === ''; }
-}
-
-/* =========================================================================
-   INITIALIZATION
-   ========================================================================= */
-document.addEventListener('click', function(e) {
-    if (!audioSubtitleMenu.classList.contains('hidden') && !audioSubtitleMenu.contains(e.target) && !audioSubtitleToggle.contains(e.target) && window.innerWidth >= 1000) {
-        audioSubtitleMenu.classList.add('hidden');
-        resetInactivityTimer();
-    }
-    if (!speedMenu.classList.contains('hidden') && !speedMenu.contains(e.target) && !speedButton.contains(e.target)) {
-        speedMenu.classList.add('hidden');
-        resetInactivityTimer();
-    }
-    const qm = document.getElementById('quality-menu');
-    const qb = document.getElementById('quality-button');
-    if (!qm.classList.contains('hidden') && !qm.contains(e.target) && !qb.contains(e.target)) {
-        qm.classList.add('hidden');
-        resetInactivityTimer();
+            if(e.code.startsWith('Digit')){video.currentTime=(video.duration*parseInt(e.code.replace('Digit','')))/10;resetInactivityTimer();}
+            else if(e.code==='Home'){video.currentTime=0;resetInactivityTimer();}
+            else if(e.code==='End'){video.currentTime=video.duration;resetInactivityTimer();}
     }
 });
-window.onload = () => { setupUIControls(); resolveAndPlay(); };
+
+/* =====================================================================
+   REPORT MODAL
+   ===================================================================== */
+const reportModal=document.getElementById('reportModal'),issueTypeSelect=document.getElementById('issueType'),submitBtn=document.getElementById('submitBtn');
+document.getElementById('report-button').addEventListener('click',()=>reportModal.classList.add('active'));
+issueTypeSelect.addEventListener('change',()=>{submitBtn.disabled=issueTypeSelect.value==='';});
+function closeReportModal(){reportModal.classList.remove('active');}
+reportModal.addEventListener('click',e=>{if(e.target===reportModal)closeReportModal();});
+async function submitIssue(){
+    submitBtn.disabled=true;
+    try{const r=await fetch('https://report.bingeoutofficial.workers.dev',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({issueType:issueTypeSelect.value,description:document.getElementById('issueDesc').value,pageUrl:location.href})});if(!r.ok)throw new Error('Failed');alert('Issue reported successfully');closeReportModal();issueTypeSelect.value='';document.getElementById('issueDesc').value='';submitBtn.disabled=true;}
+    catch(e){alert('Failed to report. Try again.');}
+    finally{submitBtn.disabled=issueTypeSelect.value==='';}
+}
+
+/* =====================================================================
+   CLOSE MENUS ON OUTSIDE CLICK
+   ===================================================================== */
+document.addEventListener('click',e=>{
+    if(!audioSubtitleMenu.classList.contains('hidden')&&!audioSubtitleMenu.contains(e.target)&&!audioSubtitleToggle.contains(e.target)&&window.innerWidth>=1000){audioSubtitleMenu.classList.add('hidden');resetInactivityTimer();}
+    if(!speedMenu.classList.contains('hidden')&&!speedMenu.contains(e.target)&&!speedButton.contains(e.target)){speedMenu.classList.add('hidden');resetInactivityTimer();}
+    if(!qualityMenu.classList.contains('hidden')&&!qualityMenu.contains(e.target)&&!qualityButton.contains(e.target)){qualityMenu.classList.add('hidden');resetInactivityTimer();}
+});
+
+window.onload=()=>{setupUIControls();resolveAndPlay();};
 </script>
 </body></html>
