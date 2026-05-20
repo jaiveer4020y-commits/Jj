@@ -506,6 +506,13 @@ let currentMediaType = null;
 let currentContentId = null;
 let _subtitleBlobUrls = [];
 
+/* Lazy subtitle loading state — subtitles are NOT fetched at playback start.
+   They load only when the user opens the Audio & Subtitles menu for the first time. */
+let _pendingSubtitleArgs = null;   // { type, tmdbId, season, episode }
+let _subtitlesLoaded = false;      // true once load has been triggered
+let _subtitlesLoading = false;     // true while fetch is in progress
+const SUBTITLE_FETCH_TIMEOUT_MS = 10000; // 10 seconds per SRT file fetch
+
 /* =========================================================================
    FIX 1: STABLE STORAGE KEY
    =========================================================================
@@ -878,8 +885,65 @@ function getFullLanguageName(code) {
 
 function toggleAudioSubtitleMenu() {
     const hidden = audioSubtitleMenu.classList.contains('hidden');
-    if (hidden) { renderTracksMenu(); audioSubtitleMenu.classList.remove('hidden'); clearTimeout(inactivityTimer); showControls(); }
-    else { audioSubtitleMenu.classList.add('hidden'); resetInactivityTimer(); }
+    if (hidden) {
+        // Lazy-load subtitles the very first time user opens this menu
+        if (!_subtitlesLoaded && !_subtitlesLoading && _pendingSubtitleArgs) {
+            _subtitlesLoading = true;
+            const { type, tmdbId, season, episode } = _pendingSubtitleArgs;
+            // Show spinner in subtitle column immediately
+            subtitleList.innerHTML = '<li class="text-gray-400" style="padding:8px 10px;">Loading subtitles…</li>';
+            loadStremioSubtitles(type, tmdbId, season, episode).then(() => {
+                _subtitlesLoaded = true;
+                _subtitlesLoading = false;
+                renderTracksMenu();
+            }).catch(() => {
+                _subtitlesLoaded = true;
+                _subtitlesLoading = false;
+                renderTracksMenu();
+            });
+            // Render audio tracks now (subtitleList already pre-filled above)
+            renderTracksMenuAudioOnly();
+        } else if (_subtitlesLoading) {
+            // Still loading — just refresh audio side, keep subtitle spinner
+            renderTracksMenuAudioOnly();
+        } else {
+            renderTracksMenu();
+        }
+        audioSubtitleMenu.classList.remove('hidden');
+        clearTimeout(inactivityTimer);
+        showControls();
+    } else {
+        audioSubtitleMenu.classList.add('hidden');
+        resetInactivityTimer();
+    }
+}
+
+/* Renders only the audio tracks column — used when subtitles are still loading */
+function renderTracksMenuAudioOnly() {
+    audioList.innerHTML = '';
+    const getDisplayName = (track, isHls) => {
+        const raw = isHls ? track.lang : track.language, primary = isHls ? track.name : track.label;
+        let name = raw ? getFullLanguageName(raw) : '';
+        if (primary) { const l = primary.toLowerCase(); if (languageCodeMap[l]) name = languageCodeMap[l]; else if (!name || name.toLowerCase() === 'undefined' || name.toLowerCase() === raw?.toLowerCase()) name = primary; }
+        return name || `Track ${track.id ?? track.groupId ?? ''}`;
+    };
+    const audioTracks = isHlsJsMode ? hlsInstance.audioTracks : (video.audioTracks ? Array.from(video.audioTracks) : []);
+    const curAudioIdx = isHlsJsMode ? hlsInstance.audioTrack : (video.audioTracks ? Array.from(video.audioTracks).findIndex(t => t.enabled) : -1);
+    if (!audioTracks.length) { audioList.innerHTML = '<li class="text-gray-400">No alternate audio tracks found.</li>'; return; }
+    audioTracks.forEach((track, i) => {
+        const selected = isHlsJsMode ? (i === curAudioIdx) : track.enabled;
+        const li = document.createElement('li');
+        li.className = `track-selector cursor-pointer flex items-center gap-2 ${selected ? 'font-bold text-white' : 'text-gray-400'}`;
+        const check = document.createElement('span');
+        check.style.cssText = `visibility:${selected ? 'visible' : 'hidden'};flex-shrink:0;display:inline-flex;align-items:center;`;
+        check.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="14" height="14"><path fill-rule="evenodd" clip-rule="evenodd" d="M21.2928 4.29285L22.7071 5.70706L8.70706 19.7071C8.51952 19.8946 8.26517 20 7.99995 20C7.73474 20 7.48038 19.8946 7.29285 19.7071L0.292847 12.7071L1.70706 11.2928L7.99995 17.5857L21.2928 4.29285Z" fill="white"></path></svg>`;
+        const label = document.createElement('span');
+        label.textContent = getDisplayName(track, isHlsJsMode);
+        li.appendChild(check); li.appendChild(label);
+        li.dataset.index = i; li.dataset.type = 'audio';
+        li.addEventListener('click', () => handleTrackSelection('audio', i));
+        audioList.appendChild(li);
+    });
 }
 
 function renderTracksMenu() {
@@ -1149,7 +1213,7 @@ async function updateNextEpisodeButton() {
    ========================================================================= */
 const HLS_CONFIG = {
     // --- Buffer control (prevents over-eager segment fetching) ---
-    maxBufferLength: 20,          // Only buffer 30s ahead (default: 30, but some builds use 60)
+    maxBufferLength: 30,          // Only buffer 30s ahead (default: 30, but some builds use 60)
     maxMaxBufferLength: 60,       // Absolute max buffer cap
     backBufferLength: 10,         // Keep 10s behind current position
 
@@ -1161,9 +1225,9 @@ const HLS_CONFIG = {
     fragLoadingMaxRetryTimeout: 4000,
 
     // --- Manifest / level loading ---
-    manifestLoadingMaxRetry: 1,
+    manifestLoadingMaxRetry: 3,
     manifestLoadingRetryDelay: 500,
-    levelLoadingMaxRetry: 1,
+    levelLoadingMaxRetry: 3,
     levelLoadingRetryDelay: 500,
 
     // --- Stall recovery — don't hammer the server ---
@@ -1180,7 +1244,7 @@ const HLS_CONFIG = {
 
     // --- Limit concurrent requests: HLS.js fetches max 1 frag at a time by default.
     //     Setting maxFragLookUpTolerance low keeps it precise without extra fetches. ---
-    maxFragLookUpTolerance: 1,
+    maxFragLookUpTolerance: 0.1,
 };
 
 function isDirectVideoUrl(url) {
@@ -1194,6 +1258,10 @@ function initHlsPlayer(url) {
     saveVideoProgress();
     stopProgressSaving();
     hasRestoredPosition = false;
+    // Reset lazy subtitle state for each new video
+    _pendingSubtitleArgs = null;
+    _subtitlesLoaded = false;
+    _subtitlesLoading = false;
     if (hlsInstance) { hlsInstance.destroy(); hlsInstance = null; }
     revokeAllSubtitleBlobs();
     errorMessageDiv.classList.add('hidden');
@@ -1311,7 +1379,7 @@ async function loadStremioSubtitles(type, tmdbId, season, episode) {
         let subtitles = subsData.subtitles || [];
         if (!subtitles.length) { console.warn('[Stremio] No subtitles'); return; }
 
-        // --- LIMIT: keep only first occurrence of each language, max 10 total ---
+        // Keep only first occurrence of each language, max 10 total
         const seenLangs = new Set();
         const filtered = [];
         for (const sub of subtitles) {
@@ -1325,51 +1393,57 @@ async function loadStremioSubtitles(type, tmdbId, season, episode) {
         console.log(`[Stremio] Loading ${filtered.length} subtitle tracks (of ${subtitles.length} available)`);
         subtitles = filtered;
 
-        // --- Concurrency-limited fetcher ---
-        async function fetchWithConcurrency(items, concurrency, delay, fn) {
-            const results = [];
-            for (let i = 0; i < items.length; i += concurrency) {
-                const batch = items.slice(i, i + concurrency);
-                const batchResults = await Promise.allSettled(batch.map(fn));
-                results.push(...batchResults);
-                // Stagger batches to stay ~5 req/sec
-                if (i + concurrency < items.length) {
-                    await new Promise(r => setTimeout(r, delay));
-                }
+        // Fetch with 10-second per-request timeout and concurrency=3
+        async function fetchWithTimeout(url, timeoutMs) {
+            const controller = new AbortController();
+            const timer = setTimeout(() => controller.abort(), timeoutMs);
+            try {
+                const res = await fetch(url, { signal: controller.signal });
+                clearTimeout(timer);
+                return res;
+            } catch (e) {
+                clearTimeout(timer);
+                throw e;
             }
-            return results;
         }
 
-        const inject = async () => {
-            await fetchWithConcurrency(subtitles, 3, 200, async (sub) => {
-                try {
-                    const srtRes = await fetch(sub.url);
-                    if (!srtRes.ok) throw new Error(`HTTP ${srtRes.status}`);
-                    const srtText = await srtRes.text();
-                    const vttText = srtToVtt(srtText);
-                    const blob = new Blob([vttText], { type: 'text/vtt;charset=utf-8' });
-                    const blobUrl = URL.createObjectURL(blob);
-                    _subtitleBlobUrls.push(blobUrl);
-
-                    const track = document.createElement('track');
-                    track.kind = 'subtitles';
-                    track.label = sub.langName || getFullLanguageName(sub.lang);
-                    track.srclang = sub.lang;
-                    track.src = blobUrl;
-                    track.setAttribute('data-stremio', '1');
-                    track.default = false;
-                    video.appendChild(track);
-                    console.log(`[Stremio] Loaded: ${track.label}`);
-                } catch (err) {
-                    console.warn(`[Stremio] Failed ${sub.lang}:`, err.message);
+        async function fetchWithConcurrency(items, concurrency, batchDelay, fn) {
+            for (let i = 0; i < items.length; i += concurrency) {
+                const batch = items.slice(i, i + concurrency);
+                await Promise.allSettled(batch.map(fn));
+                if (i + concurrency < items.length) {
+                    await new Promise(r => setTimeout(r, batchDelay));
                 }
-            });
-            // Refresh subtitle menu once all tracks attempted
-            setTimeout(renderTracksMenu, 300);
-        };
+            }
+        }
 
-        if (video.readyState >= 1) inject();
-        else video.addEventListener('loadedmetadata', inject, { once: true });
+        await fetchWithConcurrency(subtitles, 3, 200, async (sub) => {
+            try {
+                const srtRes = await fetchWithTimeout(sub.url, SUBTITLE_FETCH_TIMEOUT_MS);
+                if (!srtRes.ok) throw new Error(`HTTP ${srtRes.status}`);
+                const srtText = await srtRes.text();
+                const vttText = srtToVtt(srtText);
+                const blob = new Blob([vttText], { type: 'text/vtt;charset=utf-8' });
+                const blobUrl = URL.createObjectURL(blob);
+                _subtitleBlobUrls.push(blobUrl);
+
+                const track = document.createElement('track');
+                track.kind = 'subtitles';
+                track.label = sub.langName || getFullLanguageName(sub.lang);
+                track.srclang = sub.lang;
+                track.src = blobUrl;
+                track.setAttribute('data-stremio', '1');
+                track.default = false;
+                video.appendChild(track);
+                console.log(`[Stremio] Loaded: ${track.label}`);
+            } catch (err) {
+                const reason = err.name === 'AbortError' ? 'timed out (10s)' : err.message;
+                console.warn(`[Stremio] Failed ${sub.lang}: ${reason}`);
+            }
+        });
+
+        // Final menu refresh after all tracks attempted
+        setTimeout(renderTracksMenu, 300);
 
     } catch (err) {
         console.warn('[Stremio] Error:', err.message);
@@ -1464,7 +1538,8 @@ async function playMovie(movieId) {
         if (cleanUrl && (cleanUrl.includes('.m3u8') || cleanUrl.includes('http'))) {
             initHlsPlayer(cleanUrl);
             fetchAndSetTitle('movie', movieId);
-            loadStremioSubtitles('movie', movieId);
+            // Subtitles load lazily when user opens Audio & Subtitles menu
+            _pendingSubtitleArgs = { type: 'movie', tmdbId: movieId, season: null, episode: null };
         } else { displayError(`Invalid stream URL for movie ${movieId}.`); hideLoader(); }
     } catch (err) { displayError(`Failed to fetch movie: ${err.message}`); hideLoader(); }
 }
@@ -1483,7 +1558,8 @@ async function playEpisode(seriesId, seasonNumber, episodeNumber) {
         if (fileId) {
             initHlsPlayer(fileId);
             fetchAndSetTitle('tv', seriesId, seasonNumber, episodeNumber);
-            loadStremioSubtitles('tv', seriesId, seasonNumber, episodeNumber);
+            // Subtitles load lazily when user opens Audio & Subtitles menu
+            _pendingSubtitleArgs = { type: 'tv', tmdbId: seriesId, season: seasonNumber, episode: episodeNumber };
         } else { displayError(`Episode ${episodeNumber} not found.`); hideLoader(); }
     } catch (err) { displayError(`Failed to fetch episode: ${err.message}`); hideLoader(); }
 }
@@ -1534,7 +1610,8 @@ async function resolveAndPlay() {
             revokeAllSubtitleBlobs();
             initHlsPlayer(primaryUrl);
             fetchAndSetTitle('movie', id);
-            loadStremioSubtitles('movie', id);
+            // Subtitles load lazily when user opens Audio & Subtitles menu
+            _pendingSubtitleArgs = { type: 'movie', tmdbId: id, season: null, episode: null };
         } else {
             console.warn('[Router] Movie multimovies failed → GitHub fallback');
             await playMovie(id);
@@ -1551,7 +1628,8 @@ async function resolveAndPlay() {
             revokeAllSubtitleBlobs();
             initHlsPlayer(primaryUrl);
             fetchAndSetTitle('tv', id, season, episode);
-            loadStremioSubtitles('tv', id, season, episode);
+            // Subtitles load lazily when user opens Audio & Subtitles menu
+            _pendingSubtitleArgs = { type: 'tv', tmdbId: id, season: season, episode: episode };
         } else {
             console.warn('[Router] TV multimovies failed → GitHub fallback');
             await playEpisode(id, season, episode);
