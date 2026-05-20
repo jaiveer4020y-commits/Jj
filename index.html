@@ -1501,11 +1501,8 @@ async function fetchFromMultimovies(multimoviesUrl) {
         if (!server) { console.warn('[Multimovies] No server with streaming_url'); return null; }
         const rawUrl = server.result.streaming_url;
         console.log('[Multimovies] Got stream from', server.provider, rawUrl);
-        // Return both URLs:
-        // - proxiedUrl: for Hls.js (desktop/Android) which needs CORS proxy
-        // - rawUrl: for iOS Safari native HLS which doesn't need a proxy and
-        //   stalls badly when all segment requests funnel through Vercel
-        return { proxiedUrl: PROXY_SOURCE2 + encodeURIComponent(rawUrl), rawUrl };
+        // Always proxy through workingg — StreamP2p blocks direct browser requests (CORS/IP-restricted)
+        return PROXY_SOURCE2 + encodeURIComponent(rawUrl);
     } catch (e) { console.warn('[Multimovies] Error:', e.message); return null; }
 }
 
@@ -1602,33 +1599,15 @@ async function fetchAndSetTitle(type, id, season, episode) {
 /* =========================================================================
    ROUTE DISPATCHER
    ========================================================================= */
-
-// iOS Safari uses native HLS — feeding segments through a Vercel proxy causes
-// stalling because every segment request goes through the proxy serially.
-// On iOS we use the raw StreamP2p URL directly; Safari handles it fine.
-function isIosSafari() {
-    return /iPad|iPhone|iPod/.test(navigator.userAgent) ||
-           (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-}
-
-function pickStreamUrl(result) {
-    if (!result) return null;
-    // If it's a plain string (GitHub fallback), use as-is
-    if (typeof result === 'string') return result;
-    // For multimovies results: use raw URL on iOS, proxied on everything else
-    return isIosSafari() ? result.rawUrl : result.proxiedUrl;
-}
-
 async function resolveAndPlay() {
     const path = window.location.pathname;
     const movieMatch = path.match(/\/movie\/(\d+)/i);
     if (movieMatch) {
         const id = movieMatch[1];
         showLoader();
-        const result = await source_multimovies('movie', id, null, null);
-        const primaryUrl = pickStreamUrl(result);
+        const primaryUrl = await source_multimovies('movie', id, null, null);
         if (primaryUrl) {
-            console.log('[Router] Movie → multimovies (' + (isIosSafari() ? 'raw/iOS' : 'proxied') + ')');
+            console.log('[Router] Movie → multimovies');
             revokeAllSubtitleBlobs();
             initHlsPlayer(primaryUrl);
             fetchAndSetTitle('movie', id);
@@ -1643,10 +1622,9 @@ async function resolveAndPlay() {
     if (tvMatch) {
         const [, id, season, episode] = tvMatch;
         showLoader();
-        const result = await source_multimovies('tv', id, season, episode);
-        const primaryUrl = pickStreamUrl(result);
+        const primaryUrl = await source_multimovies('tv', id, season, episode);
         if (primaryUrl) {
-            console.log('[Router] TV → multimovies (' + (isIosSafari() ? 'raw/iOS' : 'proxied') + ')');
+            console.log('[Router] TV → multimovies');
             revokeAllSubtitleBlobs();
             initHlsPlayer(primaryUrl);
             fetchAndSetTitle('tv', id, season, episode);
