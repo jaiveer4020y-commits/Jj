@@ -365,6 +365,72 @@ function resetInactivityTimer(){
     clearTimeout(inactivityTimer);showControls();
     if(!video.paused&&!isSeeking&&!isAnyMenuOpen()&&loadingIndicator.classList.contains('hidden'))
         inactivityTimer=setTimeout(hideControls,INACTIVITY_TIMEOUT);
+    // Monitor buffer and hide loader when enough data is loaded
+let bufferMonitorInterval = null;
+
+function startBufferMonitor() {
+    if (bufferMonitorInterval) clearInterval(bufferMonitorInterval);
+    
+    bufferMonitorInterval = setInterval(() => {
+        // Check if video has buffered enough data
+        if (video.buffered.length > 0) {
+            const bufferedEnd = video.buffered.end(video.buffered.length - 1);
+            const currentTime = video.currentTime || 0;
+            const bufferAhead = bufferedEnd - currentTime;
+            
+            // If we have at least 2 seconds of buffer ahead, hide loader
+            if (bufferAhead >= 2 && !loadingIndicator.classList.contains('hidden')) {
+                console.log(`[Buffer] Enough data loaded (${bufferAhead.toFixed(1)}s ahead), hiding loader`);
+                hideLoader();
+                // Try to play if still paused
+                if (video.paused && !video.ended) {
+                    video.play().catch(e => console.warn('Play after buffer:', e));
+                }
+            }
+        }
+        
+        // Also check readyState - if we have future data, hide loader
+        if (video.readyState >= 3 && !loadingIndicator.classList.contains('hidden')) {
+            console.log(`[Buffer] ReadyState ${video.readyState}, hiding loader`);
+            hideLoader();
+            if (video.paused && !video.ended) {
+                video.play().catch(e => console.warn('Play after readyState:', e));
+            }
+        }
+    }, 500); // Check every 500ms
+}
+
+function stopBufferMonitor() {
+    if (bufferMonitorInterval) {
+        clearInterval(bufferMonitorInterval);
+        bufferMonitorInterval = null;
+    }
+}
+
+// Update hideLoader to also stop the monitor
+function hideLoader() {
+    clearTimeout(_loaderWatchdog);
+    loadingIndicator.classList.add('hidden');
+    resetInactivityTimer();
+    // Don't stop the monitor here, let it run until video plays
+}
+
+// Update showLoader to restart monitor
+function showLoader() {
+    loadingIndicator.classList.remove('hidden');
+    centerPlayPauseOverlay.classList.remove('opacity-100','pointer-events-auto');
+    centerPlayPauseOverlay.classList.add('opacity-0','pointer-events-none');
+    clearTimeout(_loaderWatchdog);
+    // Start buffer monitor when loader shows
+    startBufferMonitor();
+    _loaderWatchdog = setTimeout(() => {
+        if (!loadingIndicator.classList.contains('hidden') && video.currentTime > 0 && !video.paused) {
+            console.log('[Loader] Watchdog forced hide');
+            hideLoader();
+            stopBufferMonitor();
+        }
+    }, 8000);
+}
 }
 
 /* =====================================================================
@@ -662,80 +728,343 @@ async function updateNextEpisodeButton(){
     }else{nextEpisodeButton.style.display='none';}
 }
 
-/* =====================================================================
-   HLS PLAYER INIT
+/*/* =====================================================================
+   HLS PLAYER INIT - FULLY FIXED FOR iOS/SAFARI
    ===================================================================== */
-const HLS_CONFIG={
-    maxBufferLength:30,maxMaxBufferLength:60,backBufferLength:10,
-    fragLoadingMaxRetry:2,fragLoadingRetryDelay:500,fragLoadingMaxRetryTimeout:3000,
-    manifestLoadingMaxRetry:0,manifestLoadingRetryDelay:500,
-    levelLoadingMaxRetry:3,levelLoadingRetryDelay:500,
-    nudgeMaxRetry:3,highBufferWatchdogPeriod:2,
-    renderTextTracksNatively:true,subtitleDisplay:true,
-    startLevel:-1,abrEwmaDefaultEstimate:1000000,
-    maxFragLookUpTolerance:0.9,
+
+// Optimized HLS config for better compatibility
+const HLS_CONFIG = {
+    maxBufferLength: 30,
+    maxMaxBufferLength: 60,
+    backBufferLength: 10,
+    fragLoadingMaxRetry: 3,
+    fragLoadingRetryDelay: 500,
+    fragLoadingMaxRetryTimeout: 8000,
+    manifestLoadingMaxRetry: 2,
+    manifestLoadingRetryDelay: 500,
+    levelLoadingMaxRetry: 3,
+    levelLoadingRetryDelay: 500,
+    nudgeMaxRetry: 4,
+    highBufferWatchdogPeriod: 2,
+    renderTextTracksNatively: true,
+    subtitleDisplay: true,
+    startLevel: -1,
+    abrEwmaDefaultEstimate: 1000000,
+    maxFragLookUpTolerance: 0.5,
+    enableWorker: true,
+    enableSoftwareAES: true,
+    progressive: true
 };
 
-function isDirectVideoUrl(url){
-    try{return/\.(mp4|webm|ogg|ogv|mov|mkv|avi|flv|m4v)(\?|$)/.test(new URL(url).pathname.toLowerCase());}
-    catch(e){return/\.(mp4|webm|ogg|ogv|mov|mkv|avi|flv|m4v)(\?|$)/.test(url.toLowerCase());}
+function isDirectVideoUrl(url) {
+    try {
+        return /\.(mp4|webm|ogg|ogv|mov|mkv|avi|flv|m4v)(\?|$)/.test(new URL(url).pathname.toLowerCase());
+    } catch(e) {
+        return /\.(mp4|webm|ogg|ogv|mov|mkv|avi|flv|m4v)(\?|$)/.test(url.toLowerCase());
+    }
 }
 
-function initHlsPlayer(url){
-    saveVideoProgress();stopProgressSaving();hasRestoredPosition=false;
-    _pendingSubtitleArgs=null;_subtitlesLoaded=false;_subtitlesLoading=false;
-    if(hlsInstance){hlsInstance.destroy();hlsInstance=null;}
+// Buffer monitor variables
+let bufferMonitorInterval = null;
+let iosGuardInterval = null;
+
+function startBufferMonitor() {
+    if (bufferMonitorInterval) clearInterval(bufferMonitorInterval);
+    
+    bufferMonitorInterval = setInterval(() => {
+        // Check if video has buffered enough data
+        if (video.buffered.length > 0) {
+            const bufferedEnd = video.buffered.end(video.buffered.length - 1);
+            const currentTime = video.currentTime || 0;
+            const bufferAhead = bufferedEnd - currentTime;
+            
+            // If we have at least 2 seconds of buffer ahead, hide loader
+            if (bufferAhead >= 2 && !loadingIndicator.classList.contains('hidden')) {
+                console.log(`[Buffer] Enough data (${bufferAhead.toFixed(1)}s ahead), hiding loader`);
+                hideLoader();
+                if (video.paused && !video.ended && video.readyState >= 2) {
+                    video.play().catch(e => console.warn('Play after buffer:', e));
+                }
+            }
+        }
+        
+        // Also check readyState - if we have future data, hide loader
+        if (video.readyState >= 3 && !loadingIndicator.classList.contains('hidden')) {
+            console.log(`[Buffer] ReadyState ${video.readyState}, hiding loader`);
+            hideLoader();
+            if (video.paused && !video.ended) {
+                video.play().catch(e => console.warn('Play after readyState:', e));
+            }
+        }
+    }, 300);
+}
+
+function stopBufferMonitor() {
+    if (bufferMonitorInterval) {
+        clearInterval(bufferMonitorInterval);
+        bufferMonitorInterval = null;
+    }
+}
+
+function stopIOSGuard() {
+    if (iosGuardInterval) {
+        clearInterval(iosGuardInterval);
+        iosGuardInterval = null;
+    }
+}
+
+function initHlsPlayer(url) {
+    saveVideoProgress();
+    stopProgressSaving();
+    hasRestoredPosition = false;
+    _pendingSubtitleArgs = null;
+    _subtitlesLoaded = false;
+    _subtitlesLoading = false;
+    
+    if (hlsInstance) { 
+        hlsInstance.destroy(); 
+        hlsInstance = null; 
+    }
     revokeAllSubtitleBlobs();
     errorMessageDiv.classList.add('hidden');
-    resolvedUrl=url;videoStorageKey=generateStorageKey(url);
-    console.log('[Player] Key:',videoStorageKey);
+    resolvedUrl = url;
+    videoStorageKey = generateStorageKey(url);
+    console.log('[Player] Key:', videoStorageKey);
 
-    if(isDirectVideoUrl(url)){
-        isHlsJsMode=false;showLoader();video.src=url;
-        video.addEventListener('loadedmetadata',()=>{renderTracksMenu();hideLoader();restoreVideoProgress();startProgressSaving();video.play().catch(()=>{});updateNextEpisodeButton();},{once:true});
-        video.addEventListener('error',()=>{if(video.currentTime>0||video.readyState>=2)return;displayError('Failed to load video');hideLoader();},{once:true});
+    // Direct video URL (MP4, etc.)
+    if (isDirectVideoUrl(url)) {
+        isHlsJsMode = false;
+        showLoader();
+        video.src = url;
+        video.addEventListener('loadedmetadata', () => {
+            renderTracksMenu();
+            hideLoader();
+            restoreVideoProgress();
+            startProgressSaving();
+            video.play().catch(() => {});
+            updateNextEpisodeButton();
+        }, { once: true });
+        video.addEventListener('error', () => {
+            if (video.currentTime > 0 || video.readyState >= 2) return;
+            displayError('Failed to load video');
+            hideLoader();
+        }, { once: true });
         return;
     }
 
-    if(Hls.isSupported()){
-        isHlsJsMode=true;showLoader();
-        const h=new Hls(HLS_CONFIG);hlsInstance=h;
-        h.on(Hls.Events.MEDIA_ATTACHED,()=>h.loadSource(url));
-        h.on(Hls.Events.MANIFEST_PARSED,()=>{renderTracksMenu();renderQualityMenu();updateNextEpisodeButton();});
-        h.on(Hls.Events.AUDIO_TRACK_SWITCHED,renderTracksMenu);
-        h.on(Hls.Events.SUBTITLE_TRACK_SWITCHED,renderTracksMenu);
-        h.on(Hls.Events.LEVEL_SWITCHED,renderQualityMenu);
-        h.on(Hls.Events.ERROR,(ev,data)=>{
-            if(data.fatal){
-                // Fatal error — hide loader and show message, don't loop forever
-                console.error('[HLS] Fatal:',data.type,data.details);
-                h.destroy();hlsInstance=null;
-                hideLoader();
-                displayError('Stream error — please try again');
-            } else if(data.type===Hls.ErrorTypes.NETWORK_ERROR&&data.details===Hls.ErrorDetails.FRAG_LOAD_ERROR){
-                // Non-fatal fragment error — loader is likely shown by 'waiting'; force-hide after 3s
-                // if video was previously playing (it will recover on its own)
-                setTimeout(()=>{if(!loadingIndicator.classList.contains('hidden')&&video.currentTime>0)hideLoader();},3000);
+    // Detect Safari/iOS
+    const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent) || 
+                     /iPad|iPhone|iPod/.test(navigator.userAgent);
+
+    // HLS.js for Android/Desktop browsers
+    if (Hls.isSupported() && !isSafari) {
+        isHlsJsMode = true;
+        showLoader();
+        startBufferMonitor();
+        
+        const h = new Hls(HLS_CONFIG);
+        hlsInstance = h;
+        let fragmentLoaded = false;
+        
+        h.on(Hls.Events.MEDIA_ATTACHED, () => {
+            console.log('[HLS] Media attached');
+            h.loadSource(url);
+        });
+        
+        h.on(Hls.Events.MANIFEST_PARSED, () => {
+            console.log('[HLS] Manifest parsed');
+            renderTracksMenu();
+            renderQualityMenu();
+            updateNextEpisodeButton();
+        });
+        
+        h.on(Hls.Events.FRAG_LOADED, () => {
+            if (!fragmentLoaded) {
+                fragmentLoaded = true;
+                console.log('[HLS] First fragment loaded');
+                // Check buffer immediately
+                if (video.buffered.length > 0) {
+                    const bufferedEnd = video.buffered.end(video.buffered.length - 1);
+                    if (bufferedEnd - (video.currentTime || 0) >= 1) {
+                        hideLoader();
+                        stopBufferMonitor();
+                    }
+                }
+                startProgressSaving();
+                restoreVideoProgress();
+                video.play().catch(() => {});
             }
         });
+        
+        h.on(Hls.Events.AUDIO_TRACK_SWITCHED, renderTracksMenu);
+        h.on(Hls.Events.SUBTITLE_TRACK_SWITCHED, renderTracksMenu);
+        h.on(Hls.Events.LEVEL_SWITCHED, renderQualityMenu);
+        
+        h.on(Hls.Events.ERROR, (ev, data) => {
+            console.error('[HLS] Error:', data.type, data.details);
+            if (data.fatal) {
+                if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
+                    console.log('[HLS] Network error, recovering...');
+                    h.startLoad();
+                } else if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
+                    console.log('[HLS] Media error, recovering...');
+                    h.recoverMediaError();
+                } else {
+                    displayError('Playback error');
+                    h.destroy();
+                    hlsInstance = null;
+                    hideLoader();
+                    stopBufferMonitor();
+                }
+            }
+        });
+        
         h.attachMedia(video);
-        video.addEventListener('loadedmetadata',()=>restoreVideoProgress(),{once:true});
-        video.addEventListener('canplay',()=>{hideLoader();startProgressSaving();video.play().catch(()=>{});},{once:true});
-    } else if(video.canPlayType('application/vnd.apple.mpegurl')){
-        isHlsJsMode=false;showLoader();video.src=url;
-        video.addEventListener('loadedmetadata',()=>{renderTracksMenu();restoreVideoProgress();startProgressSaving();updateNextEpisodeButton();video.play().catch(()=>{});},{once:true});
-        video.addEventListener('canplaythrough',()=>{hideLoader();},{once:true});
-        // iOS polling guard: if loader is still shown but video is playing, force-hide
-        const guard=setInterval(()=>{
-            if(!loadingIndicator.classList.contains('hidden')){if(video.currentTime>0&&!video.paused){hideLoader();clearInterval(guard);}}
-            else clearInterval(guard);
-        },500);
-        video.addEventListener('error',()=>{clearInterval(guard);if(video.currentTime>0&&!video.paused)return;displayError('Failed to load stream');hideLoader();},{once:true});
-    } else {
-        displayError('Browser does not support HLS');hideLoader();
+        video.addEventListener('loadedmetadata', () => restoreVideoProgress(), { once: true });
+        video.addEventListener('canplay', () => {
+            if (!fragmentLoaded) {
+                setTimeout(() => {
+                    if (loadingIndicator && !loadingIndicator.classList.contains('hidden')) {
+                        hideLoader();
+                        stopBufferMonitor();
+                        startProgressSaving();
+                        video.play().catch(() => {});
+                    }
+                }, 1000);
+            }
+        }, { once: true });
+        
+        // Safety timeout
+        setTimeout(() => {
+            if (!fragmentLoaded && loadingIndicator && !loadingIndicator.classList.contains('hidden')) {
+                console.warn('[HLS] Timeout - forcing start');
+                hideLoader();
+                stopBufferMonitor();
+                startProgressSaving();
+                restoreVideoProgress();
+                video.play().catch(() => {});
+            }
+        }, 12000);
+        
+    } 
+    // Native HLS for Safari/iOS - WITH BUFFER MONITORING
+    else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+        isHlsJsMode = false;
+        showLoader();
+        startBufferMonitor();
+        
+        // Remove cache-busting params that might break Safari
+        const cleanUrl = url.split('?')[0];
+        video.src = cleanUrl;
+        video.load();
+        
+        let started = false;
+        let progressCount = 0;
+        
+        // Monitor progress events
+        const onProgress = () => {
+            progressCount++;
+            console.log(`[iOS] Progress ${progressCount}, readyState: ${video.readyState}`);
+            
+            if (video.buffered.length > 0) {
+                const bufferedEnd = video.buffered.end(video.buffered.length - 1);
+                const currentTime = video.currentTime || 0;
+                const bufferAhead = bufferedEnd - currentTime;
+                
+                if (bufferAhead >= 1.5 && !started) {
+                    started = true;
+                    console.log(`[iOS] Buffer OK (${bufferAhead.toFixed(1)}s), starting`);
+                    hideLoader();
+                    stopBufferMonitor();
+                    startProgressSaving();
+                    restoreVideoProgress();
+                    video.play().catch(e => console.warn('Play:', e));
+                    video.removeEventListener('progress', onProgress);
+                    if (_iosForceStartTimer) clearTimeout(_iosForceStartTimer);
+                }
+            }
+        };
+        
+        video.addEventListener('progress', onProgress);
+        
+        video.addEventListener('loadedmetadata', () => {
+            console.log('[iOS] Loaded metadata');
+            renderTracksMenu();
+            restoreVideoProgress();
+            updateNextEpisodeButton();
+            
+            if (video.buffered.length > 0 && !started) {
+                const bufferedEnd = video.buffered.end(video.buffered.length - 1);
+                if (bufferedEnd - (video.currentTime || 0) >= 1) {
+                    started = true;
+                    hideLoader();
+                    stopBufferMonitor();
+                    startProgressSaving();
+                    video.play().catch(() => {});
+                    if (_iosForceStartTimer) clearTimeout(_iosForceStartTimer);
+                }
+            }
+        });
+        
+        video.addEventListener('canplay', () => {
+            console.log('[iOS] Canplay event');
+            if (!started) {
+                started = true;
+                hideLoader();
+                stopBufferMonitor();
+                startProgressSaving();
+                restoreVideoProgress();
+                video.play().catch(() => {});
+            }
+            if (_iosForceStartTimer) clearTimeout(_iosForceStartTimer);
+        });
+        
+        video.addEventListener('playing', () => {
+            console.log('[iOS] Playing event');
+            started = true;
+            hideLoader();
+            stopBufferMonitor();
+            if (_iosForceStartTimer) clearTimeout(_iosForceStartTimer);
+        });
+        
+        // Fallback timeout - 10 seconds
+        let _iosForceStartTimer = setTimeout(() => {
+            if (!started && video.readyState >= 1) {
+                console.warn('[iOS] Force start timeout - checking buffer');
+                if (video.buffered.length > 0) {
+                    const bufferedEnd = video.buffered.end(video.buffered.length - 1);
+                    if (bufferedEnd > (video.currentTime || 0)) {
+                        started = true;
+                        hideLoader();
+                        stopBufferMonitor();
+                        startProgressSaving();
+                        restoreVideoProgress();
+                        video.play().catch(e => console.warn('Force play:', e));
+                        video.removeEventListener('progress', onProgress);
+                    }
+                }
+            }
+        }, 10000);
+        
+        video.addEventListener('playing', () => clearTimeout(_iosForceStartTimer), { once: true });
+        
+        video.addEventListener('error', (e) => {
+            clearTimeout(_iosForceStartTimer);
+            stopBufferMonitor();
+            video.removeEventListener('progress', onProgress);
+            console.error('[iOS] Error:', video.error);
+            if (!started && video.readyState < 1) {
+                displayError('Failed to load stream');
+                hideLoader();
+            }
+        });
+        
+    } 
+    else {
+        displayError('Browser does not support HLS');
+        hideLoader();
     }
 }
-
 /* =====================================================================
    SUBTITLES  — lazy, first 10 langs, 10s timeout, concurrency=3
    ===================================================================== */
