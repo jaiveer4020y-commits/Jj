@@ -661,12 +661,12 @@ async function updateNextEpisodeButton(){
 const HLS_CONFIG={
     maxBufferLength:30,maxMaxBufferLength:60,backBufferLength:10,
     fragLoadingMaxRetry:2,fragLoadingRetryDelay:500,fragLoadingMaxRetryTimeout:3000,
-    manifestLoadingMaxRetry:3,manifestLoadingRetryDelay:500,
+    manifestLoadingMaxRetry:0,manifestLoadingRetryDelay:500,
     levelLoadingMaxRetry:3,levelLoadingRetryDelay:500,
     nudgeMaxRetry:3,highBufferWatchdogPeriod:2,
     renderTextTracksNatively:true,subtitleDisplay:true,
     startLevel:-1,abrEwmaDefaultEstimate:1000000,
-    maxFragLookUpTolerance:0.1,
+    maxFragLookUpTolerance:0.9,
 };
 
 function isDirectVideoUrl(url){
