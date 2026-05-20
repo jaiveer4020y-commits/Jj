@@ -1,9 +1,13 @@
 <html lang="en"><head>
-    <meta charset="UTF-8">
+    <!-- Add this to <head> section for Safari compatibility -->
+<meta name="referrer" content="no-referrer">
+<meta http-equiv="Accept-CH" content="Viewport-Width, Width">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, shrink-to-fit=no">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="referrer" content="no-referrer">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Netout Player</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
@@ -119,24 +123,16 @@
         @media(max-width:1000px){#next-episode-button{font-size:.7rem;padding:0 4px}#next-episode-button svg{width:14px;height:14px}}
         :-webkit-full-screen #title-display{bottom:80px;top:auto;transform:translateX(-50%)}
         :fullscreen #title-display{bottom:80px;top:auto;transform:translateX(-50%)}
-        video{-webkit-tap-highlight-color:transparent}
         video::-webkit-media-controls{display:none!important}
         video::-webkit-media-controls-enclosure{display:none!important}
-        video::-webkit-media-controls-start-playback-button{display:none!important}
     </style>
 </head>
 <body>
 <div id="video-container" class="relative">
     <video id="video" class="w-full h-full object-cover" autoplay playsinline style="--cue-bottom:80px" disableremoteplayback></video>
     <div id="skip-hint" class="text-white"></div>
-    <div id="loading-indicator" class="absolute inset-0 flex items-center justify-center bg-black/80 z-30 hidden">
-        <div class="flex flex-col items-center">
-            <div class="relative w-12 h-12 md:w-16 md:h-16">
-                <div class="absolute inset-0 border-4 border-gray-600 rounded-full"></div>
-                <div class="absolute inset-0 border-4 border-red-600 border-t-transparent rounded-full animate-spin"></div>
-            </div>
-            <p class="text-white text-sm md:text-base mt-4 font-medium">Loading stream...</p>
-        </div>
+    <div id="loading-indicator" class="absolute inset-0 flex items-center justify-center bg-black/50 z-30 hidden">
+        <img src="https://assets.nflxext.com/en_us/pages/wiplayer/site-spinner.png" class="w-20 h-20 rounded-full shadow-lg" alt="Loading">
     </div>
     <div id="top-overlay" class="absolute inset-0 cursor-pointer z-10"></div>
     <div id="center-play-pause-overlay" class="flex-col absolute left-1/2 right-1/2 inset-0 flex items-center justify-center z-10 transition-opacity duration-500 opacity-100 pointer-events-auto">
@@ -284,13 +280,14 @@ let isSeeking=false,isVolumeAdjusting=false,lastKnownVolume=0.5;
 let currentMouseMoveHandler=null,currentTouchMoveHandler=null;
 let videoStorageKey=null,hasRestoredPosition=false,saveProgressInterval=null;
 let resolvedUrl=null,_subtitleBlobUrls=[];
+// Lazy subtitle state
 let _pendingSubtitleArgs=null,_subtitlesLoaded=false,_subtitlesLoading=false;
 const SUBTITLE_FETCH_TIMEOUT_MS=10000;
+// Loader watchdog — forces hide if video is playing but loader never got hidden
 let _loaderWatchdog=null;
-let _iosForceStartTimer=null;
 
 /* =====================================================================
-   STABLE STORAGE KEY
+   STABLE STORAGE KEY  (StreamP2p tokens rotate; stable ID = "njwims" etc)
    ===================================================================== */
 function extractStableStreamId(url){
     if(!url)return null;
@@ -323,25 +320,28 @@ function formatTime(s){
 function displayError(msg){console.error(msg);errorMessageDiv.textContent=msg;errorMessageDiv.classList.remove('hidden');}
 
 /* =====================================================================
-   LOADER
+   LOADER  — with watchdog so a stuck fragment never freezes the UI
    ===================================================================== */
 function showLoader(){
     loadingIndicator.classList.remove('hidden');
     centerPlayPauseOverlay.classList.remove('opacity-100','pointer-events-auto');
     centerPlayPauseOverlay.classList.add('opacity-0','pointer-events-none');
+    // Watchdog: if video is actually playing after 8s and loader is still shown, force-hide
     clearTimeout(_loaderWatchdog);
     _loaderWatchdog=setTimeout(()=>{
         if(!loadingIndicator.classList.contains('hidden')&&video.currentTime>0&&!video.paused){
-            console.log('[Loader] Watchdog forced hide');
+            console.warn('[Loader] Watchdog forced hide — video is playing');
             hideLoader();
         }
     },8000);
 }
 function hideLoader(){
     clearTimeout(_loaderWatchdog);
+    _loaderWatchdog=null;
     loadingIndicator.classList.add('hidden');
     resetInactivityTimer();
 }
+
 function showControls(){
     bottomOverlay.classList.remove('controls-hidden');bottomOverlay.classList.add('controls-visible');
     if(loadingIndicator.classList.contains('hidden')){
@@ -453,7 +453,7 @@ function toggleVideoPlayPause(){
 }
 
 /* =====================================================================
-   SEEKBAR
+   SEEKBAR  — fixed: stores last drag X, endSeeking uses it, not lift point
    ===================================================================== */
 let _lastSeekClientX=0;
 function calculateNewTime(clientX){
@@ -549,7 +549,7 @@ const LM={'eng':'English','en':'English','und':'Undefined','hin':'Hindi','hi':'H
 function getLang(code){if(!code)return'';const lc=code.toLowerCase();return LM[lc]||code.charAt(0).toUpperCase()+code.slice(1);}
 
 /* =====================================================================
-   AUDIO / SUBTITLE MENU
+   AUDIO / SUBTITLE MENU  — lazy loads subtitles on first open
    ===================================================================== */
 function toggleAudioSubtitleMenu(){
     const hidden=audioSubtitleMenu.classList.contains('hidden');
@@ -565,6 +565,7 @@ function toggleAudioSubtitleMenu(){
         audioSubtitleMenu.classList.remove('hidden');clearTimeout(inactivityTimer);showControls();
     }else{audioSubtitleMenu.classList.add('hidden');resetInactivityTimer();}
 }
+
 function _checkmark(visible){
     const s=document.createElement('span');
     s.style.cssText=`visibility:${visible?'visible':'hidden'};flex-shrink:0;display:inline-flex;align-items:center`;
@@ -577,6 +578,7 @@ function _trackDisplayName(track,isHls){
     if(primary){const l=primary.toLowerCase();if(LM[l])name=LM[l];else if(!name||name.toLowerCase()==='undefined')name=primary;}
     return name||`Track ${track.id??track.groupId??''}`;
 }
+
 function renderTracksMenuAudioOnly(){
     audioList.innerHTML='';
     const tracks=isHlsJsMode?hlsInstance.audioTracks:(video.audioTracks?Array.from(video.audioTracks):[]);
@@ -640,13 +642,14 @@ function toggleQualityMenu(){const h=qualityMenu.classList.contains('hidden');if
 qualityButton.addEventListener('click',e=>{e.stopPropagation();toggleQualityMenu();});
 
 /* =====================================================================
-   NEXT EPISODE
+   NEXT EPISODE  (uses multimovies API, not GitHub JSON)
    ===================================================================== */
 function extractEpisodeInfoFromUrl(){const m=window.location.pathname.match(/\/tv\/(\d+)\/S(\d+)\/E(\d+)/i);return m?{seriesId:m[1],season:parseInt(m[2]),episode:parseInt(m[3])}:null;}
 async function updateNextEpisodeButton(){
     const info=extractEpisodeInfoFromUrl();
     if(!info){nextEpisodeButton.style.display='none';return;}
     currentSeriesId=info.seriesId;currentSeason=info.season;currentEpisode=info.episode;
+    // Try to determine total episodes from TMDB season data via our proxy
     if(totalEpisodes===null){
         try{
             const r=await fetch(`https://search-proxy.bingeoutofficial.workers.dev/tv/${currentSeriesId}/season/${currentSeason}`);
@@ -660,16 +663,17 @@ async function updateNextEpisodeButton(){
 }
 
 /* =====================================================================
-   HLS PLAYER INIT - FIXED FOR iPHONE/SAFARI
+   HLS PLAYER INIT
    ===================================================================== */
 const HLS_CONFIG={
     maxBufferLength:30,maxMaxBufferLength:60,backBufferLength:10,
-    fragLoadingMaxRetry:4,fragLoadingRetryDelay:500,fragLoadingMaxRetryTimeout:10000,
-    manifestLoadingMaxRetry:2,manifestLoadingRetryDelay:500,
+    fragLoadingMaxRetry:2,fragLoadingRetryDelay:500,fragLoadingMaxRetryTimeout:3000,
+    manifestLoadingMaxRetry:0,manifestLoadingRetryDelay:500,
     levelLoadingMaxRetry:3,levelLoadingRetryDelay:500,
-    nudgeMaxRetry:5,highBufferWatchdogPeriod:2,
+    nudgeMaxRetry:3,highBufferWatchdogPeriod:2,
     renderTextTracksNatively:true,subtitleDisplay:true,
-    startLevel:-1,enableWorker:true,enableSoftwareAES:true
+    startLevel:-1,abrEwmaDefaultEstimate:1000000,
+    maxFragLookUpTolerance:0.9,
 };
 
 function isDirectVideoUrl(url){
@@ -681,83 +685,59 @@ function initHlsPlayer(url){
     saveVideoProgress();stopProgressSaving();hasRestoredPosition=false;
     _pendingSubtitleArgs=null;_subtitlesLoaded=false;_subtitlesLoading=false;
     if(hlsInstance){hlsInstance.destroy();hlsInstance=null;}
-    revokeAllSubtitleBlobs();errorMessageDiv.classList.add('hidden');
+    revokeAllSubtitleBlobs();
+    errorMessageDiv.classList.add('hidden');
     resolvedUrl=url;videoStorageKey=generateStorageKey(url);
     console.log('[Player] Key:',videoStorageKey);
-    
-    // Detect Safari/iOS
-    const isSafari=/^((?!chrome|android).)*safari/i.test(navigator.userAgent)||/iPad|iPhone|iPod/.test(navigator.userAgent);
-    
+
     if(isDirectVideoUrl(url)){
         isHlsJsMode=false;showLoader();video.src=url;
         video.addEventListener('loadedmetadata',()=>{renderTracksMenu();hideLoader();restoreVideoProgress();startProgressSaving();video.play().catch(()=>{});updateNextEpisodeButton();},{once:true});
         video.addEventListener('error',()=>{if(video.currentTime>0||video.readyState>=2)return;displayError('Failed to load video');hideLoader();},{once:true});
         return;
     }
-    
-    if(Hls.isSupported()&&!isSafari){
-        // Android/other browsers
+
+    if(Hls.isSupported()){
         isHlsJsMode=true;showLoader();
         const h=new Hls(HLS_CONFIG);hlsInstance=h;
-        let fragmentLoaded=false;
         h.on(Hls.Events.MEDIA_ATTACHED,()=>h.loadSource(url));
         h.on(Hls.Events.MANIFEST_PARSED,()=>{renderTracksMenu();renderQualityMenu();updateNextEpisodeButton();});
-        h.on(Hls.Events.FRAG_LOADED,()=>{if(!fragmentLoaded){fragmentLoaded=true;hideLoader();startProgressSaving();restoreVideoProgress();video.play().catch(()=>{});}});
-        h.on(Hls.Events.ERROR,(ev,data)=>{if(data.fatal){if(data.type===Hls.ErrorTypes.NETWORK_ERROR)h.startLoad();else if(data.type===Hls.ErrorTypes.MEDIA_ERROR)h.recoverMediaError();else{displayError('Playback error');h.destroy();hlsInstance=null;hideLoader();}}});
+        h.on(Hls.Events.AUDIO_TRACK_SWITCHED,renderTracksMenu);
+        h.on(Hls.Events.SUBTITLE_TRACK_SWITCHED,renderTracksMenu);
+        h.on(Hls.Events.LEVEL_SWITCHED,renderQualityMenu);
+        h.on(Hls.Events.ERROR,(ev,data)=>{
+            if(data.fatal){
+                // Fatal error — hide loader and show message, don't loop forever
+                console.error('[HLS] Fatal:',data.type,data.details);
+                h.destroy();hlsInstance=null;
+                hideLoader();
+                displayError('Stream error — please try again');
+            } else if(data.type===Hls.ErrorTypes.NETWORK_ERROR&&data.details===Hls.ErrorDetails.FRAG_LOAD_ERROR){
+                // Non-fatal fragment error — loader is likely shown by 'waiting'; force-hide after 3s
+                // if video was previously playing (it will recover on its own)
+                setTimeout(()=>{if(!loadingIndicator.classList.contains('hidden')&&video.currentTime>0)hideLoader();},3000);
+            }
+        });
         h.attachMedia(video);
         video.addEventListener('loadedmetadata',()=>restoreVideoProgress(),{once:true});
-        video.addEventListener('canplay',()=>{if(!fragmentLoaded){setTimeout(()=>{if(loadingIndicator&&!loadingIndicator.classList.contains('hidden')){hideLoader();startProgressSaving();video.play().catch(()=>{});}},1000);}},{once:true});
-        setTimeout(()=>{if(!fragmentLoaded&&loadingIndicator&&!loadingIndicator.classList.contains('hidden')){console.warn('[HLS] Timeout - forcing start');hideLoader();startProgressSaving();restoreVideoProgress();video.play().catch(()=>{});}},10000);
-    }else if(video.canPlayType('application/vnd.apple.mpegurl')){
-        // NATIVE HLS FOR SAFARI/iOS - CRITICAL FIX
-        isHlsJsMode=false;showLoader();
-        const cleanUrl=url.split('?')[0];
-        video.src=cleanUrl;
-        video.load();
-        let started=false;
-        let progressCount=0;
-        const onProgress=()=>{
-            progressCount++;
-            console.log(`[iOS] Progress ${progressCount}, readyState:${video.readyState}`);
-            if(progressCount>=2&&!started&&video.readyState>=1){
-                started=true;
-                console.log('[iOS] Force starting after progress events');
-                hideLoader();startProgressSaving();restoreVideoProgress();
-                video.play().catch(e=>console.warn('Play:',e));
-                video.removeEventListener('progress',onProgress);
-                if(_iosForceStartTimer)clearTimeout(_iosForceStartTimer);
-            }
-        };
-        video.addEventListener('progress',onProgress);
-        video.addEventListener('loadedmetadata',()=>{
-            console.log('[iOS] Loaded metadata, readyState:',video.readyState);
-            renderTracksMenu();restoreVideoProgress();updateNextEpisodeButton();
-            if(video.readyState>=2&&!started){
-                started=true;hideLoader();startProgressSaving();video.play().catch(()=>{});
-                if(_iosForceStartTimer)clearTimeout(_iosForceStartTimer);
-            }
-        });
-        video.addEventListener('canplay',()=>{
-            console.log('[iOS] Canplay event');
-            if(!started){started=true;hideLoader();startProgressSaving();restoreVideoProgress();video.play().catch(()=>{});}
-            if(_iosForceStartTimer)clearTimeout(_iosForceStartTimer);
-        });
-        video.addEventListener('playing',()=>{console.log('[iOS] Playing');started=true;hideLoader();if(_iosForceStartTimer)clearTimeout(_iosForceStartTimer);});
-        _iosForceStartTimer=setTimeout(()=>{
-            if(!started&&video.readyState>=1){
-                console.warn('[iOS] Force start timeout - starting video');
-                started=true;hideLoader();startProgressSaving();restoreVideoProgress();
-                video.play().catch(e=>console.warn('Force play:',e));
-                video.removeEventListener('progress',onProgress);
-            }
-        },6000);
-        video.addEventListener('playing',()=>clearTimeout(_iosForceStartTimer),{once:true});
-        video.addEventListener('error',(e)=>{clearTimeout(_iosForceStartTimer);video.removeEventListener('progress',onProgress);console.error('[iOS] Error:',video.error);if(!started&&video.readyState<1){displayError('Failed to load stream');hideLoader();}});
-    }else{displayError('Browser does not support HLS');hideLoader();}
+        video.addEventListener('canplay',()=>{hideLoader();startProgressSaving();video.play().catch(()=>{});},{once:true});
+    } else if(video.canPlayType('application/vnd.apple.mpegurl')){
+        isHlsJsMode=false;showLoader();video.src=url;
+        video.addEventListener('loadedmetadata',()=>{renderTracksMenu();restoreVideoProgress();startProgressSaving();updateNextEpisodeButton();video.play().catch(()=>{});},{once:true});
+        video.addEventListener('canplaythrough',()=>{hideLoader();},{once:true});
+        // iOS polling guard: if loader is still shown but video is playing, force-hide
+        const guard=setInterval(()=>{
+            if(!loadingIndicator.classList.contains('hidden')){if(video.currentTime>0&&!video.paused){hideLoader();clearInterval(guard);}}
+            else clearInterval(guard);
+        },500);
+        video.addEventListener('error',()=>{clearInterval(guard);if(video.currentTime>0&&!video.paused)return;displayError('Failed to load stream');hideLoader();},{once:true});
+    } else {
+        displayError('Browser does not support HLS');hideLoader();
+    }
 }
 
 /* =====================================================================
-   SUBTITLES
+   SUBTITLES  — lazy, first 10 langs, 10s timeout, concurrency=3
    ===================================================================== */
 async function loadStremioSubtitles(type,tmdbId,season,episode){
     Array.from(video.querySelectorAll('track[data-stremio]')).forEach(t=>t.remove());
@@ -794,7 +774,7 @@ function srtToVtt(srt){
 }
 
 /* =====================================================================
-   SOURCE - multimovies only
+   SOURCE — multimovies only, NO GitHub fallback
    ===================================================================== */
 const TMDB_PROXY='https://search-proxy.bingeoutofficial.workers.dev';
 const MULTIMOVIES_API='https://hls-proxy.vercel.app/api/?url=';
@@ -815,8 +795,8 @@ async function fetchFromMultimovies(mvUrl){
         const srv=(data.servers.find(s=>s.provider==='StreamP2p'&&s.result?.streaming_url)||data.servers.find(s=>s.result?.streaming_url));
         if(!srv)return null;
         const raw=srv.result.streaming_url;
-        console.log('[Multimovies] Got stream from',srv.provider);
-        return raw;
+        console.log('[Multimovies] Got stream from',srv.provider,raw);
+        return PROXY+encodeURIComponent(raw);
     }catch(e){return null;}
 }
 async function source_multimovies(type,id,season,episode){
@@ -847,7 +827,7 @@ async function fetchAndSetTitle(type,id,season,episode){
 }
 
 /* =====================================================================
-   ROUTER
+   ROUTER  — multimovies only; shows error if it fails (no GitHub)
    ===================================================================== */
 async function resolveAndPlay(){
     const path=window.location.pathname;
@@ -856,7 +836,7 @@ async function resolveAndPlay(){
         const id=mv[1];showLoader();
         const url=await source_multimovies('movie',id,null,null);
         if(url){revokeAllSubtitleBlobs();initHlsPlayer(url);fetchAndSetTitle('movie',id);_pendingSubtitleArgs={type:'movie',tmdbId:id,season:null,episode:null};}
-        else{hideLoader();displayError('Could not load movie');}
+        else{hideLoader();displayError('Could not load movie. Please try again later.');}
         return;
     }
     const tv=path.match(/\/tv\/(\d+)\/S(\d+)\/E(\d+)/i);
@@ -864,9 +844,10 @@ async function resolveAndPlay(){
         const[,id,season,episode]=tv;showLoader();
         const url=await source_multimovies('tv',id,season,episode);
         if(url){revokeAllSubtitleBlobs();initHlsPlayer(url);fetchAndSetTitle('tv',id,season,episode);_pendingSubtitleArgs={type:'tv',tmdbId:id,season,episode};}
-        else{hideLoader();displayError('Could not load episode');}
+        else{hideLoader();displayError('Could not load episode. Please try again later.');}
         return;
     }
+    // Default test stream
     initHlsPlayer('https://vidmmo.com/hls/ZDBtrL1WMPQipj3EubEdG6tAKeYJ0Nt3/master.m3u8');
 }
 
@@ -900,6 +881,7 @@ function setupUIControls(){
     video.addEventListener('progress',updateBufferProgress);
     video.addEventListener('loadedmetadata',()=>{updateProgress();updateBufferProgress();remainingTimeDisplay.textContent=`-${formatTime(video.duration)}`;});
     video.addEventListener('volumechange',updateVolumeSlider);
+    // Loader: waiting/stalled show it; playing/canplay/seeked hide it
     video.addEventListener('waiting',()=>{if(!isSeeking)showLoader();});
     video.addEventListener('stalled',()=>{if(!isSeeking)showLoader();});
     video.addEventListener('playing',hideLoader);
