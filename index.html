@@ -857,43 +857,84 @@ function initHlsPlayer(url) {
         displayError('Browser does not support HLS');
         hideLoader();
     }
-}/* =====================================================================
-   SUBTITLES  — lazy, first 10 langs, 10s timeout, concurrency=3
+}//* =====================================================================
+   SUBTITLES - NO BLOBS, DIRECT RAW URLS
    ===================================================================== */
-async function loadStremioSubtitles(type,tmdbId,season,episode){
-    Array.from(video.querySelectorAll('track[data-stremio]')).forEach(t=>t.remove());
-    let imdbId=null;
-    try{const r=await fetch(`https://search-proxy.bingeoutofficial.workers.dev/${type}/${tmdbId}/external_ids`);if(r.ok)imdbId=(await r.json()).imdb_id;}
-    catch(e){console.warn('[Sub] IMDb fetch failed');return;}
-    if(!imdbId){console.warn('[Sub] No IMDb ID');return;}
-    const url=type==='tv'&&season&&episode?`https://opensubtitles-v3.strem.io/subtitles/series/${imdbId}:${season}:${episode}.json`:`https://opensubtitles-v3.strem.io/subtitles/movie/${imdbId}.json`;
-    try{
-        const r=await fetch(url);if(!r.ok)return;
-        let subs=(await r.json()).subtitles||[];if(!subs.length)return;
-        const seen=new Set(),filtered=[];
-        for(const s of subs){const l=(s.lang||'und').toLowerCase();if(!seen.has(l)){seen.add(l);filtered.push(s);if(filtered.length>=10)break;}}
-        subs=filtered;
-        async function fetchTimeout(u,ms){const c=new AbortController(),t=setTimeout(()=>c.abort(),ms);try{const r=await fetch(u,{signal:c.signal});clearTimeout(t);return r;}catch(e){clearTimeout(t);throw e;}}
-        for(let i=0;i<subs.length;i+=3){
-            await Promise.allSettled(subs.slice(i,i+3).map(async s=>{
-                try{
-                    const r=await fetchTimeout(s.url,SUBTITLE_FETCH_TIMEOUT_MS);if(!r.ok)throw new Error('HTTP '+r.status);
-                    const vtt=srtToVtt(await r.text());
-                    const blob=URL.createObjectURL(new Blob([vtt],{type:'text/vtt;charset=utf-8'}));
-                    _subtitleBlobUrls.push(blob);
-                    const tr=document.createElement('track');tr.kind='subtitles';tr.label=s.langName||getLang(s.lang);tr.srclang=s.lang;tr.src=blob;tr.setAttribute('data-stremio','1');tr.default=false;
-                    video.appendChild(tr);
-                }catch(e){console.warn('[Sub] Failed',s.lang,e.name==='AbortError'?'timeout':e.message);}
-            }));
-            if(i+3<subs.length)await new Promise(r=>setTimeout(r,200));
+
+async function loadStremioSubtitles(type, tmdbId, season, episode) {
+    // Remove existing Stremio tracks
+    Array.from(video.querySelectorAll('track[data-stremio]')).forEach(t => t.remove());
+    
+    let imdbId = null;
+    try {
+        const r = await fetch(`https://search-proxy.bingeoutofficial.workers.dev/${type}/${tmdbId}/external_ids`);
+        if (r.ok) imdbId = (await r.json()).imdb_id;
+    } catch(e) {
+        console.warn('[Sub] IMDb fetch failed');
+        return;
+    }
+    
+    if (!imdbId) {
+        console.warn('[Sub] No IMDb ID');
+        return;
+    }
+    
+    // Build Stremio subtitle URL
+    const url = type === 'tv' && season && episode 
+        ? `https://opensubtitles-v3.strem.io/subtitles/series/${imdbId}:${season}:${episode}.json`
+        : `https://opensubtitles-v3.strem.io/subtitles/movie/${imdbId}.json`;
+    
+    try {
+        const r = await fetch(url);
+        if (!r.ok) return;
+        
+        let subs = (await r.json()).subtitles || [];
+        if (!subs.length) return;
+        
+        // Limit to first 10 unique languages
+        const seen = new Set();
+        const filtered = [];
+        for (const s of subs) {
+            const l = (s.lang || 'und').toLowerCase();
+            if (!seen.has(l)) {
+                seen.add(l);
+                filtered.push(s);
+                if (filtered.length >= 10) break;
+            }
         }
-        setTimeout(renderTracksMenu,300);
-    }catch(e){console.warn('[Sub] Error',e.message);}
-}
-function srtToVtt(srt){
-    return'WEBVTT\n\n'+srt.replace(/\r\n/g,'\n').replace(/\r/g,'\n').replace(/(\d{2}:\d{2}:\d{2}),(\d{3})/g,'$1.$2').trim().replace(/(\d{2}:\d{2}:\d{2}\.\d{3}\s*-->\s*\d{2}:\d{2}:\d{2}\.\d{3})/g,'$1 line:85% position:50% align:center');
+        subs = filtered;
+        
+        // DIRECT RAW URLS - NO BLOBS, NO CONVERSION
+        const inject = () => {
+            subs.forEach(sub => {
+                const track = document.createElement('track');
+                track.kind = 'subtitles';
+                track.label = sub.langName || getLang(sub.lang);
+                track.srclang = sub.lang;
+                // USE RAW URL DIRECTLY - NO BLOB CREATION
+                track.src = sub.url;
+                track.setAttribute('data-stremio', '1');
+                track.default = false;
+                video.appendChild(track);
+                console.log(`[Sub] Added direct track: ${track.label} (${sub.lang})`);
+            });
+            // Refresh subtitle menu
+            setTimeout(renderTracksMenu, 300);
+        };
+        
+        if (video.readyState >= 1) {
+            inject();
+        } else {
+            video.addEventListener('loadedmetadata', inject, { once: true });
+        }
+        
+    } catch(e) {
+        console.warn('[Sub] Error', e.message);
+    }
 }
 
+// srtToVtt function is NO LONGER NEEDED - can be deleted
+// The browser handles SRT format natively when using raw URLs
 /* =====================================================================
    SOURCE — multimovies only, NO GitHub fallback
    ===================================================================== */
