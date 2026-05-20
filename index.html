@@ -711,6 +711,16 @@ qualityButton.addEventListener('click',e=>{e.stopPropagation();toggleQualityMenu
    NEXT EPISODE  (uses multimovies API, not GitHub JSON)
    ===================================================================== */
     //hls int//
+    // Call this when changing streams/videos
+function cleanupSubtitles() {
+    _revokeAllSubtitleBlobs();
+    Array.from(video.querySelectorAll('track[data-stremio]')).forEach(t => t.remove());
+}
+
+// Add to your initHlsPlayer function at the beginning:
+function initHlsPlayer(url) {
+    cleanupSubtitles(); // Clean up old subtitle blobs
+    // ... rest of your code}
 function extractEpisodeInfoFromUrl(){const m=window.location.pathname.match(/\/tv\/(\d+)\/S(\d+)\/E(\d+)/i);return m?{seriesId:m[1],season:parseInt(m[2]),episode:parseInt(m[3])}:null;}
 async function updateNextEpisodeButton(){
     const info=extractEpisodeInfoFromUrl();
@@ -854,7 +864,8 @@ function initHlsPlayer(url) {
         }, {once:true});
     }
     else {
-        displayError('Browser does not support HLS');
+        displayError('Browser does not support HLS'); 
+    }
         /* =====================================================================
    SUBTITLES - OPENSUBTITLES VIA STREMIO (DIRECT RAW URLS, NO BLOBS)
    ===================================================================== */
