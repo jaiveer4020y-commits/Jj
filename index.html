@@ -802,7 +802,12 @@ function initHlsPlayer(url){
 /* =====================================================================
    SUBTITLES - OPENSUBTITLES VIA STREMIO
    ===================================================================== */
+/* =====================================================================
+   SUBTITLES - OPENSUBTITLES (SRT → VTT as DATA URL, NO BLOBS)
+   ===================================================================== */
+
 async function loadStremioSubtitles(type, tmdbId, season, episode) {
+    // Remove existing Stremio tracks
     Array.from(video.querySelectorAll('track[data-stremio]')).forEach(t => t.remove());
     
     let imdbId = null;
@@ -823,6 +828,7 @@ async function loadStremioSubtitles(type, tmdbId, season, episode) {
         return;
     }
     
+    // Build OpenSubtitles URL
     let url;
     if (type === 'tv' && season && episode) {
         url = `https://opensubtitles-v3.strem.io/subtitles/series/${imdbId}:${season}:${episode}.json`;
@@ -840,6 +846,7 @@ async function loadStremioSubtitles(type, tmdbId, season, episode) {
         let subs = data.subtitles || [];
         if (!subs.length) return;
         
+        // Limit to first 5 languages to reduce load
         const seen = new Set();
         const filtered = [];
         for (const s of subs) {
@@ -847,32 +854,50 @@ async function loadStremioSubtitles(type, tmdbId, season, episode) {
             if (!seen.has(l)) {
                 seen.add(l);
                 filtered.push(s);
-                if (filtered.length >= 10) break;
+                if (filtered.length >= 5) break;
             }
         }
         subs = filtered;
         
-        console.log(`[OpenSubtitles] Found ${subs.length} subtitle tracks`);
+        console.log(`[OpenSubtitles] Processing ${subs.length} subtitle tracks`);
         
-        const inject = () => {
-            subs.forEach(sub => {
-                const track = document.createElement('track');
-                track.kind = 'subtitles';
-                track.label = sub.langName || getLang(sub.lang);
-                track.srclang = sub.lang;
-                track.src = sub.url;
-                track.setAttribute('data-stremio', '1');
-                track.default = false;
-                video.appendChild(track);
-                console.log(`[OpenSubtitles] Added track: ${track.label}`);
-            });
+        // Convert SRT to VTT and serve as DATA URL (no blob)
+        const inject = async () => {
+            for (const sub of subs) {
+                try {
+                    const srtRes = await fetch(sub.url);
+                    if (!srtRes.ok) continue;
+                    
+                    const srtText = await srtRes.text();
+                    const vttText = srtToVtt(srtText);
+                    
+                    // Convert to base64 data URL (NO BLOB)
+                    const base64 = btoa(unescape(encodeURIComponent(vttText)));
+                    const dataUrl = `data:text/vtt;charset=utf-8;base64,${base64}`;
+                    
+                    const track = document.createElement('track');
+                    track.kind = 'subtitles';
+                    track.label = sub.langName || getLang(sub.lang);
+                    track.srclang = sub.lang;
+                    track.src = dataUrl;  // Data URL - no blob cleanup needed!
+                    track.setAttribute('data-stremio', '1');
+                    track.default = false;
+                    video.appendChild(track);
+                    console.log(`[OpenSubtitles] Added track: ${track.label} (as data URL)`);
+                    
+                } catch (err) {
+                    console.warn(`[OpenSubtitles] Failed to process ${sub.lang}:`, err.message);
+                }
+            }
             setTimeout(renderTracksMenu, 300);
         };
         
         if (video.readyState >= 1) {
-            inject();
+            await inject();
         } else {
-            video.addEventListener('loadedmetadata', inject, { once: true });
+            video.addEventListener('loadedmetadata', async () => {
+                await inject();
+            }, { once: true });
         }
         
     } catch(e) {
@@ -880,6 +905,26 @@ async function loadStremioSubtitles(type, tmdbId, season, episode) {
     }
 }
 
+// Convert SRT to VTT
+function srtToVtt(srt) {
+    let vtt = 'WEBVTT\n\n';
+    const body = srt
+        .replace(/\r\n/g, '\n')
+        .replace(/\r/g, '\n')
+        .replace(/(\d{2}:\d{2}:\d{2}),(\d{3})/g, '$1.$2')
+        .trim();
+    vtt += body.replace(
+        /(\d{2}:\d{2}:\d{2}\.\d{3}\s*-->\s*\d{2}:\d{2}:\d{2}\.\d{3})/g,
+        '$1 line:85% position:50% align:center'
+    );
+    return vtt;
+}
+
+// NO blob cleanup needed - remove _subtitleBlobUrls and revokeAllSubtitleBlobs completely
+function cleanupSubtitles() {
+    // Just remove the track elements - no blob cleanup needed
+    Array.from(video.querySelectorAll('track[data-stremio]')).forEach(t => t.remove());
+}
 /* =====================================================================
    SOURCE - multimovies only
    ===================================================================== */
