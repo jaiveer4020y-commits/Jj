@@ -1021,10 +1021,17 @@ async function resolveAndPlay(){
 /* =====================================================================
    UI BINDINGS
    ===================================================================== */
+/* =====================================================================
+   UI BINDINGS - COMPLETE REPLACEMENT
+   ===================================================================== */
+
 function setupInactivityDetection() {
     if (!isHlsJsMode && video.audioTracks) video.audioTracks.addEventListener('change', renderTracksMenu);
     lastKnownVolume = video.volume > 0 ? video.volume : 0.5;
-    updateProgress(); updateBufferProgress(); updateVolumeSlider(); updateFullscreenIcon();
+    updateProgress(); 
+    updateBufferProgress(); 
+    updateVolumeSlider(); 
+    updateFullscreenIcon();
     updateNextEpisodeButton();
     if (video.paused || video.ended) {
         showControls();
@@ -1037,46 +1044,168 @@ function setupInactivityDetection() {
     }
 }
 
-function setupUIControls(){
+function setupUIControls() {
     const container = videoContainer;
-    ['mousemove','mousedown','touchstart','touchend'].forEach(ev=>container.addEventListener(ev,resetInactivityTimer,ev.startsWith('touch')?{passive:true}:false));
-    topOverlay.addEventListener('click',()=>{
-        if(window.innerWidth<=1000){const els=[document.getElementById('center-controls-mobile-only'),document.getElementById('controls-bar')];const anyHidden=els.some(el=>el.style.display==='none');els.forEach(el=>el.style.display=anyHidden?'flex':'none');}
-        else toggleVideoPlayPause();
+    
+    // Activity timers for loader control
+    let waitingTimeout = null;
+    let stalledTimeout = null;
+    
+    ['mousemove', 'mousedown', 'touchstart', 'touchend'].forEach(ev => 
+        container.addEventListener(ev, resetInactivityTimer, ev.startsWith('touch') ? { passive: true } : false)
+    );
+    
+    // Click handlers
+    topOverlay.addEventListener('click', () => {
+        if (window.innerWidth <= 1000) {
+            const els = [document.getElementById('center-controls-mobile-only'), document.getElementById('controls-bar')];
+            const anyHidden = els.some(el => el.style.display === 'none');
+            els.forEach(el => el.style.display = anyHidden ? 'flex' : 'none');
+        } else {
+            toggleVideoPlayPause();
+        }
     });
-    customPlayButton.addEventListener('click',toggleVideoPlayPause);
-    centerPlayPauseButton.addEventListener('click',toggleVideoPlayPause);
-    fullscreenButton.addEventListener('click',toggleFullscreen);
-    skipBackwardButton.addEventListener('click',()=>{video.currentTime=Math.max(0,video.currentTime-10);resetInactivityTimer();});
-    skipForwardButton.addEventListener('click',()=>{video.currentTime=Math.min(video.duration,video.currentTime+10);resetInactivityTimer();});
-    mobileSkipBackwardButton.addEventListener('click',()=>{video.currentTime=Math.max(0,video.currentTime-10);resetInactivityTimer();});
-    mobileSkipForwardButton.addEventListener('click',()=>{video.currentTime=Math.min(video.duration,video.currentTime+10);resetInactivityTimer();});
-    muteButton.addEventListener('click',toggleMute);
-    audioSubtitleToggle.addEventListener('click',e=>{e.stopPropagation();toggleAudioSubtitleMenu();});
-    seekBar.addEventListener('mousedown',startSeeking);
-    seekBar.addEventListener('touchstart',startSeeking,{passive:false});
-    volumeControlWrapper.addEventListener('mouseenter',()=>volumeSliderContainer.classList.remove('hidden'));
-    volumeControlWrapper.addEventListener('mouseleave',()=>setTimeout(()=>{if(!isVolumeAdjusting)volumeSliderContainer.classList.add('hidden');},300));
-    document.addEventListener('fullscreenchange',updateFullscreenIcon);
-    document.addEventListener('webkitfullscreenchange',updateFullscreenIcon);
-    video.addEventListener('webkitbeginfullscreen',updateFullscreenIcon);
-    video.addEventListener('webkitendfullscreen',updateFullscreenIcon);
-    video.addEventListener('timeupdate',()=>{updateProgress();postTimeUpdateToParent();});
-    video.addEventListener('progress',updateBufferProgress);
-    video.addEventListener('loadedmetadata',()=>{updateProgress();updateBufferProgress();remainingTimeDisplay.textContent=`-${formatTime(video.duration)}`;});
-    video.addEventListener('volumechange',updateVolumeSlider);
-    video.addEventListener('waiting',()=>{if(!isSeeking)showLoader();});
-    video.addEventListener('stalled',()=>{if(!isSeeking)showLoader();});
-    video.addEventListener('playing',()=>{hideLoader();stopBufferMonitor();});
-    video.addEventListener('canplay',hideLoader);
-    video.addEventListener('seeked',()=>{if(!video.paused)hideLoader();});
-    video.addEventListener('pause',()=>{showControls();updateBottomPlayPauseIcon(true);updateCenterPlayPauseIcon(true);clearTimeout(inactivityTimer);});
-    video.addEventListener('play',()=>{updateBottomPlayPauseIcon(false);updateCenterPlayPauseIcon(false);resetInactivityTimer();});
-    video.addEventListener('ended',()=>{showControls();updateBottomPlayPauseIcon(true);updateCenterPlayPauseIcon(true);hideLoader();});
-    lastKnownVolume=video.volume>0?video.volume:0.5;
-    updateProgress();updateBufferProgress();updateVolumeSlider();updateFullscreenIcon();
-    if(video.paused||video.ended){showControls();updateBottomPlayPauseIcon(true);updateCenterPlayPauseIcon(true);}
-    else{updateBottomPlayPauseIcon(false);updateCenterPlayPauseIcon(false);resetInactivityTimer();}
+    
+    customPlayButton.addEventListener('click', toggleVideoPlayPause);
+    centerPlayPauseButton.addEventListener('click', toggleVideoPlayPause);
+    fullscreenButton.addEventListener('click', toggleFullscreen);
+    
+    // Skip buttons
+    skipBackwardButton.addEventListener('click', () => {
+        video.currentTime = Math.max(0, video.currentTime - 10);
+        resetInactivityTimer();
+    });
+    skipForwardButton.addEventListener('click', () => {
+        video.currentTime = Math.min(video.duration, video.currentTime + 10);
+        resetInactivityTimer();
+    });
+    mobileSkipBackwardButton.addEventListener('click', () => {
+        video.currentTime = Math.max(0, video.currentTime - 10);
+        resetInactivityTimer();
+    });
+    mobileSkipForwardButton.addEventListener('click', () => {
+        video.currentTime = Math.min(video.duration, video.currentTime + 10);
+        resetInactivityTimer();
+    });
+    
+    muteButton.addEventListener('click', toggleMute);
+    audioSubtitleToggle.addEventListener('click', e => {
+        e.stopPropagation();
+        toggleAudioSubtitleMenu();
+    });
+    
+    // Seek bar
+    seekBar.addEventListener('mousedown', startSeeking);
+    seekBar.addEventListener('touchstart', startSeeking, { passive: false });
+    
+    // Volume controls
+    volumeControlWrapper.addEventListener('mouseenter', () => volumeSliderContainer.classList.remove('hidden'));
+    volumeControlWrapper.addEventListener('mouseleave', () => setTimeout(() => {
+        if (!isVolumeAdjusting) volumeSliderContainer.classList.add('hidden');
+    }, 300));
+    
+    // Fullscreen events
+    document.addEventListener('fullscreenchange', updateFullscreenIcon);
+    document.addEventListener('webkitfullscreenchange', updateFullscreenIcon);
+    video.addEventListener('webkitbeginfullscreen', updateFullscreenIcon);
+    video.addEventListener('webkitendfullscreen', updateFullscreenIcon);
+    
+    // Progress updates
+    video.addEventListener('timeupdate', () => {
+        updateProgress();
+        postTimeUpdateToParent();
+    });
+    video.addEventListener('progress', updateBufferProgress);
+    video.addEventListener('loadedmetadata', () => {
+        updateProgress();
+        updateBufferProgress();
+        remainingTimeDisplay.textContent = `-${formatTime(video.duration)}`;
+    });
+    video.addEventListener('volumechange', updateVolumeSlider);
+    
+    // ========== LOADER CONTROL - FIXED (No loader on every fragment) ==========
+    video.addEventListener('waiting', () => {
+        // Only show loader after 300ms of actual buffering
+        if (waitingTimeout) clearTimeout(waitingTimeout);
+        waitingTimeout = setTimeout(() => {
+            if (!isSeeking && !subtitleLoadingActive && video.paused === false && video.currentTime > 0) {
+                console.log('[UI] Buffering detected, showing loader');
+                showLoader();
+            }
+        }, 300);
+    });
+    
+    video.addEventListener('stalled', () => {
+        // Stalled is often temporary - wait 500ms before showing loader
+        if (stalledTimeout) clearTimeout(stalledTimeout);
+        stalledTimeout = setTimeout(() => {
+            if (!isSeeking && !subtitleLoadingActive && video.paused === false && video.currentTime > 0) {
+                console.log('[UI] Stalled detected, showing loader');
+                showLoader();
+            }
+        }, 500);
+    });
+    
+    // Clear timeouts and hide loader when video recovers
+    video.addEventListener('canplay', () => {
+        if (waitingTimeout) clearTimeout(waitingTimeout);
+        if (stalledTimeout) clearTimeout(stalledTimeout);
+        waitingTimeout = null;
+        stalledTimeout = null;
+        hideLoader();
+        stopBufferMonitor();
+    });
+    
+    video.addEventListener('playing', () => {
+        if (waitingTimeout) clearTimeout(waitingTimeout);
+        if (stalledTimeout) clearTimeout(stalledTimeout);
+        waitingTimeout = null;
+        stalledTimeout = null;
+        hideLoader();
+        stopBufferMonitor();
+    });
+    // ========== END LOADER CONTROL ==========
+    
+    video.addEventListener('seeked', () => {
+        if (!video.paused) hideLoader();
+    });
+    
+    video.addEventListener('pause', () => {
+        showControls();
+        updateBottomPlayPauseIcon(true);
+        updateCenterPlayPauseIcon(true);
+        clearTimeout(inactivityTimer);
+    });
+    
+    video.addEventListener('play', () => {
+        updateBottomPlayPauseIcon(false);
+        updateCenterPlayPauseIcon(false);
+        resetInactivityTimer();
+    });
+    
+    video.addEventListener('ended', () => {
+        showControls();
+        updateBottomPlayPauseIcon(true);
+        updateCenterPlayPauseIcon(true);
+        hideLoader();
+    });
+    
+    // Initial state
+    lastKnownVolume = video.volume > 0 ? video.volume : 0.5;
+    updateProgress();
+    updateBufferProgress();
+    updateVolumeSlider();
+    updateFullscreenIcon();
+    
+    if (video.paused || video.ended) {
+        showControls();
+        updateBottomPlayPauseIcon(true);
+        updateCenterPlayPauseIcon(true);
+    } else {
+        updateBottomPlayPauseIcon(false);
+        updateCenterPlayPauseIcon(false);
+        resetInactivityTimer();
+    }
 }
 
 /* =====================================================================
