@@ -712,6 +712,12 @@ function initHlsPlayer(url){
         clearInterval(saveProgressInterval);
         saveProgressInterval=null;
     }
+    function isDirectVideoUrl(url) {
+    if (!url) return false;
+    const u = url.toLowerCase().split('?')[0];
+    return /\.(mp4|webm|ogg|ogv|mov|mkv|avi|m4v)$/.test(u);
+}
+
     stopProgressSaving();
     hasRestoredPosition=false;
     if(hlsInstance){
