@@ -854,7 +854,7 @@ async function loadStremioSubtitles(type, tmdbId, season, episode) {
             if (!seen.has(1)) {
                 seen.add(1);
                 filtered.push(s);
-                if (filtered.length >= 10) break;
+                if (filtered.length >= 5) break;
             }
         }
         subs = filtered;
