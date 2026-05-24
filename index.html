@@ -707,118 +707,98 @@ async function updateNextEpisodeButton(){
 }
 
 /* =====================================================================
-   HLS PLAYER INIT - DIRECT PROXY URL PLAYBACK (NO BLOBS, NO HLS.JS)
+   HLS PLAYER INIT
    ===================================================================== */
-
 function isDirectVideoUrl(url) {
     try {
-        return /\.(mp4|webm|ogg|ogv|mov|mkv|avi|flv|m4v)(\?|$)/.test(new URL(url).pathname.toLowerCase());
-    } catch(e) {
+        const path = new URL(url).pathname.toLowerCase();
+        return /\.(mp4|webm|ogg|ogv|mov|mkv|avi|flv|m4v)(\?|$)/.test(path);
+    } catch (e) {
         return /\.(mp4|webm|ogg|ogv|mov|mkv|avi|flv|m4v)(\?|$)/.test(url.toLowerCase());
     }
 }
 
-function initHlsPlayer(url) {
+function cleanupSubtitles() {
+    revokeAllSubtitleBlobs();
+    Array.from(video.querySelectorAll('track[data-stremio]')).forEach(t => t.remove());
+}
+
+function initHlsPlayer(url){
     saveVideoProgress();
+    if(saveProgressInterval){
+        clearInterval(saveProgressInterval);
+        saveProgressInterval=null;
+    }
     stopProgressSaving();
-    hasRestoredPosition = false;
+    hasRestoredPosition=false;
+    if(hlsInstance){
+        hlsInstance.destroy();
+        hlsInstance=null;
+    }
+    cleanupSubtitles();
+    errorMessageDiv.classList.add('hidden');
+    resolvedUrl=url;
+    videoStorageKey=generateStorageKey(url);
     
-    if (hlsInstance) { 
-        hlsInstance.destroy(); 
-        hlsInstance = null; 
+    if(isDirectVideoUrl(url)){
+        isHlsJsMode=false;
+        showLoader();
+        video.src=url;
+        video.addEventListener('loadedmetadata',()=>{
+            renderTracksMenu();hideLoader();
+            restoreVideoProgress();startProgressSaving();
+            video.play().catch(()=>{});
+            updateNextEpisodeButton();
+        },{once:true});
+        video.addEventListener('error',()=>{
+            if(video.currentTime>0||video.readyState>=2)return;
+            displayError('Failed to load video: '+(video.error?video.error.message:'unknown error'));
+            hideLoader();
+        },{once:true});
+        return;
     }
     
-    errorMessageDiv.classList.add('hidden');
-    resolvedUrl = url;
-    videoStorageKey = generateStorageKey(url);
-    console.log('[Player] Playing URL directly:', url);
-
-    // Detect Safari/iOS for native HLS support
-    const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent) || 
-                     /iPad|iPhone|iPod/.test(navigator.userAgent);
-    
-    // DIRECT PLAYBACK - NO BLOB, NO HLS.JS
-    // Just assign the proxy URL directly to video.src
-    isHlsJsMode = false;
-    showLoader();
-    
-    // Assign URL directly to video element
-    video.src = url;
-    video.load();
-    
-    let started = false;
-    
-    const onCanPlay = () => {
-        if (!started) {
-            console.log('[Player] Can play event');
-            started = true;
-            hideLoader();
-            startProgressSaving();
-            restoreVideoProgress();
-            video.play().catch(e => console.warn('Play:', e));
-            cleanup();
-        }
-    };
-    
-    const onPlaying = () => {
-        console.log('[Player] Playing event');
-        started = true;
-        hideLoader();
-        cleanup();
-    };
-    
-    const onError = (e) => {
-        console.error('[Player] Error:', video.error);
-        if (!started) {
-            displayError('Failed to load stream');
-            hideLoader();
-        }
-        cleanup();
-    };
-    
-    const onProgress = () => {
-        if (!started && video.buffered.length > 0) {
-            const bufferedEnd = video.buffered.end(video.buffered.length - 1);
-            if (bufferedEnd - (video.currentTime || 0) >= 1) {
-                console.log('[Player] Buffer ready');
-                started = true;
+    if(Hls.isSupported()){
+        isHlsJsMode=true;
+        showLoader();
+        const h=new Hls({renderTextTracksNatively:true,subtitleDisplay:true});
+        hlsInstance=h;
+        h.on(Hls.Events.MEDIA_ATTACHED,()=>h.loadSource(url));
+        h.on(Hls.Events.MANIFEST_PARSED,()=>{renderTracksMenu();renderQualityMenu();updateNextEpisodeButton();});
+        h.on(Hls.Events.AUDIO_TRACK_SWITCHED,renderTracksMenu);
+        h.on(Hls.Events.SUBTITLE_TRACK_SWITCHED,renderTracksMenu);
+        h.on(Hls.Events.LEVEL_SWITCHED,renderQualityMenu);
+        h.on(Hls.Events.ERROR,(ev,data)=>{
+            if(data.fatal){
+                displayError('Fatal HLS error');
+                h.destroy();
                 hideLoader();
-                startProgressSaving();
-                restoreVideoProgress();
-                video.play().catch(() => {});
-                cleanup();
             }
-        }
-    };
-    
-    const cleanup = () => {
-        video.removeEventListener('canplay', onCanPlay);
-        video.removeEventListener('playing', onPlaying);
-        video.removeEventListener('error', onError);
-        video.removeEventListener('progress', onProgress);
-        clearTimeout(timeoutId);
-    };
-    
-    video.addEventListener('canplay', onCanPlay);
-    video.addEventListener('playing', onPlaying);
-    video.addEventListener('error', onError);
-    video.addEventListener('progress', onProgress);
-    
-    const timeoutId = setTimeout(() => {
-        if (!started) {
-            console.warn('[Player] Timeout - forcing play');
-            started = true;
+        });
+        h.attachMedia(video);
+        video.addEventListener('loadedmetadata',()=>restoreVideoProgress(),{once:true});
+        video.addEventListener('canplay',()=>{hideLoader();startProgressSaving();video.play().catch(()=>{});},{once:true});
+    }else if(video.canPlayType('application/vnd.apple.mpegurl')){
+        isHlsJsMode=false;
+        showLoader();
+        video.src=url;
+        video.addEventListener('loadedmetadata',()=>{
+            renderTracksMenu();hideLoader();
+            restoreVideoProgress();startProgressSaving();
+            video.play().catch(()=>{});
+            updateNextEpisodeButton();
+        },{once:true});
+        video.addEventListener('error',()=>{
+            if(video.currentTime>0&&!video.paused)return;
+            displayError('Failed to load stream: '+(video.error?video.error.message:'unknown error'));
             hideLoader();
-            startProgressSaving();
-            restoreVideoProgress();
-            video.play().catch(() => {});
-            cleanup();
-        }
-    }, 15000);
-    
-    renderTracksMenu();
-    updateNextEpisodeButton();
+        },{once:true});
+    }else{
+        displayError('Browser does not support HLS');
+        hideLoader();
+    }
 }
+
     /* =====================================================================
    SUBTITLES - OPENSUBTITLES VIA STREMIO
    ===================================================================== */
@@ -871,10 +851,10 @@ async function loadStremioSubtitles(type, tmdbId, season, episode) {
         const filtered = [];
         for (const s of subs) {
             const l = (s.lang || 'und').toLowerCase();
-            if (!seen.has(l)) {
-                seen.add(l);
+            if (!seen.has(3)) {
+                seen.add(3);
                 filtered.push(s);
-                if (filtered.length >= 5) break;
+                if (filtered.length >= 10) break;
             }
         }
         subs = filtered;
