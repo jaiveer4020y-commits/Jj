@@ -706,224 +706,118 @@ async function updateNextEpisodeButton(){
     }else{nextEpisodeButton.style.display='none';}
 }
 
-function initHlsPlayer(url){
-    saveVideoProgress();
-    if(saveProgressInterval){
-        clearInterval(saveProgressInterval);
-        saveProgressInterval=null;
+/* =====================================================================
+   HLS PLAYER INIT - DIRECT PROXY URL PLAYBACK (NO BLOBS, NO HLS.JS)
+   ===================================================================== */
+
+function isDirectVideoUrl(url) {
+    try {
+        return /\.(mp4|webm|ogg|ogv|mov|mkv|avi|flv|m4v)(\?|$)/.test(new URL(url).pathname.toLowerCase());
+    } catch(e) {
+        return /\.(mp4|webm|ogg|ogv|mov|mkv|avi|flv|m4v)(\?|$)/.test(url.toLowerCase());
     }
-    function isDirectVideoUrl(url) {
-    if (!url) return false;
-    const u = url.toLowerCase().split('?')[0];
-    return /\.(mp4|webm|ogg|ogv|mov|mkv|avi|m4v)$/.test(u);
 }
 
+function initHlsPlayer(url) {
+    saveVideoProgress();
     stopProgressSaving();
-    hasRestoredPosition=false;
-    if(hlsInstance){
-        hlsInstance.destroy();
-        hlsInstance=null;
+    hasRestoredPosition = false;
+    
+    if (hlsInstance) { 
+        hlsInstance.destroy(); 
+        hlsInstance = null; 
     }
-    cleanupSubtitles();
+    
     errorMessageDiv.classList.add('hidden');
-    resolvedUrl=url;
-    videoStorageKey=generateStorageKey(url);
+    resolvedUrl = url;
+    videoStorageKey = generateStorageKey(url);
+    console.log('[Player] Playing URL directly:', url);
+
+    // Detect Safari/iOS for native HLS support
+    const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent) || 
+                     /iPad|iPhone|iPod/.test(navigator.userAgent);
     
-    if(isDirectVideoUrl(url)){
-        isHlsJsMode=false;
-        showLoader();
-        video.src=url;
-        video.addEventListener('loadedmetadata',()=>{
-            renderTracksMenu();hideLoader();
-            restoreVideoProgress();startProgressSaving();
-            video.play().catch(()=>{});
-            updateNextEpisodeButton();
-        },{once:true});
-        video.addEventListener('error',()=>{
-            if(video.currentTime>0||video.readyState>=2)return;
-            displayError('Failed to load video: '+(video.error?video.error.message:'unknown error'));
-            hideLoader();
-        },{once:true});
-        return;
-    }
+    // DIRECT PLAYBACK - NO BLOB, NO HLS.JS
+    // Just assign the proxy URL directly to video.src
+    isHlsJsMode = false;
+    showLoader();
     
-    if(Hls.isSupported()){
-        isHlsJsMode=true;
-        showLoader();
-        
-        // Optimized HLS configuration for parallel loading and large buffer
-        const h = new Hls({
-            // Fragment loading optimizations
-            maxMaxBufferLength: 120,          // Keep up to 120 seconds in buffer (60s ahead + buffer)
-            maxBufferLength: 120,              // Maximum buffer length
-            maxBufferSize: 120 * 1000000,      // 120MB buffer size
-            maxBufferHole: 0.5,                // Max hole to fill
-            
-            // Parallel loading settings
-            maxFragLookUpTolerance: 60.0,      // Look ahead 60 seconds for fragments
-            maxLoadingDelay: 1,                // Max delay before loading
-            startFragPrefetch: true,           // Prefetch fragments aggressively
-            
-            // Fragment loading concurrency
-            maxParallelLoads: 6,               // Load up to 6 fragments in parallel (gives ~5+ per second)
-            maxStarvationDelay: 4,              // Avoid playback starvation
-            
-            // Network optimization
-            fragLoadingMaxRetry: 3,             // Retry failed fragments
-            fragLoadingRetryDelay: 500,         // 500ms between retries
-            fragLoadingTimeOut: 10000,          // 10 second timeout for fragment loading
-            manifestLoadingTimeOut: 10000,
-            manifestLoadingMaxRetry: 2,
-            manifestLoadingRetryDelay: 500,
-            levelLoadingTimeOut: 10000,
-            levelLoadingMaxRetry: 2,
-            levelLoadingRetryDelay: 500,
-            
-            // Buffer management
-            backBufferLength: 60,               // Keep 60 seconds of back buffer
-            liveSyncDurationCount: 7,           // Live sync settings
-            liveMaxLatencyDurationCount: 12,
-            
-            // Low latency and aggressive loading
-            liveDurationInfinity: false,
-            enableWorker: true,                 // Use Web Workers for better performance
-            lowLatencyMode: true,               // Enable low latency mode if available
-            progressive: true,                  // Progressive loading
-            
-            // Subtitle and audio settings
-            renderTextTracksNatively: true,
-            subtitleDisplay: true,
-            
-            // ABR (Adaptive Bitrate) optimizations
-            abrEwmaDefaultEstimateBits: 5000000, // 5Mbps default estimate
-            abrBandWidthFactor: 0.95,            // Be slightly conservative
-            abrBandWidthUpFactor: 1.0,           // But not too aggressive upward
-            abrMaxWithRealBitrate: true,
-            
-            // Additional performance tweaks
-            capLevelToPlayerSize: false,         // Don't limit quality based on player size
-            testBandwidth: true,                 // Test bandwidth for better ABR decisions
-            autoStartLoad: true,
-            startLevel: -1,                      // Auto-select best level
-            debug: false                         // Set to true for troubleshooting
-        });
-        
-        hlsInstance = h;
-        
-        // Event listeners for monitoring buffer status
-        h.on(Hls.Events.BUFFER_APPENDING, (event, data) => {
-            // Optional: Monitor buffer progress
-            if (video.buffered.length > 0) {
-                const bufferedEnd = video.buffered.end(video.buffered.length - 1);
-                const bufferAhead = bufferedEnd - video.currentTime;
-                // Console log for debugging (remove in production)
-                // console.log(`Buffer ahead: ${bufferAhead.toFixed(1)}s`);
-            }
-        });
-        
-        h.on(Hls.Events.MEDIA_ATTACHED, () => h.loadSource(url));
-        h.on(Hls.Events.MANIFEST_PARSED, () => {
-            renderTracksMenu();
-            renderQualityMenu();
-            updateNextEpisodeButton();
-            
-            // Trigger aggressive loading after manifest parsed
-            setTimeout(() => {
-                if (hlsInstance && video.buffered.length > 0) {
-                    const targetBuffer = 60; // 60 seconds target
-                    const currentBuffer = video.buffered.end(video.buffered.length - 1) - video.currentTime;
-                    if (currentBuffer < targetBuffer) {
-                        // Force loading more fragments
-                        hlsInstance.startLoad();
-                    }
-                }
-            }, 100);
-        });
-        
-        h.on(Hls.Events.AUDIO_TRACK_SWITCHED, renderTracksMenu);
-        h.on(Hls.Events.SUBTITLE_TRACK_SWITCHED, renderTracksMenu);
-        h.on(Hls.Events.LEVEL_SWITCHED, renderQualityMenu);
-        
-        h.on(Hls.Events.ERROR, (ev, data) => {
-            if(data.fatal){
-                displayError('Fatal HLS error');
-                h.destroy();
-                hideLoader();
-            } else if (data.details === 'fragLoadError' || data.details === 'bufferStalledError') {
-                // Non-fatal errors - attempt to recover
-                console.warn('HLS non-fatal error:', data.details);
-                if (hlsInstance) {
-                    hlsInstance.recoverMediaError();
-                }
-            }
-        });
-        
-        // Monitor buffer to ensure it stays ahead
-        let bufferMonitorInterval;
-        video.addEventListener('loadedmetadata', () => {
-            restoreVideoProgress();
-            
-            // Set up buffer monitoring to maintain 60s ahead
-            if (bufferMonitorInterval) clearInterval(bufferMonitorInterval);
-            bufferMonitorInterval = setInterval(() => {
-                if (!hlsInstance || video.paused || video.ended || video.readyState < 2) return;
-                
-                if (video.buffered.length > 0) {
-                    const bufferedEnd = video.buffered.end(video.buffered.length - 1);
-                    const bufferAhead = bufferedEnd - video.currentTime;
-                    
-                    // If buffer is low, trigger more aggressive loading
-                    if (bufferAhead < 30) {
-                        hlsInstance.config.maxMaxBufferLength = 90;
-                        hlsInstance.config.maxBufferLength = 90;
-                        // Request next fragments more aggressively
-                        if (hlsInstance.nextLoadPosition) {
-                            hlsInstance.loadFragment();
-                        }
-                    } else if (bufferAhead > 60) {
-                        // Prevent excessive buffer (optional)
-                        hlsInstance.config.maxMaxBufferLength = 120;
-                        hlsInstance.config.maxBufferLength = 120;
-                    }
-                }
-            }, 2000); // Check every 2 seconds
-            
-            // Store interval for cleanup
-            window._bufferMonitorInterval = bufferMonitorInterval;
-        }, {once: true});
-        
-        video.addEventListener('canplay', () => {
+    // Assign URL directly to video element
+    video.src = url;
+    video.load();
+    
+    let started = false;
+    
+    const onCanPlay = () => {
+        if (!started) {
+            console.log('[Player] Can play event');
+            started = true;
             hideLoader();
             startProgressSaving();
-            video.play().catch(() => {});
-        }, {once: true});
-        
-        video.addEventListener('ended', () => {
-            if (window._bufferMonitorInterval) {
-                clearInterval(window._bufferMonitorInterval);
-                window._bufferMonitorInterval = null;
-            }
-        });
-        
-    }else if(video.canPlayType('application/vnd.apple.mpegurl')){
-        isHlsJsMode=false;
-        showLoader();
-        video.src=url;
-        video.addEventListener('loadedmetadata',()=>{
-            renderTracksMenu();hideLoader();
-            restoreVideoProgress();startProgressSaving();
-            video.play().catch(()=>{});
-            updateNextEpisodeButton();
-        },{once:true});
-        video.addEventListener('error',()=>{
-            if(video.currentTime>0&&!video.paused)return;
-            displayError('Failed to load stream: '+(video.error?video.error.message:'unknown error'));
-            hideLoader();
-        },{once:true});
-    }else{
-        displayError('Browser does not support HLS');
+            restoreVideoProgress();
+            video.play().catch(e => console.warn('Play:', e));
+            cleanup();
+        }
+    };
+    
+    const onPlaying = () => {
+        console.log('[Player] Playing event');
+        started = true;
         hideLoader();
-    }
+        cleanup();
+    };
+    
+    const onError = (e) => {
+        console.error('[Player] Error:', video.error);
+        if (!started) {
+            displayError('Failed to load stream');
+            hideLoader();
+        }
+        cleanup();
+    };
+    
+    const onProgress = () => {
+        if (!started && video.buffered.length > 0) {
+            const bufferedEnd = video.buffered.end(video.buffered.length - 1);
+            if (bufferedEnd - (video.currentTime || 0) >= 1) {
+                console.log('[Player] Buffer ready');
+                started = true;
+                hideLoader();
+                startProgressSaving();
+                restoreVideoProgress();
+                video.play().catch(() => {});
+                cleanup();
+            }
+        }
+    };
+    
+    const cleanup = () => {
+        video.removeEventListener('canplay', onCanPlay);
+        video.removeEventListener('playing', onPlaying);
+        video.removeEventListener('error', onError);
+        video.removeEventListener('progress', onProgress);
+        clearTimeout(timeoutId);
+    };
+    
+    video.addEventListener('canplay', onCanPlay);
+    video.addEventListener('playing', onPlaying);
+    video.addEventListener('error', onError);
+    video.addEventListener('progress', onProgress);
+    
+    const timeoutId = setTimeout(() => {
+        if (!started) {
+            console.warn('[Player] Timeout - forcing play');
+            started = true;
+            hideLoader();
+            startProgressSaving();
+            restoreVideoProgress();
+            video.play().catch(() => {});
+            cleanup();
+        }
+    }, 15000);
+    
+    renderTracksMenu();
+    updateNextEpisodeButton();
 }
     /* =====================================================================
    SUBTITLES - OPENSUBTITLES VIA STREMIO
