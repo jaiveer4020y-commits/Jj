@@ -851,8 +851,8 @@ async function loadStremioSubtitles(type, tmdbId, season, episode) {
         const filtered = [];
         for (const s of subs) {
             const l = (s.lang || 'und').toLowerCase();
-            if (!seen.has(3)) {
-                seen.add(3);
+            if (!seen.has(1)) {
+                seen.add(1);
                 filtered.push(s);
                 if (filtered.length >= 10) break;
             }
