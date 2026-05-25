@@ -757,8 +757,8 @@ function initHlsPlayer(url) {
 
         const h = new Hls({
             // ── Buffer tuning: 60 s ahead ──────────────────────────────
-            maxBufferLength: 500,          // target buffer ahead (seconds)
-            maxMaxBufferLength: 550,       // hard cap when bandwidth allows
+            maxBufferLength: 1500,          // target buffer ahead (seconds)
+            maxMaxBufferLength: 2550,       // hard cap when bandwidth allows
             maxBufferSize: 500 * 1000 * 1000, // 120 MB segment buffer
             maxBufferHole: 0.5,
 
