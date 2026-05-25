@@ -707,7 +707,7 @@ async function updateNextEpisodeButton(){
 }
 
 /* =====================================================================
-   HLS PLAYER INIT
+   HLS PLAYER INIT — parallel loading + 60s forward buffer
    ===================================================================== */
 function isDirectVideoUrl(url) {
     try {
@@ -719,97 +719,124 @@ function isDirectVideoUrl(url) {
 }
 
 function cleanupSubtitles() {
-    revokeAllSubtitleBlobs();
     Array.from(video.querySelectorAll('track[data-stremio]')).forEach(t => t.remove());
 }
 
-function initHlsPlayer(url){
+function initHlsPlayer(url) {
     saveVideoProgress();
-    if(saveProgressInterval){
-        clearInterval(saveProgressInterval);
-        saveProgressInterval=null;
-    }
+    if (saveProgressInterval) { clearInterval(saveProgressInterval); saveProgressInterval = null; }
     stopProgressSaving();
-    hasRestoredPosition=false;
-    if(hlsInstance){
-        hlsInstance.destroy();
-        hlsInstance=null;
-    }
+    hasRestoredPosition = false;
+    if (hlsInstance) { hlsInstance.destroy(); hlsInstance = null; }
     cleanupSubtitles();
     errorMessageDiv.classList.add('hidden');
-    resolvedUrl=url;
-    videoStorageKey=generateStorageKey(url);
-    
-    if(isDirectVideoUrl(url)){
-        isHlsJsMode=false;
+    resolvedUrl = url;
+    videoStorageKey = generateStorageKey(url);
+
+    if (isDirectVideoUrl(url)) {
+        isHlsJsMode = false;
         showLoader();
-        video.src=url;
-        video.addEventListener('loadedmetadata',()=>{
-            renderTracksMenu();hideLoader();
-            restoreVideoProgress();startProgressSaving();
-            video.play().catch(()=>{});
+        video.src = url;
+        video.addEventListener('loadedmetadata', () => {
+            renderTracksMenu(); hideLoader();
+            restoreVideoProgress(); startProgressSaving();
+            video.play().catch(() => {});
             updateNextEpisodeButton();
-        },{once:true});
-        video.addEventListener('error',()=>{
-            if(video.currentTime>0||video.readyState>=2)return;
-            displayError('Failed to load video: '+(video.error?video.error.message:'unknown error'));
+        }, { once: true });
+        video.addEventListener('error', () => {
+            if (video.currentTime > 0 || video.readyState >= 2) return;
+            displayError('Failed to load video: ' + (video.error ? video.error.message : 'unknown error'));
             hideLoader();
-        },{once:true});
+        }, { once: true });
         return;
     }
-    
-    if(Hls.isSupported()){
-        isHlsJsMode=true;
+
+    if (Hls.isSupported()) {
+        isHlsJsMode = true;
         showLoader();
-        const h=new Hls({renderTextTracksNatively:true,subtitleDisplay:true});
-        hlsInstance=h;
-        h.on(Hls.Events.MEDIA_ATTACHED,()=>h.loadSource(url));
-        h.on(Hls.Events.MANIFEST_PARSED,()=>{renderTracksMenu();renderQualityMenu();updateNextEpisodeButton();});
-        h.on(Hls.Events.AUDIO_TRACK_SWITCHED,renderTracksMenu);
-        h.on(Hls.Events.SUBTITLE_TRACK_SWITCHED,renderTracksMenu);
-        h.on(Hls.Events.LEVEL_SWITCHED,renderQualityMenu);
-        h.on(Hls.Events.ERROR,(ev,data)=>{
-            if(data.fatal){
+
+        const h = new Hls({
+            // ── Buffer tuning: 60 s ahead ──────────────────────────────
+            maxBufferLength: 60,          // target buffer ahead (seconds)
+            maxMaxBufferLength: 90,       // hard cap when bandwidth allows
+            maxBufferSize: 120 * 1000 * 1000, // 120 MB segment buffer
+            maxBufferHole: 0.5,
+
+            // ── Parallel fragment loading ──────────────────────────────
+            lowLatencyMode: false,
+            progressive: true,
+            // Hls.js loads 1 fragment at a time by design, but these
+            // settings push the loader to fetch the next fragment as
+            // early as possible (backBufferLength frees memory quickly
+            // so the forward budget stays large):
+            backBufferLength: 30,
+
+            // ── Faster ABR / start ─────────────────────────────────────
+            startLevel: -1,              // auto-select best starting level
+            abrEwmaDefaultEstimate: 2_000_000, // assume 2 Mbps initially
+            abrBandWidthFactor: 0.92,
+            abrBandWidthUpFactor: 0.05,
+
+            // ── Aggressive retry ───────────────────────────────────────
+            fragLoadingMaxRetry: 6,
+            fragLoadingRetryDelay: 500,
+            fragLoadingMaxRetryTimeout: 4000,
+            manifestLoadingMaxRetry: 4,
+            levelLoadingMaxRetry: 4,
+
+            // ── Subtitles ──────────────────────────────────────────────
+            renderTextTracksNatively: true,
+            subtitleDisplay: true,
+        });
+
+        hlsInstance = h;
+        h.on(Hls.Events.MEDIA_ATTACHED,         () => h.loadSource(url));
+        h.on(Hls.Events.MANIFEST_PARSED,         () => { renderTracksMenu(); renderQualityMenu(); updateNextEpisodeButton(); });
+        h.on(Hls.Events.AUDIO_TRACK_SWITCHED,    renderTracksMenu);
+        h.on(Hls.Events.SUBTITLE_TRACK_SWITCHED, renderTracksMenu);
+        h.on(Hls.Events.LEVEL_SWITCHED,          renderQualityMenu);
+        h.on(Hls.Events.ERROR, (ev, data) => {
+            if (data.fatal) {
                 displayError('Fatal HLS error');
                 h.destroy();
                 hideLoader();
             }
         });
         h.attachMedia(video);
-        video.addEventListener('loadedmetadata',()=>restoreVideoProgress(),{once:true});
-        video.addEventListener('canplay',()=>{hideLoader();startProgressSaving();video.play().catch(()=>{});},{once:true});
-    }else if(video.canPlayType('application/vnd.apple.mpegurl')){
-        isHlsJsMode=false;
+        video.addEventListener('loadedmetadata', () => restoreVideoProgress(), { once: true });
+        video.addEventListener('canplay', () => {
+            hideLoader(); startProgressSaving(); video.play().catch(() => {});
+        }, { once: true });
+
+    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+        isHlsJsMode = false;
         showLoader();
-        video.src=url;
-        video.addEventListener('loadedmetadata',()=>{
-            renderTracksMenu();hideLoader();
-            restoreVideoProgress();startProgressSaving();
-            video.play().catch(()=>{});
+        video.src = url;
+        video.addEventListener('loadedmetadata', () => {
+            renderTracksMenu(); hideLoader();
+            restoreVideoProgress(); startProgressSaving();
+            video.play().catch(() => {});
             updateNextEpisodeButton();
-        },{once:true});
-        video.addEventListener('error',()=>{
-            if(video.currentTime>0&&!video.paused)return;
-            displayError('Failed to load stream: '+(video.error?video.error.message:'unknown error'));
+        }, { once: true });
+        video.addEventListener('error', () => {
+            if (video.currentTime > 0 && !video.paused) return;
+            displayError('Failed to load stream: ' + (video.error ? video.error.message : 'unknown error'));
             hideLoader();
-        },{once:true});
-    }else{
+        }, { once: true });
+    } else {
         displayError('Browser does not support HLS');
         hideLoader();
     }
 }
-
     /* =====================================================================
    SUBTITLES - OPENSUBTITLES VIA STREMIO
    ===================================================================== */
-/* =====================================================================
-   SUBTITLES - OPENSUBTITLES (SRT → VTT as DATA URL, NO BLOBS)
+/*/* =====================================================================
+   SUBTITLES — 5 per language, 15 total, data-URL (no blobs)
    ===================================================================== */
-
 async function loadStremioSubtitles(type, tmdbId, season, episode) {
-    // Remove existing Stremio tracks
     Array.from(video.querySelectorAll('track[data-stremio]')).forEach(t => t.remove());
-    
+
     let imdbId = null;
     try {
         const r = await fetch(`https://search-proxy.bingeoutofficial.workers.dev/${type}/${tmdbId}/external_ids`);
@@ -818,94 +845,83 @@ async function loadStremioSubtitles(type, tmdbId, season, episode) {
             imdbId = data.imdb_id;
             console.log('[OpenSubtitles] Got IMDb ID:', imdbId);
         }
-    } catch(e) {
+    } catch (e) {
         console.warn('[OpenSubtitles] IMDb fetch failed:', e.message);
         return;
     }
-    
-    if (!imdbId) {
-        console.warn('[OpenSubtitles] No IMDb ID found');
-        return;
-    }
-    
-    // Build OpenSubtitles URL
-    let url;
-    if (type === 'tv' && season && episode) {
-        url = `https://opensubtitles-v3.strem.io/subtitles/series/${imdbId}:${season}:${episode}.json`;
-    } else {
-        url = `https://opensubtitles-v3.strem.io/subtitles/movie/${imdbId}.json`;
-    }
-    
+
+    if (!imdbId) { console.warn('[OpenSubtitles] No IMDb ID found'); return; }
+
+    const url = (type === 'tv' && season && episode)
+        ? `https://opensubtitles-v3.strem.io/subtitles/series/${imdbId}:${season}:${episode}.json`
+        : `https://opensubtitles-v3.strem.io/subtitles/movie/${imdbId}.json`;
+
     console.log('[OpenSubtitles] Fetching from:', url);
-    
+
     try {
         const r = await fetch(url);
         if (!r.ok) return;
-        
         const data = await r.json();
         let subs = data.subtitles || [];
         if (!subs.length) return;
-        
-        // Limit to first 5 languages to reduce load
-        const seen = new Set();
-        const filtered = [];
+
+        // ── 5 results per language, 15 total ──────────────────────────
+        const LIMIT_PER_LANG = 5;
+        const LIMIT_TOTAL    = 15;
+        const langCount = new Map();   // lang → count
+        const filtered  = [];
+
         for (const s of subs) {
-            const l = (s.lang || 'und').toLowerCase();
-            if (!seen.has(1)) {
-                seen.add(1);
+            if (filtered.length >= LIMIT_TOTAL) break;
+            const lang = (s.lang || 'und').toLowerCase();
+            const count = langCount.get(lang) || 0;
+            if (count < LIMIT_PER_LANG) {
+                langCount.set(lang, count + 1);
                 filtered.push(s);
-                if (filtered.length >= 5) break;
             }
         }
-        subs = filtered;
-        
-        console.log(`[OpenSubtitles] Processing ${subs.length} subtitle tracks`);
-        
-        // Convert SRT to VTT and serve as DATA URL (no blob)
+
+        console.log(`[OpenSubtitles] Processing ${filtered.length} subtitle tracks`);
+
         const inject = async () => {
-            for (const sub of subs) {
+            for (const sub of filtered) {
                 try {
                     const srtRes = await fetch(sub.url);
                     if (!srtRes.ok) continue;
-                    
                     const srtText = await srtRes.text();
                     const vttText = srtToVtt(srtText);
-                    
-                    // Convert to base64 data URL (NO BLOB)
-                    const base64 = btoa(unescape(encodeURIComponent(vttText)));
+
+                    // base64 data URL — no blob, no cleanup needed
+                    const base64  = btoa(unescape(encodeURIComponent(vttText)));
                     const dataUrl = `data:text/vtt;charset=utf-8;base64,${base64}`;
-                    
-                    const track = document.createElement('track');
-                    track.kind = 'subtitles';
-                    track.label = sub.langName || getLang(sub.lang);
-                    track.srclang = sub.lang;
-                    track.src = dataUrl;  // Data URL - no blob cleanup needed!
+
+                    const track      = document.createElement('track');
+                    track.kind       = 'subtitles';
+                    track.label      = sub.langName || getLang(sub.lang);
+                    track.srclang    = sub.lang;
+                    track.src        = dataUrl;
+                    track.default    = false;
                     track.setAttribute('data-stremio', '1');
-                    track.default = false;
                     video.appendChild(track);
-                    console.log(`[OpenSubtitles] Added track: ${track.label} (as data URL)`);
-                    
+                    console.log(`[OpenSubtitles] Added: ${track.label}`);
                 } catch (err) {
-                    console.warn(`[OpenSubtitles] Failed to process ${sub.lang}:`, err.message);
+                    console.warn(`[OpenSubtitles] Failed ${sub.lang}:`, err.message);
                 }
             }
             setTimeout(renderTracksMenu, 300);
         };
-        
+
         if (video.readyState >= 1) {
             await inject();
         } else {
-            video.addEventListener('loadedmetadata', async () => {
-                await inject();
-            }, { once: true });
+            video.addEventListener('loadedmetadata', async () => await inject(), { once: true });
         }
-        
-    } catch(e) {
+
+    } catch (e) {
         console.warn('[OpenSubtitles] Error:', e.message);
     }
 }
 
-// Convert SRT to VTT
 function srtToVtt(srt) {
     let vtt = 'WEBVTT\n\n';
     const body = srt
@@ -920,9 +936,7 @@ function srtToVtt(srt) {
     return vtt;
 }
 
-// NO blob cleanup needed - remove _subtitleBlobUrls and revokeAllSubtitleBlobs completely
 function cleanupSubtitles() {
-    // Just remove the track elements - no blob cleanup needed
     Array.from(video.querySelectorAll('track[data-stremio]')).forEach(t => t.remove());
 }
 /* =====================================================================
