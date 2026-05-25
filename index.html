@@ -757,8 +757,8 @@ function initHlsPlayer(url) {
 
         const h = new Hls({
             // ── Buffer tuning: 60 s ahead ──────────────────────────────
-            maxBufferLength: 100,          // target buffer ahead (seconds)
-            maxMaxBufferLength: 150,       // hard cap when bandwidth allows
+            maxBufferLength: 500,          // target buffer ahead (seconds)
+            maxMaxBufferLength: 550,       // hard cap when bandwidth allows
             maxBufferSize: 120 * 1000 * 1000, // 120 MB segment buffer
             maxBufferHole: 0.5,
 
@@ -769,7 +769,7 @@ function initHlsPlayer(url) {
             // settings push the loader to fetch the next fragment as
             // early as possible (backBufferLength frees memory quickly
             // so the forward budget stays large):
-            backBufferLength: 30,
+            backBufferLength: 10,
 
             // ── Faster ABR / start ─────────────────────────────────────
             startLevel: -1,              // auto-select best starting level
@@ -1266,7 +1266,7 @@ async function submitIssue(){
 let audioCtx = null;
 let gainNode = null;
 let mediaSource = null;
-let currentBoost = 2.0; // 1.0 = 100% (no boost), max 4.0 = 400%
+let currentBoost = 4.0; // 1.0 = 100% (no boost), max 4.0 = 400%
 
 function initAudioBoost() {
    if (audioCtx) return; // already initialized
