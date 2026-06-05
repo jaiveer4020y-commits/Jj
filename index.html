@@ -757,8 +757,8 @@ function initHlsPlayer(url) {
 
     const h = new Hls({
         // ── Buffer tuning: Keep it smaller for faster seeking/filling ──
-        maxBufferLength: 30,              // Reduced from 1000 - smaller buffer fills faster
-        maxMaxBufferLength: 60,           // Reduced from 2000 - prevents huge memory
+        maxBufferLength: 120,              // Reduced from 1000 - smaller buffer fills faster
+        maxMaxBufferLength: 180,           // Reduced from 2000 - prevents huge memory
         maxBufferSize: 50 * 1024 * 1024,  // 50 MB - smaller = faster allocation
         maxBufferHole: 0.5,               // Increased from 0.1 - more tolerant
         
