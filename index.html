@@ -759,8 +759,8 @@ function initHlsPlayer(url) {
         // ── Buffer tuning: Keep it smaller for faster seeking/filling ──
         maxBufferLength: 120,              // Reduced from 1000 - smaller buffer fills faster
         maxMaxBufferLength: 180,           // Reduced from 2000 - prevents huge memory
-        maxBufferSize: 50 * 1024 * 1024,  // 50 MB - smaller = faster allocation
-        maxBufferHole: 0.5,               // Increased from 0.1 - more tolerant
+        maxBufferSize: 120 * 1024 * 1024,  // 50 MB - smaller = faster allocation
+        maxBufferHole: 0.1,               // Increased from 0.1 - more tolerant
         
         // ── Parallel fragment loading (CRITICAL for speed) ──
         lowLatencyMode: true,             // ENABLE this for faster loading
@@ -768,7 +768,7 @@ function initHlsPlayer(url) {
         maxFragLookUpTolerance: 0.5,      // Look ahead for fragments
         
         // ── More aggressive prefetching ──
-        backBufferLength: 30,             // Keep 30s back, not 0 - helps with seeks
+        backBufferLength: 0,             // Keep 30s back, not 0 - helps with seeks
         
         // ── ABR for fastest start ──
         startLevel: -1,
@@ -781,9 +781,9 @@ function initHlsPlayer(url) {
         // ── Aggressive retry with shorter delays ──
         fragLoadingMaxRetry: 8,            // More retries
         fragLoadingRetryDelay: 200,         // Shorter initial delay (was 500)
-        fragLoadingMaxRetryTimeout: 60000,  // Longer overall timeout
-        manifestLoadingMaxRetry: 6,
-        levelLoadingMaxRetry: 6,
+        fragLoadingMaxRetryTimeout: 600,  // Longer overall timeout
+        manifestLoadingMaxRetry: 1,
+        levelLoadingMaxRetry: 1,
         manifestLoadingRetryDelay: 200,
         levelLoadingRetryDelay: 200,
 
