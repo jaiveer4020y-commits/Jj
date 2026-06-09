@@ -765,7 +765,7 @@ function initHlsPlayer(url) {
         // ── Parallel fragment loading (CRITICAL for speed) ──
         lowLatencyMode: true,             // ENABLE this for faster loading
         progressive: false,               // Disable progressive for parallel loading
-        maxFragLookUpTolerance: 0.5,      // Look ahead for fragments
+        maxFragLookUpTolerance: 0.1,      // Look ahead for fragments
         
         // ── More aggressive prefetching ──
         backBufferLength: 20,             // Keep 30s back, not 0 - helps with seeks
