@@ -961,7 +961,7 @@ async function fetchFromMultimovies(mvUrl){
         if(!r.ok)return null;
         const data=await r.json();
         if(data.status!=='success'||!Array.isArray(data.servers)||!data.servers.length)return null;
-        const srv=(data.servers.find(s=>s.provider==='StreamP2p'&&s.result?.streaming_url)||data.servers.find(s=>s.result?.streaming_url));
+        const srv=(data.servers.find(s=>s.provider==='RpmShare'&&s.result?.streaming_url)||data.servers.find(s=>s.result?.streaming_url));
         if(!srv)return null;
         const raw=srv.result.streaming_url;
         console.log('[Multimovies] Got stream from',srv.provider);
