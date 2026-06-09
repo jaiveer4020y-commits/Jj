@@ -755,37 +755,81 @@ function initHlsPlayer(url) {
     isHlsJsMode = true;
     showLoader();
 
-    const h = new Hls({
-        // ── Buffer tuning: Keep it smaller for faster seeking/filling ──
-        maxBufferLength: 60,              // Reduced from 1000 - smaller buffer fills faster
-        maxMaxBufferLength: 90,           // Reduced from 2000 - prevents huge memory
-        maxBufferSize: 60 * 1024 * 1024,  // 50 MB - smaller = faster allocation
-        maxBufferHole: 0.1,               // Increased from 0.1 - more tolerant
-        
-        // ── Parallel fragment loading (CRITICAL for speed) ──
-        lowLatencyMode: true,             // ENABLE this for faster loading
-        progressive: false,               // Disable progressive for parallel loading
-        maxFragLookUpTolerance: 0.1,      // Look ahead for fragments
-        
-        // ── More aggressive prefetching ──
-        backBufferLength: 20,             // Keep 30s back, not 0 - helps with seeks
-        
-        // ── ABR for fastest start ──
-        startLevel: -1,
-        abrEwmaDefaultEstimate: 5_000_000, // Increased to 5 Mbps for aggressive start
-        abrBandWidthFactor: 0.95,          // Increased
-        abrBandWidthUpFactor: 0.7,         // Much higher - upgrade faster
-        abrEwmaFastLive: 3.0,              // Faster ABR on live streams
-        abrEwmaSlowLive: 9.0,
-        
-        // ── Aggressive retry with shorter delays ──
-        fragLoadingMaxRetry: 8,            // More retries
-        fragLoadingRetryDelay: 200,         // Shorter initial delay (was 500)
-        fragLoadingMaxRetryTimeout: 600,  // Longer overall timeout
-        manifestLoadingMaxRetry: 1,
-        levelLoadingMaxRetry: 1,
-        manifestLoadingRetryDelay: 200,
-        levelLoadingRetryDelay: 200,
+    const hls = new Hls({
+    // =========================
+    // Startup Speed
+    // =========================
+    autoStartLoad: true,
+    startPosition: -1,
+    startLevel: -1,
+
+    // =========================
+    // Buffer Management
+    // =========================
+    maxBufferLength: 30,
+    maxMaxBufferLength: 60,
+    maxBufferSize: 80 * 1024 * 1024,
+    maxBufferHole: 0.5,
+    backBufferLength: 30,
+
+    // =========================
+    // ABR (JW-like)
+    // =========================
+    abrEwmaDefaultEstimate: 10_000_000,
+    abrBandWidthFactor: 0.95,
+    abrBandWidthUpFactor: 0.8,
+    abrEwmaFastVoD: 3,
+    abrEwmaSlowVoD: 9,
+
+    // =========================
+    // Fragment Loading
+    // =========================
+    lowLatencyMode: false,
+    progressive: true,
+
+    fragLoadingTimeOut: 20000,
+    fragLoadingMaxRetry: 6,
+    fragLoadingRetryDelay: 500,
+    fragLoadingMaxRetryTimeout: 15000,
+
+    // =========================
+    // Playlist Loading
+    // =========================
+    manifestLoadingTimeOut: 10000,
+    manifestLoadingMaxRetry: 3,
+    manifestLoadingRetryDelay: 500,
+
+    levelLoadingTimeOut: 10000,
+    levelLoadingMaxRetry: 4,
+    levelLoadingRetryDelay: 500,
+
+    // =========================
+    // Seeking Performance
+    // =========================
+    maxFragLookUpTolerance: 0.5,
+    stretchShortVideoTrack: true,
+
+    // =========================
+    // Worker
+    // =========================
+    enableWorker: true,
+
+    // =========================
+    // Demux
+    // =========================
+    enableSoftwareAES: true,
+
+    // =========================
+    // Live/VOD
+    // =========================
+    liveSyncDurationCount: 3,
+    liveMaxLatencyDurationCount: 10,
+
+    // =========================
+    // Error Recovery
+    // =========================
+    appendErrorMaxRetry: 5
+
 
             // ── Subtitles ──────────────────────────────────────────────
             renderTextTracksNatively: true,
