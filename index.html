@@ -757,9 +757,9 @@ function initHlsPlayer(url) {
 
     const h = new Hls({
         // ── Buffer tuning: Keep it smaller for faster seeking/filling ──
-        maxBufferLength: 120,              // Reduced from 1000 - smaller buffer fills faster
-        maxMaxBufferLength: 180,           // Reduced from 2000 - prevents huge memory
-        maxBufferSize: 120 * 1024 * 1024,  // 50 MB - smaller = faster allocation
+        maxBufferLength: 60,              // Reduced from 1000 - smaller buffer fills faster
+        maxMaxBufferLength: 90,           // Reduced from 2000 - prevents huge memory
+        maxBufferSize: 60 * 1024 * 1024,  // 50 MB - smaller = faster allocation
         maxBufferHole: 0.1,               // Increased from 0.1 - more tolerant
         
         // ── Parallel fragment loading (CRITICAL for speed) ──
@@ -768,7 +768,7 @@ function initHlsPlayer(url) {
         maxFragLookUpTolerance: 0.5,      // Look ahead for fragments
         
         // ── More aggressive prefetching ──
-        backBufferLength: 0,             // Keep 30s back, not 0 - helps with seeks
+        backBufferLength: 20,             // Keep 30s back, not 0 - helps with seeks
         
         // ── ABR for fastest start ──
         startLevel: -1,
