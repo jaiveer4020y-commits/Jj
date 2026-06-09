@@ -834,7 +834,7 @@ function initHlsPlayer(url) {
             // ── Subtitles ──────────────────────────────────────────────
             renderTextTracksNatively: true,
             subtitleDisplay: true,
-        });
+        )};
 
         hlsInstance = h;
         h.on(Hls.Events.MEDIA_ATTACHED,         () => h.loadSource(url));
