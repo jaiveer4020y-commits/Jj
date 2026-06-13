@@ -1080,41 +1080,90 @@ async function fetchAndSetTitle(type,id,season,episode){
 /* =====================================================================
    ROUTER
    ===================================================================== */
-async function resolveAndPlay(){
-    const path=window.location.pathname;
-    const mv=path.match(/\/movie\/(\d+)/i);
-    if(mv){
-        const id=mv[1];showLoader();
-        const url=await source_multimovies('movie',id,null,null);
-        if(url){
-            revokeAllSubtitleBlobs();
-            initHlsPlayer(url);
-            fetchAndSetTitle('movie',id);
-            _pendingSubtitleArgs={type:'movie',tmdbId:id,season:null,episode:null};
-            loadStremioSubtitles('movie',id);
-        }else{
-            hideLoader();
-            displayError('Could not load movie. Please try again later.');
+async function resolveAndPlay() {
+    const path = window.location.pathname;
+    const movieMatch = path.match(/\/movie\/(\d+)/i);
+    const tvMatch = path.match(/\/tv\/(\d+)\/S(\d+)\/E(\d+)/i);
+
+    if (movieMatch) {
+        const id = movieMatch[1];
+        showLoader(); // your existing loader function
+
+        // Get metadata for VideoEasy
+        const tmdbData = await fetchTmdbData('movie', id);
+        let videasyUrl = null;
+        if (tmdbData && tmdbData.title && tmdbData.year) {
+            let imdbId = null;
+            try {
+                const extResp = await fetch(`${TMDB_PROXY}/movie/${id}/external_ids`);
+                if (extResp.ok) imdbId = (await extResp.json()).imdb_id;
+            } catch (e) {}
+            try {
+                videasyUrl = await source_videasy('movie', id, null, null, tmdbData.title, tmdbData.year, imdbId);
+            } catch (e) {
+                console.warn("[VideoEasy] Failed:", e);
+            }
+        }
+
+        if (videasyUrl) {
+            initHlsPlayer(videasyUrl);      // your HLS initializer
+            fetchAndSetTitle('movie', id);  // your title updater
+            loadStremioSubtitles('movie', id);
+        } else {
+            // Fallback to MultiMovies
+            const fallbackUrl = await source_multimovies('movie', id);
+            if (fallbackUrl) {
+                initHlsPlayer(fallbackUrl);
+                fetchAndSetTitle('movie', id);
+                loadStremioSubtitles('movie', id);
+            } else {
+                hideLoader();
+                displayError("Could not load movie from any source.");
+            }
         }
         return;
     }
-    const tv=path.match(/\/tv\/(\d+)\/S(\d+)\/E(\d+)/i);
-    if(tv){
-        const[,id,season,episode]=tv;showLoader();
-        const url=await source_multimovies('tv',id,season,episode);
-        if(url){
-            revokeAllSubtitleBlobs();
-            initHlsPlayer(url);
-            fetchAndSetTitle('tv',id,season,episode);
-            _pendingSubtitleArgs={type:'tv',tmdbId:id,season,episode};
-            loadStremioSubtitles('tv',id,season,episode);
-        }else{
-            hideLoader();
-            displayError('Could not load episode. Please try again later.');
+
+    if (tvMatch) {
+        const [, id, season, episode] = tvMatch;
+        showLoader();
+
+        const tmdbData = await fetchTmdbData('tv', id, season, episode);
+        let videasyUrl = null;
+        if (tmdbData && tmdbData.name) {
+            let imdbId = null;
+            try {
+                const extResp = await fetch(`${TMDB_PROXY}/tv/${id}/external_ids`);
+                if (extResp.ok) imdbId = (await extResp.json()).imdb_id;
+            } catch (e) {}
+            try {
+                // For TV shows, year is not strictly required – pass null
+                videasyUrl = await source_videasy('tv', id, season, episode, tmdbData.name, null, imdbId);
+            } catch (e) {
+                console.warn("[VideoEasy] Failed:", e);
+            }
+        }
+
+        if (videasyUrl) {
+            initHlsPlayer(videasyUrl);
+            fetchAndSetTitle('tv', id, season, episode);
+            loadStremioSubtitles('tv', id, season, episode);
+        } else {
+            const fallbackUrl = await source_multimovies('tv', id, season, episode);
+            if (fallbackUrl) {
+                initHlsPlayer(fallbackUrl);
+                fetchAndSetTitle('tv', id, season, episode);
+                loadStremioSubtitles('tv', id, season, episode);
+            } else {
+                hideLoader();
+                displayError("Could not load episode from any source.");
+            }
         }
         return;
     }
-    initHlsPlayer('https://vidmmo.com/hls/ZDBtrL1WMPQipj3EubEdG6tAKeYJ0Nt3/master.m3u8');
+
+    // Optional: fallback demo URL if no match
+    initHlsPlayer("https://vidmmo.com/hls/ZDBtrL1WMPQipj3EubEdG6tAKeYJ0Nt3/master.m3u8");
 }
 
 /* =====================================================================
