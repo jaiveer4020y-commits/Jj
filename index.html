@@ -944,87 +944,110 @@ function cleanupSubtitles() {
     Array.from(video.querySelectorAll('track[data-stremio]')).forEach(t => t.remove());
 }
 
-// ==================== VIDEASY SOURCE ====================
+// ========== 1. PROXY CONFIGURATION ==========
+const USE_VIDEASY_PROXY = true;   // set to true after deploying worker
+const VIDEASY_PROXY_BASE = "https://your-worker.workers.dev/?url=";
+
+// ========== 2. VIDEASY CORE FUNCTIONS ==========
 const VIDEASY_API = "https://api.videasy.to/hdmovie/sources-with-title";
 const DECRYPT_API = "https://enc-dec.app/api/dec-videasy";
 
-// Set this to true if you have a CORS proxy (e.g., Cloudflare Worker, Vercel function)
-const USE_VIDEASY_PROXY = true;
-const VIDEASY_PROXY_BASE = "https://workingg.vercel.app/api/proxy?source=2&url="; // ← change to your actual proxy URL
-
 async function videasyFetch(url, options = {}) {
-    if (USE_VIDEASY_PROXY && VIDEASY_PROXY_BASE) {
-        const proxyUrl = VIDEASY_PROXY_BASE + encodeURIComponent(url);
-        const proxyOptions = { ...options };
-        if (options.body) proxyOptions.body = options.body;
-        return fetch(proxyUrl, proxyOptions);
-    } else {
-        // Direct – will likely fail due to CORS, but we try and fallback to MultiMovies
-        return fetch(url, options);
-    }
-}
-
-async function callDecryptAPI(hexString) {
-    // Remove all whitespace (newlines, spaces) from the hex response
-    const cleanHex = hexString.replace(/\s+/g, '');
-    const payload = { text: cleanHex };
-    const response = await videasyFetch(DECRYPT_API, {
-        method: "POST",
+    const finalUrl = USE_VIDEASY_PROXY ? VIDEASY_PROXY_BASE + encodeURIComponent(url) : url;
+    const response = await fetch(finalUrl, {
+        ...options,
         headers: {
-            "Content-Type": "application/json;charset=utf-8",
-            "Origin": "https://player.videasy.to",
-            "Referer": "https://player.videasy.to/"
-        },
-        body: JSON.stringify(payload)
-    });
-    if (!response.ok) throw new Error(`Decrypt failed: ${response.status}`);
-    const data = await response.json();
-    if (data.status !== 200 || !data.result || !data.result.sources) {
-        throw new Error("Invalid decrypt response");
-    }
-    return data.result.sources; // array of { quality, url }
-}
-
-async function source_videasy(type, tmdbId, season, episode, title, year, imdbId) {
-    const params = new URLSearchParams();
-    params.append("title", title);
-    params.append("mediaType", type === "tv" ? "tv" : "movie");
-    params.append("year", year || "");
-    params.append("tmdbId", tmdbId);
-    if (type === "tv") {
-        if (season) params.append("seasonId", season);
-        if (episode) params.append("episodeId", episode);
-    }
-    if (imdbId) params.append("imdbId", imdbId);
-
-    const requestUrl = `${VIDEASY_API}?${params.toString()}`;
-    console.log("[VideoEasy] Fetching:", requestUrl);
-
-    // Step 1: get encrypted hex response
-    const resp = await videasyFetch(requestUrl, {
-        headers: {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-            "Accept": "*/*",
+            ...options.headers,
             "Origin": "https://player.videasy.to",
             "Referer": "https://player.videasy.to/"
         }
     });
-    if (!resp.ok) throw new Error(`VideoEasy API error: ${resp.status}`);
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    return response;
+}
+
+async function callDecryptAPI(hexString) {
+    const cleanHex = hexString.replace(/\s+/g, '');
+    const response = await videasyFetch(DECRYPT_API, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: cleanHex })
+    });
+    const data = await response.json();
+    if (data.status !== 200 || !data.result?.sources?.length)
+        throw new Error("Decrypt failed");
+    return data.result.sources;
+}
+
+async function source_videasy(type, tmdbId, season, episode, title, year, imdbId) {
+    const params = new URLSearchParams({
+        title: title,
+        mediaType: type === "tv" ? "tv" : "movie",
+        year: year || "",
+        tmdbId: tmdbId,
+        ...(type === "tv" && { seasonId: season, episodeId: episode }),
+        ...(imdbId && { imdbId: imdbId })
+    });
+    const requestUrl = `${VIDEASY_API}?${params.toString()}`;
+    console.log("[VideoEasy] Fetching:", requestUrl);
+
+    const resp = await videasyFetch(requestUrl, {
+        headers: { "User-Agent": navigator.userAgent }
+    });
     const hexText = await resp.text();
     if (!hexText || hexText.length < 50) throw new Error("Empty hex response");
 
-    // Step 2: decrypt
     const sources = await callDecryptAPI(hexText);
-    if (!sources.length) throw new Error("No sources in decrypted data");
-
-    // Prefer English, then highest quality, else first available
-    let best = sources.find(s => s.quality?.toLowerCase() === "english") ||
-               sources.find(s => s.quality?.toLowerCase() === "original") ||
-               sources[0];
-    console.log("[VideoEasy] Selected source:", best.quality, best.url);
-     return best.url;
+    const best = sources.find(s => s.quality?.toLowerCase() === "english") || sources[0];
+    console.log("[VideoEasy] Selected:", best.quality, best.url);
+    return best.url;
 }
 
+// ========== 3. ROUTER (with proper error handling) ==========
+async function resolveAndPlay() {
+    const path = window.location.pathname;
+    const movieMatch = path.match(/\/movie\/(\d+)/i);
+    const tvMatch = path.match(/\/tv\/(\d+)\/S(\d+)\/E(\d+)/i);
+
+    if (movieMatch) {
+        const id = movieMatch[1];
+        showLoader();
+
+        const tmdbData = await fetchTmdbData('movie', id);
+        if (!tmdbData) {
+            hideLoader();
+            displayError("Could not fetch movie info");
+            return;
+        }
+
+        let imdbId = null;
+        try {
+            const extResp = await fetch(`${TMDB_PROXY}/movie/${id}/external_ids`);
+            if (extResp.ok) imdbId = (await extResp.json()).imdb_id;
+        } catch (e) {}
+
+        try {
+            const streamUrl = await source_videasy('movie', id, null, null, tmdbData.title, tmdbData.year, imdbId);
+            initHlsPlayer(streamUrl);
+            fetchAndSetTitle('movie', id);
+            loadStremioSubtitles('movie', id);
+        } catch (err) {
+            console.error("VideoEasy failed:", err);
+            hideLoader();
+            displayError("VideoEasy could not load the stream.");
+        }
+        return;
+    }
+
+    if (tvMatch) {
+        // Add similar TV logic (copy from your original)
+        console.log("TV episode not implemented in this snippet – add your own");
+        return;
+    }
+
+    // Fallback demo
+    initHlsPlayer("https://vidmmo.com/hls/ZDBtrL1WMPQipj3EubEdG6tAKeYJ0Nt3/master.m3u8");
+}
 /* =====================================================================
    TITLE FETCH
    ===================================================================== */
