@@ -943,111 +943,40 @@ function srtToVtt(srt) {
 function cleanupSubtitles() {
     Array.from(video.querySelectorAll('track[data-stremio]')).forEach(t => t.remove());
 }
-
-// ========== 1. PROXY CONFIGURATION ==========
-const USE_VIDEASY_PROXY = true;   // set to true after deploying worker
-const VIDEASY_PROXY_BASE = "https://your-worker.workers.dev/?url=";
-
-// ========== 2. VIDEASY CORE FUNCTIONS ==========
-const VIDEASY_API = "https://api.videasy.to/hdmovie/sources-with-title";
-const DECRYPT_API = "https://enc-dec.app/api/dec-videasy";
-
-async function videasyFetch(url, options = {}) {
-    const finalUrl = USE_VIDEASY_PROXY ? VIDEASY_PROXY_BASE + encodeURIComponent(url) : url;
-    const response = await fetch(finalUrl, {
-        ...options,
-        headers: {
-            ...options.headers,
-            "Origin": "https://player.videasy.to",
-            "Referer": "https://player.videasy.to/"
-        }
-    });
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    return response;
+/* =====================================================================
+   SOURCE - multimovies only
+   ===================================================================== */
+const TMDB_PROXY='https://search-proxy.bingeoutofficial.workers.dev';
+const MULTIMOVIES_API='https://hls-proxy.vercel.app/api/?url=';
+const PROXY='https://workingg.vercel.app/api/proxy?source=2&url=';
+function toSlug(s){return(s||'').toLowerCase().replace(/[^a-z0-9\s-]/g,'').trim().replace(/\s+/g,'-');}
+async function fetchTmdbData(type,id,season,episode){
+    try{
+        if(type==='movie'){const r=await fetch(`${TMDB_PROXY}/movie/${id}`);if(!r.ok)return null;const d=await r.json();return{title:d.title||'',year:(d.release_date||'').slice(0,4)};}
+        else{const r=await fetch(`${TMDB_PROXY}/tv/${id}`);if(!r.ok)return null;const d=await r.json();return{name:d.name||'',seasonNum:Number(season),episodeNum:Number(episode)};}
+    }catch(e){return null;}
+}
+async function fetchFromMultimovies(mvUrl){
+    try{
+        const r=await fetch(PROXY+MULTIMOVIES_API+encodeURIComponent(mvUrl),{cache:'no-store'});
+        if(!r.ok)return null;
+        const data=await r.json();
+        if(data.status!=='success'||!Array.isArray(data.servers)||!data.servers.length)return null;
+        const srv=(data.servers.find(s=>s.provider==='RpmShare'&&s.result?.streaming_url)||data.servers.find(s=>s.result?.streaming_url));
+        if(!srv)return null;
+        const raw=srv.result.streaming_url;
+        console.log('[Multimovies] Got stream from',srv.provider);
+        return PROXY+encodeURIComponent(raw);
+    }catch(e){return null;}
+}
+async function source_multimovies(type,id,season,episode){
+    const tmdb=await fetchTmdbData(type,id,season,episode);if(!tmdb)return null;
+    let url;
+    if(type==='movie'){const slug=toSlug(tmdb.title);if(!slug)return null;url=`https://multimovies.homes/movie/${slug}/`;}
+    else{const slug=toSlug(tmdb.name);if(!slug)return null;url=`https://multimovies.homes/episodes/${slug}-${parseInt(String(tmdb.seasonNum).padStart(2,'0'))}x${parseInt(String(tmdb.episodeNum).padStart(2,'0'))}/`;}
+    return fetchFromMultimovies(url);
 }
 
-async function callDecryptAPI(hexString) {
-    const cleanHex = hexString.replace(/\s+/g, '');
-    const response = await videasyFetch(DECRYPT_API, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: cleanHex })
-    });
-    const data = await response.json();
-    if (data.status !== 200 || !data.result?.sources?.length)
-        throw new Error("Decrypt failed");
-    return data.result.sources;
-}
-
-async function source_videasy(type, tmdbId, season, episode, title, year, imdbId) {
-    const params = new URLSearchParams({
-        title: title,
-        mediaType: type === "tv" ? "tv" : "movie",
-        year: year || "",
-        tmdbId: tmdbId,
-        ...(type === "tv" && { seasonId: season, episodeId: episode }),
-        ...(imdbId && { imdbId: imdbId })
-    });
-    const requestUrl = `${VIDEASY_API}?${params.toString()}`;
-    console.log("[VideoEasy] Fetching:", requestUrl);
-
-    const resp = await videasyFetch(requestUrl, {
-        headers: { "User-Agent": navigator.userAgent }
-    });
-    const hexText = await resp.text();
-    if (!hexText || hexText.length < 50) throw new Error("Empty hex response");
-
-    const sources = await callDecryptAPI(hexText);
-    const best = sources.find(s => s.quality?.toLowerCase() === "english") || sources[0];
-    console.log("[VideoEasy] Selected:", best.quality, best.url);
-    return best.url;
-}
-
-// ========== 3. ROUTER (with proper error handling) ==========
-async function resolveAndPlay() {
-    const path = window.location.pathname;
-    const movieMatch = path.match(/\/movie\/(\d+)/i);
-    const tvMatch = path.match(/\/tv\/(\d+)\/S(\d+)\/E(\d+)/i);
-
-    if (movieMatch) {
-        const id = movieMatch[1];
-        showLoader();
-
-        const tmdbData = await fetchTmdbData('movie', id);
-        if (!tmdbData) {
-            hideLoader();
-            displayError("Could not fetch movie info");
-            return;
-        }
-
-        let imdbId = null;
-        try {
-            const extResp = await fetch(`${TMDB_PROXY}/movie/${id}/external_ids`);
-            if (extResp.ok) imdbId = (await extResp.json()).imdb_id;
-        } catch (e) {}
-
-        try {
-            const streamUrl = await source_videasy('movie', id, null, null, tmdbData.title, tmdbData.year, imdbId);
-            initHlsPlayer(streamUrl);
-            fetchAndSetTitle('movie', id);
-            loadStremioSubtitles('movie', id);
-        } catch (err) {
-            console.error("VideoEasy failed:", err);
-            hideLoader();
-            displayError("VideoEasy could not load the stream.");
-        }
-        return;
-    }
-
-    if (tvMatch) {
-        // Add similar TV logic (copy from your original)
-        console.log("TV episode not implemented in this snippet – add your own");
-        return;
-    }
-
-    // Fallback demo
-    initHlsPlayer("https://vidmmo.com/hls/ZDBtrL1WMPQipj3EubEdG6tAKeYJ0Nt3/master.m3u8");
-}
 /* =====================================================================
    TITLE FETCH
    ===================================================================== */
@@ -1067,6 +996,45 @@ async function fetchAndSetTitle(type,id,season,episode){
     }catch(e){}
 }
 
+/* =====================================================================
+   ROUTER
+   ===================================================================== */
+async function resolveAndPlay(){
+    const path=window.location.pathname;
+    const mv=path.match(/\/movie\/(\d+)/i);
+    if(mv){
+        const id=mv[1];showLoader();
+        const url=await source_multimovies('movie',id,null,null);
+        if(url){
+            revokeAllSubtitleBlobs();
+            initHlsPlayer(url);
+            fetchAndSetTitle('movie',id);
+            _pendingSubtitleArgs={type:'movie',tmdbId:id,season:null,episode:null};
+            loadStremioSubtitles('movie',id);
+        }else{
+            hideLoader();
+            displayError('Could not load movie. Please try again later.');
+        }
+        return;
+    }
+    const tv=path.match(/\/tv\/(\d+)\/S(\d+)\/E(\d+)/i);
+    if(tv){
+        const[,id,season,episode]=tv;showLoader();
+        const url=await source_multimovies('tv',id,season,episode);
+        if(url){
+            revokeAllSubtitleBlobs();
+            initHlsPlayer(url);
+            fetchAndSetTitle('tv',id,season,episode);
+            _pendingSubtitleArgs={type:'tv',tmdbId:id,season,episode};
+            loadStremioSubtitles('tv',id,season,episode);
+        }else{
+            hideLoader();
+            displayError('Could not load episode. Please try again later.');
+        }
+        return;
+    }
+    initHlsPlayer('https://vidmmo.com/hls/ZDBtrL1WMPQipj3EubEdG6tAKeYJ0Nt3/master.m3u8');
+}
 
 /* =====================================================================
    UI BINDINGS
