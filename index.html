@@ -943,6 +943,87 @@ function srtToVtt(srt) {
 function cleanupSubtitles() {
     Array.from(video.querySelectorAll('track[data-stremio]')).forEach(t => t.remove());
 }
+
+    // Configuration – set USE_PROXY = true and provide your own backend URL
+    // that can forward requests to api.videasy.to and enc-dec.app (POST).
+    const USE_PROXY = false;               // set to true if you have a proxy
+    const PROXY_BASE_URL = "https://your-proxy.workers.dev/"; // your proxy endpoint
+    
+    const VIDEASY_API = "https://api.videasy.to/hdmovie/sources-with-title";
+    const DECRYPT_API = "https://enc-dec.app/api/dec-videasy";
+    
+    // Helper: fetch with or without proxy
+    async function videasyFetch(url, options = {}) {
+        if (USE_PROXY && PROXY_BASE_URL) {
+            // For POST, proxy must handle method, headers and body
+            const proxyUrl = PROXY_BASE_URL + "?url=" + encodeURIComponent(url);
+            const proxyOptions = { ...options };
+            if (options.body) proxyOptions.body = options.body;
+            return fetch(proxyUrl, proxyOptions);
+        } else {
+            // Direct – will likely fail due to CORS, but we try and fallback
+            return fetch(url, options);
+        }
+    }
+    
+    async function callDecryptAPI(hexString) {
+        const payload = { text: hexString.replace(/\s+/g, '') }; // remove all whitespace
+        const response = await videasyFetch(DECRYPT_API, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json;charset=utf-8",
+                "Origin": "https://player.videasy.to",
+                "Referer": "https://player.videasy.to/"
+            },
+            body: JSON.stringify(payload)
+        });
+        if (!response.ok) throw new Error(`Decrypt failed: ${response.status}`);
+        const data = await response.json();
+        if (data.status !== 200 || !data.result || !data.result.sources) throw new Error("Invalid decrypt response");
+        return data.result.sources; // array of { quality, url }
+    }
+    
+    async function source_videasy(type, tmdbId, season, episode, title, year, imdbId) {
+        // Build URL parameters
+        const params = new URLSearchParams();
+        params.append("title", title);
+        params.append("mediaType", type === "tv" ? "tv" : "movie");
+        params.append("year", year);
+        params.append("tmdbId", tmdbId);
+        if (type === "tv") {
+            if (season) params.append("seasonId", season);
+            if (episode) params.append("episodeId", episode);
+        }
+        if (imdbId) params.append("imdbId", imdbId);
+        
+        const requestUrl = `${VIDEASY_API}?${params.toString()}`;
+        console.log("[VideoEasy] Fetching:", requestUrl);
+        
+        // Step 1: get encrypted hex
+        const resp = await videasyFetch(requestUrl, {
+            headers: {
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+                "Accept": "*/*",
+                "Origin": "https://player.videasy.to",
+                "Referer": "https://player.videasy.to/"
+            }
+        });
+        if (!resp.ok) throw new Error(`VideoEasy API error: ${resp.status}`);
+        const hexText = await resp.text();   // multiline hex string
+        if (!hexText || hexText.length < 50) throw new Error("Empty hex response");
+        
+        // Step 2: decrypt
+        const sources = await callDecryptAPI(hexText);
+        if (!sources.length) throw new Error("No sources in decrypted data");
+        
+        // Prefer English, then highest quality, else first available
+        let best = sources.find(s => s.quality?.toLowerCase() === "english") ||
+                   sources.find(s => s.quality?.toLowerCase() === "original") ||
+                   sources[0];
+        console.log("[VideoEasy] Selected source:", best.quality, best.url);
+        return best.url;
+    }
+    
 /* =====================================================================
    SOURCE - multimovies only
    ===================================================================== */
