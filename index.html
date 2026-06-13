@@ -1022,7 +1022,8 @@ async function source_videasy(type, tmdbId, season, episode, title, year, imdbId
                sources.find(s => s.quality?.toLowerCase() === "original") ||
                sources[0];
     console.log("[VideoEasy] Selected source:", best.quality, best.url);
-    return 
+     return best.url;
+}
 
 /* =====================================================================
    TITLE FETCH
