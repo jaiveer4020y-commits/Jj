@@ -1022,41 +1022,7 @@ async function source_videasy(type, tmdbId, season, episode, title, year, imdbId
                sources.find(s => s.quality?.toLowerCase() === "original") ||
                sources[0];
     console.log("[VideoEasy] Selected source:", best.quality, best.url);
-    return best.url;
-}
-/* =====================================================================
-   SOURCE - multimovies only
-   ===================================================================== */
-const TMDB_PROXY='https://search-proxy.bingeoutofficial.workers.dev';
-const MULTIMOVIES_API='https://hls-proxy.vercel.app/api/?url=';
-const PROXY='https://workingg.vercel.app/api/proxy?source=2&url=';
-function toSlug(s){return(s||'').toLowerCase().replace(/[^a-z0-9\s-]/g,'').trim().replace(/\s+/g,'-');}
-async function fetchTmdbData(type,id,season,episode){
-    try{
-        if(type==='movie'){const r=await fetch(`${TMDB_PROXY}/movie/${id}`);if(!r.ok)return null;const d=await r.json();return{title:d.title||'',year:(d.release_date||'').slice(0,4)};}
-        else{const r=await fetch(`${TMDB_PROXY}/tv/${id}`);if(!r.ok)return null;const d=await r.json();return{name:d.name||'',seasonNum:Number(season),episodeNum:Number(episode)};}
-    }catch(e){return null;}
-}
-async function fetchFromMultimovies(mvUrl){
-    try{
-        const r=await fetch(PROXY+MULTIMOVIES_API+encodeURIComponent(mvUrl),{cache:'no-store'});
-        if(!r.ok)return null;
-        const data=await r.json();
-        if(data.status!=='success'||!Array.isArray(data.servers)||!data.servers.length)return null;
-        const srv=(data.servers.find(s=>s.provider==='RpmShare'&&s.result?.streaming_url)||data.servers.find(s=>s.result?.streaming_url));
-        if(!srv)return null;
-        const raw=srv.result.streaming_url;
-        console.log('[Multimovies] Got stream from',srv.provider);
-        return PROXY+encodeURIComponent(raw);
-    }catch(e){return null;}
-}
-async function source_multimovies(type,id,season,episode){
-    const tmdb=await fetchTmdbData(type,id,season,episode);if(!tmdb)return null;
-    let url;
-    if(type==='movie'){const slug=toSlug(tmdb.title);if(!slug)return null;url=`https://multimovies.homes/movie/${slug}/`;}
-    else{const slug=toSlug(tmdb.name);if(!slug)return null;url=`https://multimovies.homes/episodes/${slug}-${parseInt(String(tmdb.seasonNum).padStart(2,'0'))}x${parseInt(String(tmdb.episodeNum).padStart(2,'0'))}/`;}
-    return fetchFromMultimovies(url);
-}
+    return 
 
 /* =====================================================================
    TITLE FETCH
