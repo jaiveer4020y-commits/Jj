@@ -973,7 +973,7 @@ async function fetchFromMultimovies(mvUrl){
 }
 
 const srv =
-    data.servers.find(s => s.result?.provider === 'EarnVids' && s.result?.streaming_url) ||
+    data.servers.find(s => s.result?.tag === 'streamwish' && s.result?.streaming_url) ||
     data.servers.find(s => s.result?.streaming_url);
 
 if (!srv?.result?.streaming_url) {
