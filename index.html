@@ -790,16 +790,15 @@ function initHlsPlayer(url) {
             liveMaxLatencyDurationCount:10,
             appendErrorMaxRetry:5,
             renderTextTracksNatively:true,
-            subtitleDisplay:true
             // ADD THIS BLOCK
-        xhrSetup: function(xhr, url) {
-        xhr.setRequestHeader('Access-Control-Allow-Origin', '*'),
-        xhr.setRequestHeader('Access-Control-Allow-Methods', 'GET, OPTIONS'),
-        xhr.setRequestHeader('Access-Control-Allow-Headers', '*'),
-        xhr.setRequestHeader('Cross-Origin-Resource-Policy', 'cross-origin'),
-        xhr.setRequestHeader('Referer', 'https://server1.uns.bio/'),
-        }
-        });
+    xhrSetup: function(xhr, url) {
+        xhr.setRequestHeader('Access-Control-Allow-Origin', '*');
+        xhr.setRequestHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+        xhr.setRequestHeader('Access-Control-Allow-Headers', '*');
+        xhr.setRequestHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+        xhr.setRequestHeader('Referer', 'https://server1.uns.bio/');
+    }
+});
 
         hlsInstance = h;
         h.on(Hls.Events.MEDIA_ATTACHED,         () => h.loadSource(url));
