@@ -983,7 +983,7 @@ if (!srv?.result?.streaming_url) {
 const raw = srv.result.streaming_url;
 
 console.log('[Multimovies] Got stream from', srv.provider);
-        return PROXY+encodeURIComponent(raw);
+        return (raw);
     }catch(e){return null;}
 }
 async function source_multimovies(type,id,season,episode){
