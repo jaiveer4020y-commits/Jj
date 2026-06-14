@@ -961,11 +961,21 @@ async function fetchFromMultimovies(mvUrl){
         const r=await fetch(PROXY+MULTIMOVIES_API+encodeURIComponent(mvUrl),{cache:'no-store'});
         if(!r.ok)return null;
         const data=await r.json();
-        if(data.status!=='success'||!Array.isArray(data.servers)||!data.servers.length)return null;
-        const srv=(data.servers.find(s=>s.tag==='rpmhub'&&s.result?.streaming_url)||data.servers.find(s=>s.result?.streaming_url));
-        if(!srv)return null;
-        const raw=srv.result.streaming_url;
-        console.log('[Multimovies] Got stream from',srv.provider);
+        if (data.status !== 'success' || !Array.isArray(data.servers) || !data.servers.length) {
+    return null;
+}
+
+const srv =
+    data.servers.find(s => s.result?.tag === 'rpmhub' && s.result?.streaming_url) ||
+    data.servers.find(s => s.result?.streaming_url);
+
+if (!srv?.result?.streaming_url) {
+    return null;
+}
+
+const raw = srv.result.streaming_url;
+
+console.log('[Multimovies] Got stream from', srv.provider);
         return PROXY+encodeURIComponent(raw);
     }catch(e){return null;}
 }
