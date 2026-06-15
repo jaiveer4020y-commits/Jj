@@ -712,96 +712,72 @@ async function updateNextEpisodeButton(){
 function isDirectVideoUrl(url) {
     try {
         const path = new URL(url).pathname.toLowerCase();
-        // .txt excluded — served as application/vnd.apple.mpegurl (HLS manifest)
         return /\.(mp4|webm|ogg|ogv|mov|mkv|avi|flv|m4v)(\?|$)/.test(path);
     } catch (e) {
         return /\.(mp4|webm|ogg|ogv|mov|mkv|avi|flv|m4v)(\?|$)/.test(url.toLowerCase());
     }
 }
 
-
-function cleanupSubtitles() {
-    Array.from(video.querySelectorAll('track[data-stremio]')).forEach(t => t.remove());
-}
-
 function initHlsPlayer(url) {
+    // Flush progress for the current episode before switching.
+    // Must happen before resolvedUrl / videoStorageKey are overwritten.
     saveVideoProgress();
-    if (saveProgressInterval) { clearInterval(saveProgressInterval); saveProgressInterval = null; }
+    if (saveProgressInterval) {
+        clearInterval(saveProgressInterval);
+        saveProgressInterval = null;
+    }
+
+    // Tear down any existing HLS instance cleanly before starting a new one.
+    // This prevents the old instance from firing fatal error events mid-swap.
     stopProgressSaving();
     hasRestoredPosition = false;
-    if (hlsInstance) { hlsInstance.destroy(); hlsInstance = null; }
-    cleanupSubtitles();
+    if (hlsInstance) {
+        hlsInstance.destroy();
+        hlsInstance = null;
+    }
+    // Remove injected subtitle tracks from previous episode
+    Array.from(video.querySelectorAll('track[data-github], track[data-wyzie]')).forEach(t => t.remove());
     errorMessageDiv.classList.add('hidden');
-    resolvedUrl = url;
+
+    // Reset per-episode progress state so the new episode starts fresh.
+    hasRestoredPosition = false;
+
+    resolvedUrl     = url;
     videoStorageKey = generateStorageKey(url);
 
+    /* ---- Direct video file (MP4, WebM, etc.) ---- */
     if (isDirectVideoUrl(url)) {
         isHlsJsMode = false;
         showLoader();
         video.src = url;
         video.addEventListener('loadedmetadata', () => {
-            renderTracksMenu(); hideLoader();
+            renderTracksMenu(); hideLoader(); setupInactivityDetection();
             restoreVideoProgress(); startProgressSaving();
             video.play().catch(() => {});
-            updateNextEpisodeButton();
-        }, { once: true });
+        }, {once:true});
         video.addEventListener('error', () => {
             if (video.currentTime > 0 || video.readyState >= 2) return;
             displayError('Failed to load video: ' + (video.error ? video.error.message : 'unknown error'));
             hideLoader();
-        }, { once: true });
+        }, {once:true});
         return;
     }
 
+    /* ---- HLS stream (.m3u8) ---- */
     if (Hls.isSupported()) {
-    isHlsJsMode = true;
-    showLoader();
-
-    // FIX: corrected closing brace — was `)}` should be `})`
-        const h =new Hls({
-            autoStartLoad:true,
-            startPosition:-1,
-            startLevel:-1,
-            maxBufferLength:30,
-            maxMaxBufferLength:60,
-            maxBufferSize:80*1024*1024,
-            maxBufferHole:0.5,
-            backBufferLength:30,
-            abrEwmaDefaultEstimate:10000000,
-            abrBandWidthFactor:0.95,
-            abrBandWidthUpFactor:0.8,
-            abrEwmaFastVoD:3,
-            abrEwmaSlowVoD:9,
-            lowLatencyMode:true,
-            progressive:false,
-            fragLoadingTimeOut:20000,
-            fragLoadingMaxRetry:6,
-            fragLoadingRetryDelay:500,
-            fragLoadingMaxRetryTimeout:15000,
-            manifestLoadingTimeOut:10000,
-            manifestLoadingMaxRetry:3,
-            manifestLoadingRetryDelay:500,
-            levelLoadingTimeOut:10000,
-            levelLoadingMaxRetry:4,
-            levelLoadingRetryDelay:500,
-            maxFragLookUpTolerance:0.5,
-            stretchShortVideoTrack:true,
-            enableWorker:true,
-            enableSoftwareAES:true,
-            liveSyncDurationCount:3,
-            liveMaxLatencyDurationCount:10,
-            appendErrorMaxRetry:5,
-            renderTextTracksNatively:true,
-            // ADD THIS BLOCK
-    
-});
-
+        isHlsJsMode = true;
+        showLoader();
+        const h = new Hls({
+            renderTextTracksNatively: true,
+            subtitleDisplay: true,
+        });
         hlsInstance = h;
-        h.on(Hls.Events.MEDIA_ATTACHED,         () => h.loadSource(url));
-        h.on(Hls.Events.MANIFEST_PARSED,         () => { renderTracksMenu(); renderQualityMenu(); updateNextEpisodeButton(); });
-        h.on(Hls.Events.AUDIO_TRACK_SWITCHED,    renderTracksMenu);
+
+        h.on(Hls.Events.MEDIA_ATTACHED, () => h.loadSource(url));
+        h.on(Hls.Events.MANIFEST_PARSED, () => { renderTracksMenu(); renderQualityList(); });
+        h.on(Hls.Events.AUDIO_TRACK_SWITCHED, renderTracksMenu);
         h.on(Hls.Events.SUBTITLE_TRACK_SWITCHED, renderTracksMenu);
-        h.on(Hls.Events.LEVEL_SWITCHED,          renderQualityMenu);
+        h.on(Hls.Events.LEVEL_SWITCHED, () => { if (!speedQualityMenu.classList.contains('hidden')) renderQualityList(); });
         h.on(Hls.Events.ERROR, (ev, data) => {
             if (data.fatal) {
                 displayError('Fatal HLS error');
@@ -809,28 +785,55 @@ function initHlsPlayer(url) {
                 hideLoader();
             }
         });
-        h.attachMedia(video);
-        video.addEventListener('loadedmetadata', () => restoreVideoProgress(), { once: true });
-        video.addEventListener('canplay', () => {
-            hideLoader(); startProgressSaving(); video.play().catch(() => {});
-        }, { once: true });
 
-    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+        /* Fix HLS cue position — move from browser-default bottom to line:85%
+           (same position used by GitHub/Wyzie subtitles via srtToVtt)            */
+        function fixHlsCueLine(cue) {
+            if (!(cue instanceof VTTCue)) return;
+            cue.line        = 85;
+            cue.snapToLines = false;
+            cue.position    = 50;
+            cue.align       = 'center';
+        }
+        function patchTrackCues(track) {
+            if (track.cues) Array.from(track.cues).forEach(fixHlsCueLine);
+            track.addEventListener('cuechange', () => {
+                if (track.cues) Array.from(track.cues).forEach(fixHlsCueLine);
+            });
+        }
+        video.textTracks.addEventListener('addtrack', e => {
+            const t = e.track;
+            if (t.kind === 'subtitles' || t.kind === 'captions') {
+                // Only patch HLS-native tracks, not our injected GitHub/Wyzie ones
+                const el = Array.from(video.querySelectorAll('track'))
+                    .find(el => el.label === t.label && el.srclang === t.language);
+                if (!el || (!el.hasAttribute('data-github') && !el.hasAttribute('data-wyzie'))) {
+                    patchTrackCues(t);
+                }
+            }
+        });
+
+        h.attachMedia(video);
+
+        video.addEventListener('loadedmetadata', () => restoreVideoProgress(), {once:true});
+        video.addEventListener('canplay', () => { hideLoader(); setupInactivityDetection(); startProgressSaving(); video.play().catch(() => {}); }, {once:true});
+    }
+    else if (video.canPlayType('application/vnd.apple.mpegurl')) {
         isHlsJsMode = false;
         showLoader();
         video.src = url;
         video.addEventListener('loadedmetadata', () => {
-            renderTracksMenu(); hideLoader();
+            renderTracksMenu(); hideLoader(); setupInactivityDetection();
             restoreVideoProgress(); startProgressSaving();
             video.play().catch(() => {});
-            updateNextEpisodeButton();
-        }, { once: true });
+        }, {once:true});
         video.addEventListener('error', () => {
             if (video.currentTime > 0 && !video.paused) return;
             displayError('Failed to load stream: ' + (video.error ? video.error.message : 'unknown error'));
             hideLoader();
-        }, { once: true });
-    } else {
+        }, {once:true});
+    }
+    else {
         displayError('Browser does not support HLS');
         hideLoader();
     }
