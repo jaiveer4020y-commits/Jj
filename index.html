@@ -791,13 +791,7 @@ function initHlsPlayer(url) {
             appendErrorMaxRetry:5,
             renderTextTracksNatively:true,
             // ADD THIS BLOCK
-    xhrSetup: function(xhr, url) {
-        xhr.setRequestHeader('Access-Control-Allow-Origin', '*');
-        xhr.setRequestHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-        xhr.setRequestHeader('Access-Control-Allow-Headers', '*');
-        xhr.setRequestHeader('Cross-Origin-Resource-Policy', 'cross-origin');
-        xhr.setRequestHeader('Referer', 'https://server1.uns.bio/');
-    }
+    
 });
 
         hlsInstance = h;
