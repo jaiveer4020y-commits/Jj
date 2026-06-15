@@ -1018,24 +1018,92 @@ async function fetchAndSetTitle(type,id,season,episode){
    ===================================================================== */async function resolveAndPlay() {
     async function resolveAndPlay() {
     const path = window.location.pathname;
+    const urlParams = new URLSearchParams(window.location.search);
+    const urlParam = urlParams.get('url');
 
-    const movieMatch = path.match(/\/movie\/(\d+)/i);
-    if (movieMatch) {
-        return playMovie(movieMatch[1]);
+    // Handle ?url= param directly — .txt served as HLS manifest
+    if (urlParam) {
+        showLoader();
+        revokeAllSubtitleBlobs();
+        initHlsPlayer(urlParam);
+        return;
     }
 
-    const tvMatch = path.match(/\/tv\/(\d+)\/S(\d+)\/E(\d+)/i);
-    if (tvMatch) {
-        return playEpisode(tvMatch[1], tvMatch[2], tvMatch[3]);
+    const mv = path.match(/\/movie\/(\d+)/i);
+    if (mv) {
+        const id = mv[1];
+        showLoader();
+
+        // Try multimovies first
+        let streamUrl = await source_multimovies('movie', id, null, null);
+
+        // Fallback to GitHub
+        if (!streamUrl) {
+            try {
+                const res = await fetch(
+                    `https://raw.githubusercontent.com/Watchout2025/api/refs/heads/main/hls/movie/${id}`,
+                    { cache: 'no-store' }
+                );
+                if (res.ok) streamUrl = (await res.text()).trim();
+            } catch (e) {
+                console.warn('[GitHub fallback movie] failed:', e.message);
+            }
+        }
+
+        if (streamUrl) {
+            revokeAllSubtitleBlobs();
+            initHlsPlayer(streamUrl);
+            fetchAndSetTitle('movie', id);
+            _pendingSubtitleArgs = { type: 'movie', tmdbId: id, season: null, episode: null };
+            loadStremioSubtitles('movie', id);
+        } else {
+            hideLoader();
+            displayError('Could not load movie. Please try again later.');
+        }
+        return;
     }
 
-    /* Fallback: ?url= query param or hardcoded default */
-    const hlsUrl =
-        urlParams.get('url') ||
-        'https://vidmmo.com/hls/ZDBtrL1WMPQipj3EubEdG6tAKeYJ0Nt3/master.m3u8';
+    const tv = path.match(/\/tv\/(\d+)\/S(\d+)\/E(\d+)/i);
+    if (tv) {
+        const [, id, season, episode] = tv;
+        showLoader();
 
-    initHlsPlayer(hlsUrl);
+        // Try multimovies first
+        let streamUrl = await source_multimovies('tv', id, season, episode);
+
+        // Fallback to GitHub
+        if (!streamUrl) {
+            try {
+                const res = await fetch(
+                    `https://raw.githubusercontent.com/Watchout2025/api/refs/heads/main/hls/tv/${id}/S${season}.json`,
+                    { cache: 'no-store' }
+                );
+                if (res.ok) {
+                    const data = await res.json();
+                    streamUrl = data[Number(episode)] || null;
+                }
+            } catch (e) {
+                console.warn('[GitHub fallback tv] failed:', e.message);
+            }
+        }
+
+        if (streamUrl) {
+            revokeAllSubtitleBlobs();
+            initHlsPlayer(streamUrl);
+            fetchAndSetTitle('tv', id, season, episode);
+            _pendingSubtitleArgs = { type: 'tv', tmdbId: id, season, episode };
+            loadStremioSubtitles('tv', id, season, episode);
+        } else {
+            hideLoader();
+            displayError('Could not load episode. Please try again later.');
+        }
+        return;
+    }
+
+    // Fallback default
+    initHlsPlayer('https://vidmmo.com/hls/ZDBtrL1WMPQipj3EubEdG6tAKeYJ0Nt3/master.m3u8');
 }
+
 /* =====================================================================
    UI BINDINGS
    ===================================================================== */
