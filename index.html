@@ -973,15 +973,14 @@ async function fetchFromMultimovies(mvUrl){
 }
 
 const srv =
-  data.servers.find(s => s.result?.m3u8_url) ||
-  data.servers.find(s => s.result?.streaming_url);
+  const srv = data.servers.find(s => s.result?.m3u8_url);
 
 
-if (!srv?.result?.streaming_url) {
+if (!srv?.result?.m3u8_url) {
     return null;
 }
 
-const raw = srv.result.streaming_url;
+const raw = srv.result.m3u8_url;
 
 console.log('[Multimovies] Got stream from', srv.provider);
         return (raw);
