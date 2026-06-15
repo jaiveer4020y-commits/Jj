@@ -712,11 +712,13 @@ async function updateNextEpisodeButton(){
 function isDirectVideoUrl(url) {
     try {
         const path = new URL(url).pathname.toLowerCase();
+        // .txt excluded — served as application/vnd.apple.mpegurl (HLS manifest)
         return /\.(mp4|webm|ogg|ogv|mov|mkv|avi|flv|m4v)(\?|$)/.test(path);
     } catch (e) {
         return /\.(mp4|webm|ogg|ogv|mov|mkv|avi|flv|m4v)(\?|$)/.test(url.toLowerCase());
     }
 }
+
 
 function cleanupSubtitles() {
     Array.from(video.querySelectorAll('track[data-stremio]')).forEach(t => t.remove());
