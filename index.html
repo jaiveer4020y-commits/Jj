@@ -973,8 +973,9 @@ async function fetchFromMultimovies(mvUrl){
 }
 
 const srv =
-    data.servers.find(s => s.result?.m3u8_url === '' && s.result?.streaming_url) ||
-    data.servers.find(s => s.result?.streaming_url);
+  data.servers.find(s => s.result?.m3u8_url) ||
+  data.servers.find(s => s.result?.streaming_url);
+
 
 if (!srv?.result?.streaming_url) {
     return null;
