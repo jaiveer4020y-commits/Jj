@@ -1013,40 +1013,59 @@ async function fetchAndSetTitle(type,id,season,episode){
 /* =====================================================================
    ROUTER
    ===================================================================== */
-async function resolveAndPlay(){
-    const path=window.location.pathname;
-    const mv=path.match(/\/movie\/(\d+)/i);
-    if(mv){
-        const id=mv[1];showLoader();
-        const url=await source_multimovies('movie',id,null,null);
-        if(url){
+async function resolveAndPlay() {
+    const path = window.location.pathname;
+
+    const mv = path.match(/\/movie\/(\d+)/i);
+    if (mv) {
+        const id = mv[1];
+        showLoader();
+        try {
+            const res = await fetch(
+                `https://raw.githubusercontent.com/Watchout2025/api/refs/heads/main/hls/movie/${id}`,
+                { cache: 'no-store' }
+            );
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const streamUrl = (await res.text()).trim();
+            if (!streamUrl) throw new Error('Empty URL');
             revokeAllSubtitleBlobs();
-            initHlsPlayer(url);
-            fetchAndSetTitle('movie',id);
-            _pendingSubtitleArgs={type:'movie',tmdbId:id,season:null,episode:null};
-            loadStremioSubtitles('movie',id);
-        }else{
+            initHlsPlayer(streamUrl);
+            fetchAndSetTitle('movie', id);
+            _pendingSubtitleArgs = { type: 'movie', tmdbId: id, season: null, episode: null };
+            loadStremioSubtitles('movie', id);
+        } catch (e) {
             hideLoader();
-            displayError('Could not load movie. Please try again later.');
+            displayError('Could not load movie: ' + e.message);
         }
         return;
     }
-    const tv=path.match(/\/tv\/(\d+)\/S(\d+)\/E(\d+)/i);
-    if(tv){
-        const[,id,season,episode]=tv;showLoader();
-        const url=await source_multimovies('tv',id,season,episode);
-        if(url){
+
+    const tv = path.match(/\/tv\/(\d+)\/S(\d+)\/E(\d+)/i);
+    if (tv) {
+        const [, id, season, episode] = tv;
+        showLoader();
+        try {
+            const res = await fetch(
+                `https://raw.githubusercontent.com/Watchout2025/api/refs/heads/main/hls/tv/${id}/S${season}.json`,
+                { cache: 'no-store' }
+            );
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const data = await res.json();
+            const streamUrl = data[Number(episode)];
+            if (!streamUrl) throw new Error(`Episode ${episode} not found`);
             revokeAllSubtitleBlobs();
-            initHlsPlayer(url);
-            fetchAndSetTitle('tv',id,season,episode);
-            _pendingSubtitleArgs={type:'tv',tmdbId:id,season,episode};
-            loadStremioSubtitles('tv',id,season,episode);
-        }else{
+            initHlsPlayer(streamUrl);
+            fetchAndSetTitle('tv', id, season, episode);
+            _pendingSubtitleArgs = { type: 'tv', tmdbId: id, season, episode };
+            loadStremioSubtitles('tv', id, season, episode);
+        } catch (e) {
             hideLoader();
-            displayError('Could not load episode. Please try again later.');
+            displayError('Could not load episode: ' + e.message);
         }
         return;
     }
+
+    // Fallback
     initHlsPlayer('https://vidmmo.com/hls/ZDBtrL1WMPQipj3EubEdG6tAKeYJ0Nt3/master.m3u8');
 }
 
