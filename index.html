@@ -933,7 +933,7 @@ function cleanupSubtitles() {
    ===================================================================== */
 const TMDB_PROXY='https://search-proxy.bingeoutofficial.workers.dev';
 const MULTIMOVIES_API='https://hls-proxy.vercel.app/api/?url=';
-const PROXY='https://workingg.vercel.app/api/proxy?&url=';
+const PROXY='';
 function toSlug(s){return(s||'').toLowerCase().replace(/[^a-z0-9\s-]/g,'').trim().replace(/\s+/g,'-');}
 
 async function fetchTmdbData(type,id,season,episode){
@@ -998,8 +998,8 @@ async function fetchStream(type, id, season, episode) {
     // Priority 2: Render API
     try {
         const renderApiUrl = type === 'movie' 
-            ? `https://your-render-app.onrender.com/movie/${id}` 
-            : `https://your-render-app.onrender.com/tv/${id}/${season}/${episode}`;
+            ? `https://workis.vercel.app/api/proxy?id=${id}` 
+            : `https://workis.vercel.app/api/proxy?id=${id}&s=${season}&e=${episode}`;
             
         const renderRes = await fetch(renderApiUrl, { cache: 'no-store' });
         if (renderRes.ok) {
