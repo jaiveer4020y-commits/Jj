@@ -1,3 +1,4 @@
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta http-equiv="Accept-CH" content="Viewport-Width, Width">
@@ -6,14 +7,13 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
     <meta charset="UTF-8">
-    <title>MOVIES2U Playe</title>
+    <title>Player</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
     <style>
         @font-face{font-family:'Netflix Sans';src:url('https://assets.nflxext.com/ffe/siteui/fonts/netflix-sans/v3/NetflixSans_W_Rg.woff2') format('woff2');font-weight:400;font-style:normal;font-display:swap}
         @font-face{font-family:'Netflix Sans';src:url('https://assets.nflxext.com/ffe/siteui/fonts/netflix-sans/v3/NetflixSans_W_Md.woff2') format('woff2');font-weight:500;font-style:normal;font-display:swap}
         @font-face{font-family:'Netflix Sans';src:url('https://assets.nflxext.com/ffe/siteui/fonts/netflix-sans/v3/NetflixSans_W_Bd.woff2') format('woff2');font-weight:700;font-style:normal;font-display:swap}
-   
         html,body{height:100%;width:100vw;margin:0;padding:0;overflow:hidden;font-family:'Netflix Sans',sans-serif;background:#000}
         body{padding-bottom:env(safe-area-inset-bottom)}
         .bottom-control-button:hover{transform:scale(1.1)}
@@ -120,8 +120,6 @@
         #next-episode-button svg{width:18px;height:18px}
         #next-episode-button:hover{transform:scale(1.05)}
         @media(max-width:1000px){#next-episode-button{font-size:.7rem;padding:0 4px}#next-episode-button svg{width:14px;height:14px}}
-        :-webkit-full-screen #title-display{bottom:80px;top:auto;transform:translateX(-50%)}
-        :fullscreen #title-display{bottom:400px;top:auto;transform:translateX(-50%)}
         video::-webkit-media-controls{display:none!important}
         video::-webkit-media-controls-enclosure{display:none!important}
     </style>
@@ -129,7 +127,6 @@
 <body>
 <div id="video-container" class="relative">
     <video id="video" class="w-full h-full object-cover" autoplay playsinline style="--cue-bottom:80px" disableremoteplayback></video>
-    
     <div id="skip-hint" class="text-white"></div>
     <div id="loading-indicator" class="absolute inset-0 flex items-center justify-center bg-black/50 z-30 hidden">
         <img src="https://assets.nflxext.com/en_us/pages/wiplayer/site-spinner.png" class="w-20 h-20 rounded-full shadow-lg" alt="Loading">
@@ -152,12 +149,9 @@
     <div id="bottom-overlay" class="absolute inset-0 flex flex-col justify-end transition-opacity duration-500 controls-visible z-20 pointer-events-none">
         <div id="controls-bar" class="w-full bg-gradient-to-t from-black/70 to-transparent flex flex-col space-y-2 md:space-y-3 pointer-events-auto">
             <div id="top-bar" class="absolute top-0 left-0 right-0 z-20 flex items-center justify-between px-6 transition-opacity duration-500 controls-visible" style="height:4.5rem">
-                <div class="flex items-center gap-4">
-                    <button id="back-button" class="text-white hover:opacity-80 transition-opacity duration-500 focus:outline-none flex-shrink-0 flex items-center justify-center" style="width:2.2rem;height:2.2rem" onclick="(function(){if(document.fullscreenElement&&window.innerWidth<1000){document.exitFullscreen();}else{window.history.back();}})()">
-                        <svg viewBox="0 0 24 24" width="2.2rem" height="2.2rem" xmlns="http://www.w3.org/2000/svg" fill="none"><path fill="#FFFFFF" fill-rule="evenodd" d="M6.414 11H21v2H6.414l5.293 5.293-1.414 1.414-7-7a1 1 0 0 1 0-1.414l7-7 1.414 1.414z" clip-rule="evenodd"/></svg>
-                    </button>
-                    <span style="color: rgb(225,0,0); font-weight: 700; font-size: 1.5rem; letter-spacing: 1px; font-family: 'Netflix Sans', sans-serif;">MOVIES2U</span>
-                </div>
+                <button id="back-button" class="text-white hover:opacity-80 transition-opacity duration-500 focus:outline-none flex-shrink-0 flex items-center justify-center" style="width:2.2rem;height:2.2rem" onclick="(function(){if(document.fullscreenElement&&window.innerWidth<1000){document.exitFullscreen();}else{window.history.back();}})()">
+                    <svg viewBox="0 0 24 24" width="2.2rem" height="2.2rem" xmlns="http://www.w3.org/2000/svg" fill="none"><path fill="#FFFFFF" fill-rule="evenodd" d="M6.414 11H21v2H6.414l5.293 5.293-1.414 1.414-7-7a1 1 0 0 1 0-1.414l7-7 1.414 1.414z" clip-rule="evenodd"/></svg>
+                </button>
                 <div id="mobile-title" class="flex flex-col items-center pointer-events-none" style="max-width:55vw">
                     <span id="mobile-title-main" class="text-white font-medium text-sm leading-tight text-center" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%"></span>
                 </div>
@@ -271,6 +265,7 @@
    DOM REFS
    ===================================================================== */
 const video=document.getElementById('video'),videoContainer=document.getElementById('video-container'),errorMessageDiv=document.getElementById('error-message'),topOverlay=document.getElementById('top-overlay'),bottomOverlay=document.getElementById('bottom-overlay'),customPlayButton=document.getElementById('custom-play-button'),playIcon=document.getElementById('play-icon'),pauseIcon=document.getElementById('pause-icon'),volumeControlWrapper=document.getElementById('volume-control-wrapper'),muteButton=document.getElementById('mute-button'),volumeLowIcon=document.getElementById('volume-low-icon'),volumeMediumIcon=document.getElementById('volume-medium-icon'),volumeHighIcon=document.getElementById('volume-high-icon'),volumeOffIcon=document.getElementById('volume-off-icon'),volumeSliderContainer=document.getElementById('volume-slider-container'),volumeSliderTrack=document.getElementById('volume-slider-track'),volumeLevel=document.getElementById('volume-level'),volumeThumbControl=document.getElementById('volume-thumb-control'),seekBar=document.getElementById('seek-bar'),bufferIndicator=document.getElementById('buffer-indicator'),progressIndicator=document.getElementById('progress-indicator'),seekThumb=document.getElementById('seek-thumb'),remainingTimeDisplay=document.getElementById('remaining-time'),fullscreenButton=document.getElementById('fullscreen-button'),fullscreenEnterIcon=document.getElementById('fullscreen-enter-icon'),fullscreenExitIcon=document.getElementById('fullscreen-exit-icon'),skipBackwardButton=document.getElementById('skip-backward-button'),skipForwardButton=document.getElementById('skip-forward-button'),loadingIndicator=document.getElementById('loading-indicator'),audioSubtitleToggle=document.getElementById('audio-subtitle-toggle'),audioSubtitleMenu=document.getElementById('audio-subtitle-menu'),audioList=document.getElementById('audio-list'),subtitleList=document.getElementById('subtitle-list'),centerPlayPauseOverlay=document.getElementById('center-play-pause-overlay'),centerPlayPauseButton=document.getElementById('center-play-pause-button'),centerPlayIcon=document.getElementById('center-play-icon'),centerPauseIcon=document.getElementById('center-pause-icon'),mobileSkipBackwardButton=document.getElementById('mobile-skip-backward-button'),mobileSkipForwardButton=document.getElementById('mobile-skip-forward-button'),nextEpisodeButton=document.getElementById('next-episode-button');
+
 /* =====================================================================
    STATE
    ===================================================================== */
@@ -283,23 +278,23 @@ let currentMouseMoveHandler=null,currentTouchMoveHandler=null;
 let videoStorageKey=null,hasRestoredPosition=false,saveProgressInterval=null;
 let resolvedUrl=null,_subtitleBlobUrls=[];
 let _pendingSubtitleArgs=null,_subtitlesLoaded=false,_subtitlesLoading=false;
-const SUBTITLE_FETCH_TIMEOUT_MS=10000;
+let _proxySubtitles={}; // { langCode: fullVttUrl } from hls-proxy
 let _loaderWatchdog=null;
-let bufferMonitorInterval = null;
-let speedQualityMenu = document.getElementById('speed-quality-menu');
-if (!speedQualityMenu) {
-    speedQualityMenu = document.createElement('div');
-    speedQualityMenu.id = 'speed-quality-menu';
-    speedQualityMenu.className = 'hidden';
-    document.body.appendChild(speedQualityMenu);
-}
+let bufferMonitorInterval=null;
+// iOS: track if we are in the initial load (suppress spurious waiting events)
+let _initialLoad=true;
+
+const speedQualityMenu=document.createElement('div');
+speedQualityMenu.id='speed-quality-menu';
+speedQualityMenu.className='hidden';
+document.body.appendChild(speedQualityMenu);
 
 /* =====================================================================
-   STABLE STORAGE KEY
+   STORAGE KEY
    ===================================================================== */
 function extractStableStreamId(url){
     if(!url)return null;
-    try{const m=url.match(/\/([a-z0-9]{4,12})\/master\.m3u8/i);if(m)return m[1];}catch(e){}
+    try{const m=url.match(/\/([a-z0-9]{4,12})\/(?:master\.m3u8|cf-master)/i);if(m)return m[1];}catch(e){}
     return null;
 }
 function generateStorageKey(url){
@@ -328,44 +323,24 @@ function formatTime(s){
 function displayError(msg){console.error(msg);errorMessageDiv.textContent=msg;errorMessageDiv.classList.remove('hidden');}
 
 /* =====================================================================
-   BUFFER MONITOR
+   BUFFER MONITOR — only used during initial load
    ===================================================================== */
-function startBufferMonitor() {
-    if (bufferMonitorInterval) clearInterval(bufferMonitorInterval);
-    bufferMonitorInterval = setInterval(() => {
-        if (video.buffered.length > 0) {
-            const bufferedEnd = video.buffered.end(video.buffered.length - 1);
-            const currentTime = video.currentTime || 0;
-            const bufferAhead = bufferedEnd - currentTime;
-            
-            if (bufferAhead >= 2 && !loadingIndicator.classList.contains('hidden')) {
-                console.log(`[Buffer] Enough data loaded (${bufferAhead.toFixed(1)}s ahead), hiding loader`);
-                hideLoader();
-                if (video.paused && !video.ended) {
-                    video.play().catch(e => console.warn('Play after buffer:', e));
-                }
-            }
-        }
-        
-        if (video.readyState >= 3 && !loadingIndicator.classList.contains('hidden')) {
-            console.log(`[Buffer] ReadyState ${video.readyState}, hiding loader`);
+function startBufferMonitor(){
+    if(bufferMonitorInterval)clearInterval(bufferMonitorInterval);
+    bufferMonitorInterval=setInterval(()=>{
+        if(video.readyState>=3&&!loadingIndicator.classList.contains('hidden')){
             hideLoader();
-            if (video.paused && !video.ended) {
-                video.play().catch(e => console.warn('Play after readyState:', e));
-            }
+            stopBufferMonitor();
+            if(video.paused&&!video.ended)video.play().catch(()=>{});
         }
-    }, 500);
+    },500);
 }
-
-function stopBufferMonitor() {
-    if (bufferMonitorInterval) {
-        clearInterval(bufferMonitorInterval);
-        bufferMonitorInterval = null;
-    }
+function stopBufferMonitor(){
+    if(bufferMonitorInterval){clearInterval(bufferMonitorInterval);bufferMonitorInterval=null;}
 }
 
 /* =====================================================================
-   LOADER
+   LOADER — iOS fix: only show on real buffering, not every fragment load
    ===================================================================== */
 function showLoader(){
     loadingIndicator.classList.remove('hidden');
@@ -375,19 +350,20 @@ function showLoader(){
     startBufferMonitor();
     _loaderWatchdog=setTimeout(()=>{
         if(!loadingIndicator.classList.contains('hidden')&&video.currentTime>0&&!video.paused){
-            console.warn('[Loader] Watchdog forced hide — video is playing');
-            hideLoader();
-            stopBufferMonitor();
+            hideLoader();stopBufferMonitor();
         }
     },8000);
 }
 function hideLoader(){
-    clearTimeout(_loaderWatchdog);
-    _loaderWatchdog=null;
+    clearTimeout(_loaderWatchdog);_loaderWatchdog=null;
+    stopBufferMonitor();
     loadingIndicator.classList.add('hidden');
     resetInactivityTimer();
 }
 
+/* =====================================================================
+   CONTROLS VISIBILITY
+   ===================================================================== */
 function showControls(){
     bottomOverlay.classList.remove('controls-hidden');bottomOverlay.classList.add('controls-visible');
     if(loadingIndicator.classList.contains('hidden')){
@@ -420,8 +396,8 @@ function saveVideoProgress(){
     if(!video.duration||isNaN(video.duration)||video.duration===Infinity)return;
     if(video.currentTime<1||video.currentTime>video.duration-5)return;
     if(!videoStorageKey)return;
-    try{localStorage.setItem(videoStorageKey,JSON.stringify({currentTime:video.currentTime,duration:video.duration,timestamp:Date.now(),stableKey:videoStorageKey}));}
-    catch(e){console.error('save progress error',e);}
+    try{localStorage.setItem(videoStorageKey,JSON.stringify({currentTime:video.currentTime,duration:video.duration,timestamp:Date.now()}));}
+    catch(e){}
 }
 function restoreVideoProgress(){
     if(hasRestoredPosition)return;
@@ -432,7 +408,7 @@ function restoreVideoProgress(){
         const d=JSON.parse(raw);
         if(!d.currentTime||d.currentTime<=5||d.currentTime>=(d.duration||Infinity)-10)return;
         hasRestoredPosition=true;
-        const doSeek=()=>{video.currentTime=d.currentTime;console.log(`[Resume] ${formatTime(d.currentTime)}`);};
+        const doSeek=()=>{video.currentTime=d.currentTime;};
         if(video.readyState>=2)doSeek();else video.addEventListener('canplay',doSeek,{once:true});
     }catch(e){hasRestoredPosition=true;}
 }
@@ -591,7 +567,7 @@ function updateFullscreenIcon(){
 /* =====================================================================
    LANGUAGE MAP
    ===================================================================== */
-const LM={'eng':'English','en':'English','und':'Undefined','hin':'Hindi','hi':'Hindi','tel':'Telugu','te':'Telugu','tam':'Tamil','ta':'Tamil','kan':'Kannada','kn':'Kannada','spa':'Spanish','es':'Spanish','fre':'French','fr':'French','ger':'German','de':'German','ita':'Italian','it':'Italian','jpn':'Japanese','ja':'Japanese','por':'Portuguese','pt':'Portuguese','rus':'Russian','ru':'Russian','zho':'Chinese','zh':'Chinese','ara':'Arabic','ar':'Arabic','kor':'Korean','ko':'Korean','tl':'Filipino'};
+const LM={'eng':'English','en':'English','und':'Undefined','hin':'Hindi','hi':'Hindi','tel':'Telugu','te':'Telugu','tam':'Tamil','ta':'Tamil','kan':'Kannada','kn':'Kannada','spa':'Spanish','es':'Spanish','fre':'French','fr':'French','ger':'German','de':'German','ita':'Italian','it':'Italian','jpn':'Japanese','ja':'Japanese','por':'Portuguese','pt':'Portuguese','rus':'Russian','ru':'Russian','zho':'Chinese','zh':'Chinese','ara':'Arabic','ar':'Arabic','kor':'Korean','ko':'Korean','tl':'Filipino','mal':'Malayalam','ml':'Malayalam','ben':'Bengali','bn':'Bengali','mar':'Marathi','mr':'Marathi'};
 function getLang(code){if(!code)return'';const lc=code.toLowerCase();return LM[lc]||code.charAt(0).toUpperCase()+code.slice(1);}
 
 /* =====================================================================
@@ -600,16 +576,29 @@ function getLang(code){if(!code)return'';const lc=code.toLowerCase();return LM[l
 function toggleAudioSubtitleMenu(){
     const hidden=audioSubtitleMenu.classList.contains('hidden');
     if(hidden){
+        // Render audio immediately, load subtitles on first open
         if(!_subtitlesLoaded&&!_subtitlesLoading&&_pendingSubtitleArgs){
             _subtitlesLoading=true;
             const{type,tmdbId,season,episode}=_pendingSubtitleArgs;
             subtitleList.innerHTML='<li class="text-gray-400" style="padding:8px 10px">Loading subtitles…</li>';
-            loadStremioSubtitles(type,tmdbId,season,episode).then(()=>{_subtitlesLoaded=true;_subtitlesLoading=false;renderTracksMenu();}).catch(()=>{_subtitlesLoaded=true;_subtitlesLoading=false;renderTracksMenu();});
+            // Inject proxy subtitles immediately (already fetched), then load stremio
+            injectProxySubtitles().then(()=>{
+                return loadStremioSubtitles(type,tmdbId,season,episode);
+            }).then(()=>{
+                _subtitlesLoaded=true;_subtitlesLoading=false;renderTracksMenu();
+            }).catch(()=>{
+                _subtitlesLoaded=true;_subtitlesLoading=false;renderTracksMenu();
+            });
             renderTracksMenuAudioOnly();
-        }else if(_subtitlesLoading){renderTracksMenuAudioOnly();}
-        else{renderTracksMenu();}
+        }else if(_subtitlesLoading){
+            renderTracksMenuAudioOnly();
+        }else{
+            renderTracksMenu();
+        }
         audioSubtitleMenu.classList.remove('hidden');clearTimeout(inactivityTimer);showControls();
-    }else{audioSubtitleMenu.classList.add('hidden');resetInactivityTimer();}
+    }else{
+        audioSubtitleMenu.classList.add('hidden');resetInactivityTimer();
+    }
 }
 
 function _checkmark(visible){
@@ -637,18 +626,39 @@ function renderTracksMenuAudioOnly(){
         li.addEventListener('click',()=>handleTrackSelection('audio',i));audioList.appendChild(li);
     });
 }
+
 function renderTracksMenu(){
     audioList.innerHTML='';subtitleList.innerHTML='';
+    // Audio
     const aTracks=isHlsJsMode?hlsInstance.audioTracks:(video.audioTracks?Array.from(video.audioTracks):[]);
     const aCur=isHlsJsMode?hlsInstance.audioTrack:(video.audioTracks?Array.from(video.audioTracks).findIndex(t=>t.enabled):-1);
     if(!aTracks.length){audioList.innerHTML='<li class="text-gray-400">No alternate audio</li>';}
     else{aTracks.forEach((t,i)=>{const sel=isHlsJsMode?(i===aCur):t.enabled;const li=document.createElement('li');li.className=`track-selector cursor-pointer flex items-center gap-2 ${sel?'font-bold text-white':'text-gray-400'}`;li.appendChild(_checkmark(sel));const lb=document.createElement('span');lb.textContent=_trackDisplayName(t,isHlsJsMode);li.appendChild(lb);li.addEventListener('click',()=>handleTrackSelection('audio',i));audioList.appendChild(li);});}
+    // Subtitles
     const subs=video.textTracks?Array.from(video.textTracks).filter(t=>t.kind==='subtitles'||t.kind==='captions'):[];
     const sCur=subs.findIndex(t=>t.mode==='showing');
+    // Off
     const offLi=document.createElement('li');offLi.className=`track-selector cursor-pointer flex items-center gap-2 ${sCur===-1?'font-bold text-white':'text-gray-400'}`;offLi.appendChild(_checkmark(sCur===-1));const offLb=document.createElement('span');offLb.textContent='Off';offLi.appendChild(offLb);offLi.addEventListener('click',()=>handleTrackSelection('subtitle',-1));subtitleList.appendChild(offLi);
     if(!subs.length){subtitleList.innerHTML+='<li class="text-gray-400">No subtitles found</li>';}
-    else{subs.forEach((t,idx)=>{const sel=t.mode==='showing';const li=document.createElement('li');li.className=`track-selector cursor-pointer flex items-center gap-2 ${sel?'font-bold text-white':'text-gray-400'}`;li.appendChild(_checkmark(sel));const lb=document.createElement('span');lb.textContent=`${t.label||getLang(t.language)}${t.kind==='captions'?' [CC]':''}`;li.appendChild(lb);li.addEventListener('click',()=>handleTrackSelection('subtitle',idx));subtitleList.appendChild(li);});}
+    else{
+        subs.forEach((t,idx)=>{
+            const sel=t.mode==='showing';
+            const isProxy=t.label&&t.label.includes('[CC]');
+            const li=document.createElement('li');
+            li.className=`track-selector cursor-pointer flex items-center gap-2 ${sel?'font-bold text-white':'text-gray-400'}`;
+            li.appendChild(_checkmark(sel));
+            const lb=document.createElement('span');
+            // Proxy CC tracks already have [CC] in label; stremio tracks get plain name
+            lb.textContent=t.label||getLang(t.language);
+            // Highlight proxy [CC] tracks
+            if(isProxy){lb.style.color=sel?'#fff':'#e2b84b';}
+            li.appendChild(lb);
+            li.addEventListener('click',()=>handleTrackSelection('subtitle',idx));
+            subtitleList.appendChild(li);
+        });
+    }
 }
+
 function handleTrackSelection(type,idx){
     if(type==='audio'){
         if(isHlsJsMode&&hlsInstance)hlsInstance.audioTrack=idx;
@@ -710,262 +720,273 @@ async function updateNextEpisodeButton(){
 /* =====================================================================
    HLS PLAYER INIT
    ===================================================================== */
-function isDirectVideoUrl(url) {
-    try {
-        const path = new URL(url).pathname.toLowerCase();
-        return /\.(mp4|webm|ogg|ogv|mov|mkv|avi|flv|m4v)(\?|$)/.test(path);
-    } catch (e) {
-        return /\.(mp4|webm|ogg|ogv|mov|mkv|avi|flv|m4v)(\?|$)/.test(url.toLowerCase());
-    }
+function isDirectVideoUrl(url){
+    try{const path=new URL(url).pathname.toLowerCase();return/\.(mp4|webm|ogg|ogv|mov|mkv|avi|flv|m4v)(\?|$)/.test(path);}
+    catch(e){return/\.(mp4|webm|ogg|ogv|mov|mkv|avi|flv|m4v)(\?|$)/.test(url.toLowerCase());}
 }
 
-function initHlsPlayer(url) {
+function cleanupSubtitles(){
+    Array.from(video.querySelectorAll('track[data-stremio],track[data-proxy]')).forEach(t=>t.remove());
+}
+
+function initHlsPlayer(url){
     saveVideoProgress();
-    if (saveProgressInterval) {
-        clearInterval(saveProgressInterval);
-        saveProgressInterval = null;
-    }
-
+    if(saveProgressInterval){clearInterval(saveProgressInterval);saveProgressInterval=null;}
     stopProgressSaving();
-    hasRestoredPosition = false;
-    if (hlsInstance) {
-        hlsInstance.destroy();
-        hlsInstance = null;
-    }
-    Array.from(video.querySelectorAll('track[data-github], track[data-wyzie]')).forEach(t => t.remove());
+    hasRestoredPosition=false;
+    _initialLoad=true;
+    if(hlsInstance){hlsInstance.destroy();hlsInstance=null;}
+    cleanupSubtitles();
     errorMessageDiv.classList.add('hidden');
-    hasRestoredPosition = false;
-    resolvedUrl     = url;
-    videoStorageKey = generateStorageKey(url);
+    resolvedUrl=url;
+    videoStorageKey=generateStorageKey(url);
+    _subtitlesLoaded=false;
+    _subtitlesLoading=false;
 
-    if (isDirectVideoUrl(url)) {
-        isHlsJsMode = false;
+    if(isDirectVideoUrl(url)){
+        isHlsJsMode=false;
         showLoader();
-        video.src = url;
-        video.addEventListener('loadedmetadata', () => {
-            renderTracksMenu(); hideLoader(); setupInactivityDetection();
-            restoreVideoProgress(); startProgressSaving();
-            video.play().catch(() => {});
-        }, {once:true});
-        video.addEventListener('error', () => {
-            if (video.currentTime > 0 || video.readyState >= 2) return;
-            displayError('Failed to load video: ' + (video.error ? video.error.message : 'unknown error'));
+        video.src=url;
+        video.addEventListener('loadedmetadata',()=>{
+            renderTracksMenu();hideLoader();
+            restoreVideoProgress();startProgressSaving();
+            video.play().catch(()=>{});
+            updateNextEpisodeButton();
+            _initialLoad=false;
+        },{once:true});
+        video.addEventListener('error',()=>{
+            if(video.currentTime>0||video.readyState>=2)return;
+            displayError('Failed to load video: '+(video.error?video.error.message:'unknown error'));
             hideLoader();
-        }, {once:true});
+        },{once:true});
         return;
     }
 
-    if (Hls.isSupported()) {
-        isHlsJsMode = true;
+    if(Hls.isSupported()){
+        isHlsJsMode=true;
         showLoader();
-        const h = new Hls({
-            renderTextTracksNatively: true,
-            subtitleDisplay: true,
+        const h=new Hls({
+            autoStartLoad:true,
+            startLevel:-1,
+            maxBufferLength:30,
+            maxMaxBufferLength:60,
+            maxBufferSize:80*1024*1024,
+            maxBufferHole:0.5,
+            enableWorker:true,
+            renderTextTracksNatively:true,
+            subtitleDisplay:true,
         });
-        hlsInstance = h;
-
-        h.on(Hls.Events.MEDIA_ATTACHED, () => h.loadSource(url));
-        h.on(Hls.Events.MANIFEST_PARSED, () => { renderTracksMenu(); renderQualityList(); });
-        h.on(Hls.Events.AUDIO_TRACK_SWITCHED, renderTracksMenu);
-        h.on(Hls.Events.SUBTITLE_TRACK_SWITCHED, renderTracksMenu);
-        h.on(Hls.Events.LEVEL_SWITCHED, () => { if (!speedQualityMenu.classList.contains('hidden')) renderQualityList(); });
-        h.on(Hls.Events.ERROR, (ev, data) => {
-            if (data.fatal) {
-                displayError('Fatal HLS error');
-                h.destroy();
-                hideLoader();
-            }
-        });
-
-        function fixHlsCueLine(cue) {
-            if (!(cue instanceof VTTCue)) return;
-            cue.line        = 85;
-            cue.snapToLines = false;
-            cue.position    = 50;
-            cue.align       = 'center';
-        }
-        function patchTrackCues(track) {
-            if (track.cues) Array.from(track.cues).forEach(fixHlsCueLine);
-            track.addEventListener('cuechange', () => {
-                if (track.cues) Array.from(track.cues).forEach(fixHlsCueLine);
-            });
-        }
-        video.textTracks.addEventListener('addtrack', e => {
-            const t = e.track;
-            if (t.kind === 'subtitles' || t.kind === 'captions') {
-                const el = Array.from(video.querySelectorAll('track'))
-                    .find(el => el.label === t.label && el.srclang === t.language);
-                if (!el || (!el.hasAttribute('data-github') && !el.hasAttribute('data-wyzie'))) {
-                    patchTrackCues(t);
-                }
-            }
+        hlsInstance=h;
+        h.on(Hls.Events.MEDIA_ATTACHED,()=>h.loadSource(url));
+        h.on(Hls.Events.MANIFEST_PARSED,()=>{renderTracksMenu();renderQualityMenu();updateNextEpisodeButton();});
+        h.on(Hls.Events.AUDIO_TRACK_SWITCHED,renderTracksMenu);
+        h.on(Hls.Events.SUBTITLE_TRACK_SWITCHED,renderTracksMenu);
+        h.on(Hls.Events.LEVEL_SWITCHED,renderQualityMenu);
+        h.on(Hls.Events.ERROR,(ev,data)=>{
+            if(data.fatal){displayError('Fatal HLS error');h.destroy();hideLoader();}
         });
         h.attachMedia(video);
-
-        video.addEventListener('loadedmetadata', () => restoreVideoProgress(), {once:true});
-        video.addEventListener('canplay', () => { hideLoader(); setupInactivityDetection(); startProgressSaving(); video.play().catch(() => {}); }, {once:true});
+        video.addEventListener('loadedmetadata',()=>restoreVideoProgress(),{once:true});
+        video.addEventListener('canplay',()=>{hideLoader();startProgressSaving();video.play().catch(()=>{});_initialLoad=false;},{once:true});
     }
-    else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-        isHlsJsMode = false;
+    else if(video.canPlayType('application/vnd.apple.mpegurl')){
+        // iOS Safari native HLS
+        isHlsJsMode=false;
         showLoader();
-        video.src = url;
-        video.addEventListener('loadedmetadata', () => {
-            renderTracksMenu(); hideLoader(); setupInactivityDetection();
-            restoreVideoProgress(); startProgressSaving();
-            video.play().catch(() => {});
-        }, {once:true});
-        video.addEventListener('error', () => {
-            if (video.currentTime > 0 && !video.paused) return;
-            displayError('Failed to load stream: ' + (video.error ? video.error.message : 'unknown error'));
+        video.src=url;
+        video.addEventListener('loadedmetadata',()=>{
+            renderTracksMenu();hideLoader();
+            restoreVideoProgress();startProgressSaving();
+            video.play().catch(()=>{});
+            updateNextEpisodeButton();
+            _initialLoad=false;
+        },{once:true});
+        video.addEventListener('error',()=>{
+            if(video.currentTime>0&&!video.paused)return;
+            displayError('Failed to load stream: '+(video.error?video.error.message:'unknown error'));
             hideLoader();
-        }, {once:true});
+        },{once:true});
     }
-    else {
-        displayError('Browser does not support HLS');
-        hideLoader();
+    else{
+        displayError('Browser does not support HLS');hideLoader();
     }
 }
 
 /* =====================================================================
-   SUBTITLES - OPENSUBTITLES VIA STREMIO
+   PROXY SUBTITLES — injected immediately from hls-proxy response
+   Format: { "en": "/path/en.vtt#en", "hi": "/path/hi.vtt#hi" }
+   Base: https://multimovies.rpmhub.site
    ===================================================================== */
-async function loadStremioSubtitles(type, tmdbId, season, episode) {
-    Array.from(video.querySelectorAll('track[data-stremio]')).forEach(t => t.remove());
-    let imdbId = null;
-    try {
-        const r = await fetch(`https://search-proxy.bingeoutofficial.workers.dev/${type}/${tmdbId}/external_ids`);
-        if (r.ok) {
-            const data = await r.json();
-            imdbId = data.imdb_id;
-            console.log('[OpenSubtitles] Got IMDb ID:', imdbId);
-        }
-    } catch (e) {
-        console.warn('[OpenSubtitles] IMDb fetch failed:', e.message);
-        return;
-    }
+const PROXY_SUBTITLE_BASE='https://multimovies.rpmhub.site';
 
-    if (!imdbId) { console.warn('[OpenSubtitles] No IMDb ID found'); return; }
+async function injectProxySubtitles(){
+    // Remove old proxy tracks
+    Array.from(video.querySelectorAll('track[data-proxy]')).forEach(t=>t.remove());
+    if(!_proxySubtitles||!Object.keys(_proxySubtitles).length)return;
 
-    const url = (type === 'tv' && season && episode)
-        ? `https://opensubtitles-v3.strem.io/subtitles/series/${imdbId}:${season}:${episode}.json`
-        : `https://opensubtitles-v3.strem.io/subtitles/movie/${imdbId}.json`;
+    const inject=()=>{
+        Object.entries(_proxySubtitles).forEach(([lang,path])=>{
+            // path looks like "/JFBSnoH84A0s3egE2WqAQA/q3o/.../en.vtt#en"
+            // strip fragment, prepend base
+            const cleanPath=path.split('#')[0];
+            const fullUrl=`${PROXY_SUBTITLE_BASE}${cleanPath}`;
+            const track=document.createElement('track');
+            track.kind='subtitles';
+            track.label=`${getLang(lang)} [CC]`;
+            track.srclang=lang;
+            track.src=fullUrl;
+            track.default=false;
+            track.setAttribute('data-proxy','1');
+            video.appendChild(track);
+            console.log(`[ProxySub] Added ${lang}: ${fullUrl}`);
+        });
+        renderTracksMenu();
+    };
 
-    console.log('[OpenSubtitles] Fetching from:', url);
-    try {
-        const r = await fetch(url);
-        if (!r.ok) return;
-        const data = await r.json();
-        let subs = data.subtitles || [];
-        if (!subs.length) return;
-
-        const LIMIT_PER_LANG = 5;
-        const LIMIT_TOTAL    = 15;
-        const langCount = new Map();
-        const filtered  = [];
-        for (const s of subs) {
-            if (filtered.length >= LIMIT_TOTAL) break;
-            const lang = (s.lang || 'und').toLowerCase();
-            const count = langCount.get(lang) || 0;
-            if (count < LIMIT_PER_LANG) {
-                langCount.set(lang, count + 1);
-                filtered.push(s);
-            }
-        }
-
-        console.log(`[OpenSubtitles] Processing ${filtered.length} subtitle tracks`);
-        const inject = async () => {
-            for (const sub of filtered) {
-                try {
-                    const srtRes = await fetch(sub.url);
-                    if (!srtRes.ok) continue;
-                    const srtText = await srtRes.text();
-                    const vttText = srtToVtt(srtText);
-                    const base64  = btoa(unescape(encodeURIComponent(vttText)));
-                    const dataUrl = `data:text/vtt;charset=utf-8;base64,${base64}`;
-
-                    const track      = document.createElement('track');
-                    track.kind       = 'subtitles';
-                    track.label      = sub.langName || getLang(sub.lang);
-                    track.srclang    = sub.lang;
-                    track.src        = dataUrl;
-                    track.default    = false;
-                    track.setAttribute('data-stremio', '1');
-                    video.appendChild(track);
-                    console.log(`[OpenSubtitles] Added: ${track.label}`);
-                } catch (err) {
-                    console.warn(`[OpenSubtitles] Failed ${sub.lang}:`, err.message);
-                }
-            }
-            setTimeout(renderTracksMenu, 300);
-        };
-
-        if (video.readyState >= 1) {
-            await inject();
-        } else {
-            video.addEventListener('loadedmetadata', async () => await inject(), { once: true });
-        }
-
-    } catch (e) {
-        console.warn('[OpenSubtitles] Error:', e.message);
-    }
+    if(video.readyState>=1)inject();
+    else video.addEventListener('loadedmetadata',inject,{once:true});
 }
 
-function srtToVtt(srt) {
-    let vtt = 'WEBVTT\n\n';
-    const body = srt
-        .replace(/\r\n/g, '\n')
-        .replace(/\r/g, '\n')
-        .replace(/(\d{2}:\d{2}:\d{2}),(\d{3})/g, '$1.$2')
-        .trim();
-    vtt += body.replace(
-        /(\d{2}:\d{2}:\d{2}\.\d{3}\s*-->\s*\d{2}:\d{2}:\d{2}\.\d{3})/g,
-        '$1 line:85% position:50% align:center'
-    );
+/* =====================================================================
+   STREMIO / OPENSUBTITLES — only fetched when menu is opened
+   Only the main JSON endpoint is requested upfront; SRT files fetched per track
+   ===================================================================== */
+const TMDB_PROXY='https://search-proxy.bingeoutofficial.workers.dev';
+
+async function loadStremioSubtitles(type,tmdbId,season,episode){
+    Array.from(video.querySelectorAll('track[data-stremio]')).forEach(t=>t.remove());
+    let imdbId=null;
+    try{
+        const r=await fetch(`${TMDB_PROXY}/${type}/${tmdbId}/external_ids`);
+        if(r.ok){const d=await r.json();imdbId=d.imdb_id;}
+    }catch(e){console.warn('[Stremio] IMDb fetch failed:',e.message);return;}
+    if(!imdbId){console.warn('[Stremio] No IMDb ID');return;}
+
+    // Only request the main subtitle list URL — individual SRTs fetched below
+    const listUrl=(type==='tv'&&season&&episode)
+        ?`https://opensubtitles-v3.strem.io/subtitles/series/${imdbId}:${season}:${episode}.json`
+        :`https://opensubtitles-v3.strem.io/subtitles/movie/${imdbId}.json`;
+
+    console.log('[Stremio] Fetching list:',listUrl);
+    try{
+        const r=await fetch(listUrl);
+        if(!r.ok)return;
+        const data=await r.json();
+        let subs=data.subtitles||[];
+        if(!subs.length)return;
+
+        // 5 per lang, 15 total
+        const LIMIT_PER_LANG=5,LIMIT_TOTAL=15;
+        const langCount=new Map(),filtered=[];
+        for(const s of subs){
+            if(filtered.length>=LIMIT_TOTAL)break;
+            const lang=(s.lang||'und').toLowerCase();
+            const cnt=langCount.get(lang)||0;
+            if(cnt<LIMIT_PER_LANG){langCount.set(lang,cnt+1);filtered.push(s);}
+        }
+
+        const inject=async()=>{
+            for(const sub of filtered){
+                try{
+                    const srtRes=await fetch(sub.url);
+                    if(!srtRes.ok)continue;
+                    const srtText=await srtRes.text();
+                    const vttText=srtToVtt(srtText);
+                    const base64=btoa(unescape(encodeURIComponent(vttText)));
+                    const dataUrl=`data:text/vtt;charset=utf-8;base64,${base64}`;
+                    const track=document.createElement('track');
+                    track.kind='subtitles';
+                    track.label=sub.langName||getLang(sub.lang);
+                    track.srclang=sub.lang;
+                    track.src=dataUrl;
+                    track.default=false;
+                    track.setAttribute('data-stremio','1');
+                    video.appendChild(track);
+                    console.log(`[Stremio] Added: ${track.label}`);
+                }catch(err){console.warn(`[Stremio] Failed ${sub.lang}:`,err.message);}
+            }
+            setTimeout(renderTracksMenu,300);
+        };
+
+        if(video.readyState>=1)await inject();
+        else video.addEventListener('loadedmetadata',async()=>await inject(),{once:true});
+    }catch(e){console.warn('[Stremio] Error:',e.message);}
+}
+
+function srtToVtt(srt){
+    let vtt='WEBVTT\n\n';
+    const body=srt.replace(/\r\n/g,'\n').replace(/\r/g,'\n').replace(/(\d{2}:\d{2}:\d{2}),(\d{3})/g,'$1.$2').trim();
+    vtt+=body.replace(/(\d{2}:\d{2}:\d{2}\.\d{3}\s*-->\s*\d{2}:\d{2}:\d{2}\.\d{3})/g,'$1 line:85% position:50% align:center');
     return vtt;
 }
 
-function cleanupSubtitles() {
-    Array.from(video.querySelectorAll('track[data-stremio]')).forEach(t => t.remove());
-}
-
 /* =====================================================================
-   SOURCE - multimovies only
+   SOURCE — multimovies with hls-proxy, captures subtitle map
    ===================================================================== */
-const TMDB_PROXY='https://search-proxy.bingeoutofficial.workers.dev';
 const MULTIMOVIES_API='https://hls-proxy.vercel.app/api/?url=';
 const PROXY='';
+
 function toSlug(s){return(s||'').toLowerCase().replace(/[^a-z0-9\s-]/g,'').trim().replace(/\s+/g,'-');}
 
 async function fetchTmdbData(type,id,season,episode){
-   try{
-       if(type==='movie'){const r=await fetch(`${TMDB_PROXY}/movie/${id}`);if(!r.ok)return null;const d=await r.json();return{title:d.title||'',year:(d.release_date||'').slice(0,4)};}
-       else{const r=await fetch(`${TMDB_PROXY}/tv/${id}`);if(!r.ok)return null;const d=await r.json();return{name:d.name||'',seasonNum:Number(season),episodeNum:Number(episode)};}
-   }catch(e){return null;}
+    try{
+        if(type==='movie'){const r=await fetch(`${TMDB_PROXY}/movie/${id}`);if(!r.ok)return null;const d=await r.json();return{title:d.title||'',year:(d.release_date||'').slice(0,4)};}
+        else{const r=await fetch(`${TMDB_PROXY}/tv/${id}`);if(!r.ok)return null;const d=await r.json();return{name:d.name||'',seasonNum:Number(season),episodeNum:Number(episode)};}
+    }catch(e){return null;}
 }
 
-async function fetchFromMultimovies(mvUrl) {
-    try {
-        const r = await fetch(PROXY + MULTIMOVIES_API + encodeURIComponent(mvUrl), { cache: 'no-store' });
-        if (!r.ok) return null;
-        const data = await r.json();
-        if (data.status !== 'success' || !Array.isArray(data.servers) || !data.servers.length) return null;
-        const srv = data.servers.find(s => s.result?.m3u8_url);
-        if (!srv?.result?.m3u8_url) return null;
-        console.log('[Multimovies] Got stream:', srv.result.m3u8_url);
-        return srv.result.m3u8_url;
+async function fetchFromMultimovies(mvUrl){
+    try{
+        const r=await fetch(PROXY+MULTIMOVIES_API+encodeURIComponent(mvUrl),{cache:'no-store'});
+        if(!r.ok)return null;
+        const data=await r.json();
+        if(data.status!=='success'||!Array.isArray(data.servers)||!data.servers.length)return null;
+        const srv=data.servers.find(s=>s.result?.m3u8_url);
+        if(!srv?.result?.m3u8_url)return null;
 
-    } catch (e) {
-        console.warn('[Multimovies] Error:', e.message);
-        return null;
-    }
+        // Capture proxy subtitles if present: { "en": "/path/en.vtt#en", ... }
+        if(srv.result.subtitles&&typeof srv.result.subtitles==='object'){
+            _proxySubtitles=srv.result.subtitles;
+            console.log('[ProxySub] Found subtitles:',_proxySubtitles);
+        }else{
+            _proxySubtitles={};
+        }
+
+        console.log('[Multimovies] Stream:',srv.result.m3u8_url);
+        return srv.result.m3u8_url;
+    }catch(e){console.warn('[Multimovies] Error:',e.message);return null;}
 }
 
 async function source_multimovies(type,id,season,episode){
-   const tmdb=await fetchTmdbData(type,id,season,episode);if(!tmdb)return null;
-   let url;
-   if(type==='movie'){const slug=toSlug(tmdb.title);if(!slug)return null;url=`https://multimovies.makeup/movie/${slug}/`;}
-   else{const slug=toSlug(tmdb.name);if(!slug)return null;url=`https://multimovies.makeup/episodes/${slug}-${parseInt(String(tmdb.seasonNum).padStart(2,'0'))}x${parseInt(String(tmdb.episodeNum).padStart(2,'0'))}/`;}
-   return fetchFromMultimovies(url);
+    const tmdb=await fetchTmdbData(type,id,season,episode);if(!tmdb)return null;
+    let url;
+    if(type==='movie'){const slug=toSlug(tmdb.title);if(!slug)return null;url=`https://multimovies.makeup/movie/${slug}/`;}
+    else{const slug=toSlug(tmdb.name);if(!slug)return null;url=`https://multimovies.makeup/episodes/${slug}-${parseInt(String(tmdb.seasonNum).padStart(2,'0'))}x${parseInt(String(tmdb.episodeNum).padStart(2,'0'))}/`;}
+    return fetchFromMultimovies(url);
+}
+
+/* =====================================================================
+   STREAM FETCHER — multimovies first, GitHub fallback
+   ===================================================================== */
+async function fetchStream(type,id,season,episode){
+    // Priority 1: Multimovies
+    let url=await source_multimovies(type,id,season,episode);
+    if(url)return url;
+
+    // Priority 2: GitHub
+    console.warn('[fetchStream] Multimovies failed, trying GitHub...');
+    _proxySubtitles={};
+    try{
+        const ghUrl=type==='movie'
+            ?`https://raw.githubusercontent.com/Watchout2025/api/refs/heads/main/hls/movie/${id}`
+            :`https://raw.githubusercontent.com/Watchout2025/api/refs/heads/main/hls/tv/${id}/S${season}.json`;
+        const ghRes=await fetch(ghUrl,{cache:'no-store'});
+        if(ghRes.ok){
+            if(type==='movie')return(await ghRes.text()).trim();
+            else{const d=await ghRes.json();return d[Number(episode)]||null;}
+        }
+    }catch(e){console.warn('[GitHub fallback] failed:',e.message);}
+    return null;
 }
 
 /* =====================================================================
@@ -973,274 +994,177 @@ async function source_multimovies(type,id,season,episode){
    ===================================================================== */
 async function fetchAndSetTitle(type,id,season,episode){
     try{
-        let title='';
-        if(type==='movie'){const r=await fetch(`${TMDB_PROXY}/movie/${id}`);if(r.ok)title=(await r.json()).title||'';}
-        else{
+        let title='',mobileTitle='';
+        if(type==='movie'){
+            const r=await fetch(`${TMDB_PROXY}/movie/${id}`);
+            if(r.ok){const d=await r.json();title=d.title||'';mobileTitle=title;}
+        }else{
             const[sr,er]=await Promise.all([fetch(`${TMDB_PROXY}/tv/${id}`),fetch(`${TMDB_PROXY}/tv/${id}/season/${season}/episode/${episode}`)]);
             const series=sr.ok?await sr.json():{},ep=er.ok?await er.json():{};
-            title=[[series.name,`S${season}:E${episode}`,ep.name].filter(Boolean).join(' ')];
-            document.getElementById('mobile-title-main').textContent=`S${season}:E${episode} "${ep.name||series.name}"`;
+            title=[series.name,`S${season}:E${episode}`,ep.name].filter(Boolean).join(' ');
+            mobileTitle=`S${season}:E${episode} "${ep.name||series.name}"`;
         }
         document.getElementById('title-main-text').textContent=title;
-        if(type==='movie')document.getElementById('mobile-title-main').textContent=title;
+        document.getElementById('mobile-title-main').textContent=mobileTitle;
         document.title=title||document.title;
     }catch(e){}
 }
 
 /* =====================================================================
-   ROUTER (Fixed Routing and Fallback Multi-Method Loader)
+   ROUTER
    ===================================================================== */
-async function fetchStream(type, id, season, episode) {
-    // Priority 1: Multimovies Source
-    let url = await source_multimovies(type, id, season, episode);
-    if (url) return url;
+async function resolveAndPlay(){
+    const path=window.location.pathname;
+    const urlParams=new URLSearchParams(window.location.search);
+    const urlParam=urlParams.get('url');
 
-    // Priority 2: Render API
-    try {
-        const renderApiUrl = type === 'movie' 
-            ? `https://workis.vercel.app/api/proxy?id=${id}` 
-            : `https://workis.vercel.app/api/proxy?id=${id}&s=${season}&e=${episode}`;
-            
-        const renderRes = await fetch(renderApiUrl, { cache: 'no-store' });
-        if (renderRes.ok) {
-            const textResponse = await renderRes.text();
-            if (textResponse) return textResponse.trim();
-        }
-    } catch (e) {
-        console.warn('[Render API primary fallback] failed:', e.message);
-    }
-
-    // Priority 3: GitHub Method
-    try {
-        const ghUrl = type === 'movie'
-            ? `https://raw.githubusercontent.com/Watchout2025/api/refs/heads/main/hls/movie/${id}`
-            : `https://raw.githubusercontent.com/Watchout2025/api/refs/heads/main/hls/tv/${id}/S${season}.json`;
-            
-        const ghRes = await fetch(ghUrl, { cache: 'no-store' });
-        if (ghRes.ok) {
-            if (type === 'movie') {
-                return (await ghRes.text()).trim();
-            } else {
-                const data = await ghRes.json();
-                return data[Number(episode)] || null;
-            }
-        }
-    } catch (e) {
-        console.warn('[GitHub secondary fallback] failed:', e.message);
-    }
-    
-    return null;
-}
-
-async function resolveAndPlay() {
-    const path = window.location.pathname;
-    const urlParams = new URLSearchParams(window.location.search);
-    const urlParam = urlParams.get('url');
-
-    // Handle ?url= param directly
-    if (urlParam) {
+    // ?url= direct stream (e.g. .txt served as HLS manifest)
+    if(urlParam){
         showLoader();
         revokeAllSubtitleBlobs();
+        _proxySubtitles={};
         initHlsPlayer(urlParam);
         return;
     }
 
-    const mv = path.match(/\/movie\/(\d+)/i);
-    if (mv) {
-        const id = mv[1];
-        showLoader();
-        
-        let streamUrl = await fetchStream('movie', id, null, null);
-
-        if (streamUrl) {
+    const mv=path.match(/\/movie\/(\d+)/i);
+    if(mv){
+        const id=mv[1];showLoader();
+        const streamUrl=await fetchStream('movie',id,null,null);
+        if(streamUrl){
             revokeAllSubtitleBlobs();
             initHlsPlayer(streamUrl);
-            fetchAndSetTitle('movie', id);
-            _pendingSubtitleArgs = { type: 'movie', tmdbId: id, season: null, episode: null };
-            loadStremioSubtitles('movie', id);
-        } else {
-            hideLoader();
-            displayError('Could not load movie. Please try again later.');
-        }
+            fetchAndSetTitle('movie',id);
+            _pendingSubtitleArgs={type:'movie',tmdbId:id,season:null,episode:null};
+        }else{hideLoader();displayError('Could not load movie. Please try again later.');}
         return;
     }
 
-    const tv = path.match(/\/tv\/(\d+)\/S(\d+)\/E(\d+)/i);
-    if (tv) {
-        const [, id, season, episode] = tv;
-        showLoader();
-        
-        let streamUrl = await fetchStream('tv', id, season, episode);
-
-        if (streamUrl) {
+    const tv=path.match(/\/tv\/(\d+)\/S(\d+)\/E(\d+)/i);
+    if(tv){
+        const[,id,season,episode]=tv;showLoader();
+        const streamUrl=await fetchStream('tv',id,season,episode);
+        if(streamUrl){
             revokeAllSubtitleBlobs();
             initHlsPlayer(streamUrl);
-            fetchAndSetTitle('tv', id, season, episode);
-            _pendingSubtitleArgs = { type: 'tv', tmdbId: id, season, episode };
-            loadStremioSubtitles('tv', id, season, episode);
-        } else {
-            hideLoader();
-            displayError('Could not load episode. Please try again later.');
-        }
+            fetchAndSetTitle('tv',id,season,episode);
+            _pendingSubtitleArgs={type:'tv',tmdbId:id,season,episode};
+        }else{hideLoader();displayError('Could not load episode. Please try again later.');}
         return;
     }
 
-    // Fallback default
+    // Default fallback
     initHlsPlayer('https://vidmmo.com/hls/ZDBtrL1WMPQipj3EubEdG6tAKeYJ0Nt3/master.m3u8');
 }
 
 /* =====================================================================
    UI BINDINGS
    ===================================================================== */
-function setupInactivityDetection() {
-    if (!isHlsJsMode && video.audioTracks) video.audioTracks.addEventListener('change', renderTracksMenu);
-    lastKnownVolume = video.volume > 0 ? video.volume : 0.5;
-    updateProgress(); 
-    updateBufferProgress(); 
-    updateVolumeSlider(); 
-    updateFullscreenIcon();
+function setupInactivityDetection(){
+    if(!isHlsJsMode&&video.audioTracks)video.audioTracks.addEventListener('change',renderTracksMenu);
+    lastKnownVolume=video.volume>0?video.volume:0.5;
+    updateProgress();updateBufferProgress();updateVolumeSlider();updateFullscreenIcon();
     updateNextEpisodeButton();
-    if (video.paused || video.ended) {
-        showControls();
-        updateBottomPlayPauseIcon(true);
-        updateCenterPlayPauseIcon(true);
-    } else {
-        updateBottomPlayPauseIcon(false);
-        updateCenterPlayPauseIcon(false);
-        resetInactivityTimer();
-    }
+    if(video.paused||video.ended){showControls();updateBottomPlayPauseIcon(true);updateCenterPlayPauseIcon(true);}
+    else{updateBottomPlayPauseIcon(false);updateCenterPlayPauseIcon(false);resetInactivityTimer();}
 }
 
-function setupUIControls() {
-    const container = videoContainer;
-    let waitingTimeout = null;
-    let stalledTimeout = null;
-    ['mousemove', 'mousedown', 'touchstart', 'touchend'].forEach(ev => 
-        container.addEventListener(ev, resetInactivityTimer, ev.startsWith('touch') ? { passive: true } : false)
+function setupUIControls(){
+    let waitingTimeout=null,stalledTimeout=null;
+
+    ['mousemove','mousedown','touchstart','touchend'].forEach(ev=>
+        videoContainer.addEventListener(ev,resetInactivityTimer,ev.startsWith('touch')?{passive:true}:false)
     );
-    topOverlay.addEventListener('click', () => {
-        if (window.innerWidth <= 1000) {
-            const els = [document.getElementById('center-controls-mobile-only'), document.getElementById('controls-bar')];
-            const anyHidden = els.some(el => el.style.display === 'none');
-            els.forEach(el => el.style.display = anyHidden ? 'flex' : 'none');
-        } else {
-            toggleVideoPlayPause();
-        }
+
+    topOverlay.addEventListener('click',()=>{
+        if(window.innerWidth<=1000){
+            const els=[document.getElementById('center-controls-mobile-only'),document.getElementById('controls-bar')];
+            const anyHidden=els.some(el=>el.style.display==='none');
+            els.forEach(el=>el.style.display=anyHidden?'flex':'none');
+        }else{toggleVideoPlayPause();}
     });
-    
-    customPlayButton.addEventListener('click', toggleVideoPlayPause);
-    centerPlayPauseButton.addEventListener('click', toggleVideoPlayPause);
-    fullscreenButton.addEventListener('click', toggleFullscreen);
-    skipBackwardButton.addEventListener('click', () => {
-        video.currentTime = Math.max(0, video.currentTime - 10);
-        resetInactivityTimer();
+
+    customPlayButton.addEventListener('click',toggleVideoPlayPause);
+    centerPlayPauseButton.addEventListener('click',toggleVideoPlayPause);
+    fullscreenButton.addEventListener('click',toggleFullscreen);
+    skipBackwardButton.addEventListener('click',()=>{video.currentTime=Math.max(0,video.currentTime-10);resetInactivityTimer();});
+    skipForwardButton.addEventListener('click',()=>{video.currentTime=Math.min(video.duration,video.currentTime+10);resetInactivityTimer();});
+    mobileSkipBackwardButton.addEventListener('click',()=>{video.currentTime=Math.max(0,video.currentTime-10);resetInactivityTimer();});
+    mobileSkipForwardButton.addEventListener('click',()=>{video.currentTime=Math.min(video.duration,video.currentTime+10);resetInactivityTimer();});
+    muteButton.addEventListener('click',toggleMute);
+    audioSubtitleToggle.addEventListener('click',e=>{e.stopPropagation();toggleAudioSubtitleMenu();});
+    seekBar.addEventListener('mousedown',startSeeking);
+    seekBar.addEventListener('touchstart',startSeeking,{passive:false});
+    volumeControlWrapper.addEventListener('mouseenter',()=>volumeSliderContainer.classList.remove('hidden'));
+    volumeControlWrapper.addEventListener('mouseleave',()=>setTimeout(()=>{if(!isVolumeAdjusting)volumeSliderContainer.classList.add('hidden');},300));
+
+    document.addEventListener('fullscreenchange',updateFullscreenIcon);
+    document.addEventListener('webkitfullscreenchange',updateFullscreenIcon);
+    video.addEventListener('webkitbeginfullscreen',updateFullscreenIcon);
+    video.addEventListener('webkitendfullscreen',updateFullscreenIcon);
+
+    video.addEventListener('timeupdate',()=>{updateProgress();postTimeUpdateToParent();});
+    video.addEventListener('progress',updateBufferProgress);
+    video.addEventListener('loadedmetadata',()=>{
+        updateProgress();updateBufferProgress();
+        remainingTimeDisplay.textContent=`-${formatTime(video.duration)}`;
     });
-    skipForwardButton.addEventListener('click', () => {
-        video.currentTime = Math.min(video.duration, video.currentTime + 10);
-        resetInactivityTimer();
-    });
-    mobileSkipBackwardButton.addEventListener('click', () => {
-        video.currentTime = Math.max(0, video.currentTime - 10);
-        resetInactivityTimer();
-    });
-    mobileSkipForwardButton.addEventListener('click', () => {
-        video.currentTime = Math.min(video.duration, video.currentTime + 10);
-        resetInactivityTimer();
-    });
-    muteButton.addEventListener('click', toggleMute);
-    audioSubtitleToggle.addEventListener('click', e => {
-        e.stopPropagation();
-        toggleAudioSubtitleMenu();
-    });
-    seekBar.addEventListener('mousedown', startSeeking);
-    seekBar.addEventListener('touchstart', startSeeking, { passive: false });
-    volumeControlWrapper.addEventListener('mouseenter', () => volumeSliderContainer.classList.remove('hidden'));
-    volumeControlWrapper.addEventListener('mouseleave', () => setTimeout(() => {
-        if (!isVolumeAdjusting) volumeSliderContainer.classList.add('hidden');
-    }, 300));
-    document.addEventListener('fullscreenchange', updateFullscreenIcon);
-    document.addEventListener('webkitfullscreenchange', updateFullscreenIcon);
-    video.addEventListener('webkitbeginfullscreen', updateFullscreenIcon);
-    video.addEventListener('webkitendfullscreen', updateFullscreenIcon);
-    video.addEventListener('timeupdate', () => {
-        updateProgress();
-        postTimeUpdateToParent();
-    });
-    video.addEventListener('progress', updateBufferProgress);
-    video.addEventListener('loadedmetadata', () => {
-        updateProgress();
-        updateBufferProgress();
-        remainingTimeDisplay.textContent = `-${formatTime(video.duration)}`;
-    });
-    video.addEventListener('volumechange', updateVolumeSlider);
-    
-    video.addEventListener('waiting', () => {
-        if (waitingTimeout) clearTimeout(waitingTimeout);
-        waitingTimeout = setTimeout(() => {
-            if (!isSeeking && video.paused === false && video.currentTime > 0) {
+    video.addEventListener('volumechange',updateVolumeSlider);
+
+    // iOS fix: suppress loader during normal fragment loading
+    // Only show loader if video is genuinely stalled (not just fetching next segment)
+    video.addEventListener('waiting',()=>{
+        if(_initialLoad)return; // suppress during initial load — canplay handles it
+        if(waitingTimeout)clearTimeout(waitingTimeout);
+        waitingTimeout=setTimeout(()=>{
+            // Only show if video is not making progress
+            if(!isSeeking&&!video.paused&&video.currentTime>0&&video.readyState<3){
                 showLoader();
             }
-        }, 300);
+        },600); // 600ms threshold — normal fragment loads are faster
     });
-    video.addEventListener('stalled', () => {
-        if (stalledTimeout) clearTimeout(stalledTimeout);
-        stalledTimeout = setTimeout(() => {
-            if (!isSeeking && video.paused === false && video.currentTime > 0) {
+
+    video.addEventListener('stalled',()=>{
+        if(_initialLoad)return;
+        if(stalledTimeout)clearTimeout(stalledTimeout);
+        stalledTimeout=setTimeout(()=>{
+            if(!isSeeking&&!video.paused&&video.currentTime>0&&video.readyState<3){
                 showLoader();
             }
-        }, 500);
+        },1000);
     });
-    video.addEventListener('canplay', () => {
-        if (waitingTimeout) clearTimeout(waitingTimeout);
-        if (stalledTimeout) clearTimeout(stalledTimeout);
-        waitingTimeout = null;
-        stalledTimeout = null;
-        hideLoader();
+
+    video.addEventListener('canplay',()=>{
+        if(waitingTimeout){clearTimeout(waitingTimeout);waitingTimeout=null;}
+        if(stalledTimeout){clearTimeout(stalledTimeout);stalledTimeout=null;}
+        hideLoader();stopBufferMonitor();
+    });
+
+    video.addEventListener('playing',()=>{
+        if(waitingTimeout){clearTimeout(waitingTimeout);waitingTimeout=null;}
+        if(stalledTimeout){clearTimeout(stalledTimeout);stalledTimeout=null;}
+        // Only hide if not in initial load (canplay handles that)
+        if(!_initialLoad)hideLoader();
         stopBufferMonitor();
     });
-    video.addEventListener('playing', () => {
-        if (waitingTimeout) clearTimeout(waitingTimeout);
-        if (stalledTimeout) clearTimeout(stalledTimeout);
-        waitingTimeout = null;
-        stalledTimeout = null;
-        hideLoader();
-        stopBufferMonitor();
-    });
-    
-    video.addEventListener('seeked', () => {
-        if (!video.paused) hideLoader();
-    });
-    video.addEventListener('pause', () => {
-        showControls();
-        updateBottomPlayPauseIcon(true);
-        updateCenterPlayPauseIcon(true);
+
+    video.addEventListener('seeked',()=>{if(!video.paused)hideLoader();});
+
+    video.addEventListener('pause',()=>{
+        showControls();updateBottomPlayPauseIcon(true);updateCenterPlayPauseIcon(true);
         clearTimeout(inactivityTimer);
     });
-    video.addEventListener('play', () => {
-        updateBottomPlayPauseIcon(false);
-        updateCenterPlayPauseIcon(false);
-        resetInactivityTimer();
+    video.addEventListener('play',()=>{
+        updateBottomPlayPauseIcon(false);updateCenterPlayPauseIcon(false);resetInactivityTimer();
     });
-    video.addEventListener('ended', () => {
-        showControls();
-        updateBottomPlayPauseIcon(true);
-        updateCenterPlayPauseIcon(true);
-        hideLoader();
+    video.addEventListener('ended',()=>{
+        showControls();updateBottomPlayPauseIcon(true);updateCenterPlayPauseIcon(true);hideLoader();
     });
-    lastKnownVolume = video.volume > 0 ? video.volume : 0.5;
-    updateProgress();
-    updateBufferProgress();
-    updateVolumeSlider();
-    updateFullscreenIcon();
-    if (video.paused || video.ended) {
-        showControls();
-        updateBottomPlayPauseIcon(true);
-        updateCenterPlayPauseIcon(true);
-    } else {
-        updateBottomPlayPauseIcon(false);
-        updateCenterPlayPauseIcon(false);
-        resetInactivityTimer();
-    }
+
+    lastKnownVolume=video.volume>0?video.volume:0.5;
+    updateProgress();updateBufferProgress();updateVolumeSlider();updateFullscreenIcon();
+    if(video.paused||video.ended){showControls();updateBottomPlayPauseIcon(true);updateCenterPlayPauseIcon(true);}
+    else{updateBottomPlayPauseIcon(false);updateCenterPlayPauseIcon(false);resetInactivityTimer();}
 }
 
 /* =====================================================================
@@ -1266,6 +1190,7 @@ document.addEventListener('keydown',e=>{
             else if(e.code==='End'){video.currentTime=video.duration;resetInactivityTimer();}
     }
 });
+
 /* =====================================================================
    REPORT MODAL
    ===================================================================== */
@@ -1276,50 +1201,14 @@ function closeReportModal(){reportModal.classList.remove('active');}
 reportModal.addEventListener('click',e=>{if(e.target===reportModal)closeReportModal();});
 async function submitIssue(){
     submitBtn.disabled=true;
-    try{const r=await fetch('https://report.bingeoutofficial.workers.dev',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({issueType:issueTypeSelect.value,description:document.getElementById('issueDesc').value,pageUrl:location.href})});if(!r.ok)throw new Error('Failed');alert('Issue reported successfully');closeReportModal();issueTypeSelect.value='';document.getElementById('issueDesc').value='';submitBtn.disabled=true;}
-    catch(e){alert('Failed to report. Try again.');}
+    try{
+        const r=await fetch('https://report.bingeoutofficial.workers.dev',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({issueType:issueTypeSelect.value,description:document.getElementById('issueDesc').value,pageUrl:location.href})});
+        if(!r.ok)throw new Error('Failed');
+        alert('Issue reported successfully');closeReportModal();
+        issueTypeSelect.value='';document.getElementById('issueDesc').value='';submitBtn.disabled=true;
+    }catch(e){alert('Failed to report. Try again.');}
     finally{submitBtn.disabled=issueTypeSelect.value==='';}
 }
-    /* =====================================================================
-  AUDIO BOOST
-  ===================================================================== */
-let audioCtx = null;
-let gainNode = null;
-let mediaSource = null;
-let currentBoost = 4.0;
-
-function initAudioBoost() {
-   if (audioCtx) return;
-   try {
-       audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-       mediaSource = audioCtx.createMediaElementSource(video);
-       gainNode = audioCtx.createGain();
-       gainNode.gain.value = currentBoost;
-       mediaSource.connect(gainNode);
-       gainNode.connect(audioCtx.destination);
-       console.log('[AudioBoost] Initialized');
-   } catch (e) {
-       console.warn('[AudioBoost] Failed to init:', e.message);
-   }
-}
-
-function setAudioBoost(value) {
-   currentBoost = Math.min(4.0, Math.max(0.0, value));
-   if (!audioCtx) initAudioBoost();
-   if (gainNode) {
-       gainNode.gain.setTargetAtTime(currentBoost, audioCtx.currentTime, 0.01);
-       console.log(`[AudioBoost] Boost set to ${Math.round(currentBoost * 100)}%`);
-   }
-   updateBoostUI();
-}
-
-function updateBoostUI() {
-   const slider = document.getElementById('boostSlider');
-   const label  = document.getElementById('boostLabel');
-   if (slider) slider.value = currentBoost;
-   if (label)  label.textContent = Math.round(currentBoost * 100) + '%';
-}
-
 
 /* =====================================================================
    CLOSE MENUS ON OUTSIDE CLICK
@@ -1329,6 +1218,7 @@ document.addEventListener('click',e=>{
     if(!speedMenu.classList.contains('hidden')&&!speedMenu.contains(e.target)&&!speedButton.contains(e.target)){speedMenu.classList.add('hidden');resetInactivityTimer();}
     if(!qualityMenu.classList.contains('hidden')&&!qualityMenu.contains(e.target)&&!qualityButton.contains(e.target)){qualityMenu.classList.add('hidden');resetInactivityTimer();}
 });
+
 window.onload=()=>{setupUIControls();resolveAndPlay();};
 </script>
 </body>
