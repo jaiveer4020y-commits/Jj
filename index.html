@@ -767,11 +767,11 @@ function initHlsPlayer(url){
         showLoader();
         const h=new Hls({
             autoStartLoad:true,
-            startLevel:-1,
+            startLevel:2,
             maxBufferLength:30,
             maxMaxBufferLength:60,
             maxBufferSize:80*1024*1024,
-            maxBufferHole:0.5,
+            maxBufferHole:0.1,
             enableWorker:true,
             renderTextTracksNatively:true,
             subtitleDisplay:true,
