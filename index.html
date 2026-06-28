@@ -960,8 +960,8 @@ async function fetchFromMultimovies(mvUrl){
 async function source_multimovies(type,id,season,episode){
     const tmdb=await fetchTmdbData(type,id,season,episode);if(!tmdb)return null;
     let url;
-    if(type==='movie'){const slug=toSlug(tmdb.title);if(!slug)return null;url=`https://multimovies.makeup/movie/${slug}/`;}
-    else{const slug=toSlug(tmdb.name);if(!slug)return null;url=`https://multimovies.makeup/episodes/${slug}-${parseInt(String(tmdb.seasonNum).padStart(2,'0'))}x${parseInt(String(tmdb.episodeNum).padStart(2,'0'))}/`;}
+    if(type==='movie'){const slug=toSlug(tmdb.title);if(!slug)return null;url=`https://multimovies.watch/movie/${slug}/`;}
+    else{const slug=toSlug(tmdb.name);if(!slug)return null;url=`https://multimovies.watch/episodes/${slug}-${parseInt(String(tmdb.seasonNum).padStart(2,'0'))}x${parseInt(String(tmdb.episodeNum).padStart(2,'0'))}/`;}
     return fetchFromMultimovies(url);
 }
 
