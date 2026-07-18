@@ -923,20 +923,6 @@ function srtToVtt(srt){
 /* =====================================================================
    SOURCE — multimovies with hls-proxy, captures subtitle map
    ===================================================================== */
-const MULTIMOVIES_API = 'https://hls-proxy.vercel.app/api';
-const PROXY = 'https://workingg.vercel.app/api/proxy?&url=';
-
-async function fetchImdbId(tmdbId) {
-    try {
-        const r = await fetch(`${TMDB_PROXY}/movie/${tmdbId}/external_ids`);
-        if (!r.ok) return null;
-        const d = await r.json();
-        return d.imdb_id || null;
-    } catch (e) {
-        return null;
-    }
-}
-
 async function fetchFromMultimovies(type, id, season, episode) {
     try {
         let url = `${MULTIMOVIES_API}?id=${encodeURIComponent(id)}&type=${type}`;
@@ -955,26 +941,21 @@ async function fetchFromMultimovies(type, id, season, episode) {
 
         if (srv.result.subtitles && typeof srv.result.subtitles === 'object') {
             _proxySubtitles = srv.result.subtitles;
-            console.log('[ProxySub] Found subtitles:', _proxySubtitles);
         } else {
             _proxySubtitles = {};
         }
 
-        console.log('[Multimovies] Stream:', srv.result.m3u8_url);
-        return srv.result.m3u8_url;
+        // Wrap the final m3u8 through the proxy for playback
+        const rawM3u8 = srv.result.m3u8_url;
+        const proxiedM3u8 = PROXY + encodeURIComponent(rawM3u8);
+
+        console.log('[Multimovies] Raw stream:', rawM3u8);
+        console.log('[Multimovies] Proxied stream:', proxiedM3u8);
+
+        return proxiedM3u8;
     } catch (e) {
         console.warn('[Multimovies] Error:', e.message);
         return null;
-    }
-}
-
-async function source_multimovies(type, id, season, episode) {
-    if (type === 'movie') {
-        const imdbId = await fetchImdbId(id);
-        if (!imdbId) return null;
-        return fetchFromMultimovies('movie', imdbId);
-    } else {
-        return fetchFromMultimovies('tv', id, season, episode);
     }
 }
 
