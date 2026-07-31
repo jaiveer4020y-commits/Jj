@@ -925,7 +925,13 @@ function srtToVtt(srt){
    ===================================================================== */
 const MULTIMOVIES_API = 'https://hls-proxy.vercel.app/api';
 const PROXY = 'https://workingg.vercel.app/api/proxy?&url=';
-let _proxySubtitles = {};
+
+// Prevent duplicate variable declaration error
+if (typeof window !== 'undefined') {
+    window._proxySubtitles = window._proxySubtitles || {};
+} else if (typeof global !== 'undefined') {
+    global._proxySubtitles = global._proxySubtitles || {};
+}
 
 // --- PACKER UNPACKER HELPERS ---
 function toBase36(n) {
@@ -960,7 +966,6 @@ async function extractRawM3u8(embedUrl) {
             .replace(/^eval\(function\([^\)]*\)\{[^\}]*\}\(/, '')
             .replace(/\.split\('\|'\)\)\)$/, '');
 
-        // Supports single or double quoted strings
         const argsMatch = cleaned.match(/^['"]([\s\S]*)['"],\s*(\d+),\s*(\d+),\s*['"]([^'"]*)['"]/);
         if (!argsMatch) return null;
 
@@ -1061,7 +1066,8 @@ async function fetchStream(type, id, season, episode) {
 
     // Priority 2: GitHub Fallback
     console.warn('[fetchStream] Multimovies failed, trying GitHub...');
-    _proxySubtitles = {};
+    if (typeof _proxySubtitles !== 'undefined') _proxySubtitles = {};
+
     try {
         const ghUrl = type === 'movie'
             ? `https://raw.githubusercontent.com/Watchout2025/api/refs/heads/main/hls/movie/${id}`
