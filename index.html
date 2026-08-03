@@ -926,69 +926,13 @@ function srtToVtt(srt){
 const MULTIMOVIES_API = 'https://hls-proxy.vercel.app/api';
 const PROXY = 'https://workingg.vercel.app/api/proxy?&url=';
 
-// Prevent duplicate variable declaration error
+// Safely handle proxy subtitles variable
 if (typeof window !== 'undefined') {
     window._proxySubtitles = window._proxySubtitles || {};
 } else if (typeof global !== 'undefined') {
     global._proxySubtitles = global._proxySubtitles || {};
 }
 
-// --- PACKER UNPACKER HELPERS ---
-function toBase36(n) {
-    return n === 0 ? '' : toBase36(Math.floor(n / 36)) + "0123456789abcdefghijklmnopqrstuvwxyz"[n % 36];
-}
-
-function unpackJs(p, a, c, k) {
-    for (let i = 0; i < c; i++) {
-        if (k[c - i - 1]) {
-            const regex = new RegExp('\\b' + toBase36(c - i - 1) + '\\b', 'g');
-            p = p.replace(regex, k[c - i - 1]);
-        }
-    }
-    return p;
-}
-
-// Extract raw m3u8 from Hanerix/Smoothpre HTML
-async function extractRawM3u8(embedUrl) {
-    try {
-        const res = await fetch(PROXY + encodeURIComponent(embedUrl));
-        if (!res.ok) return null;
-        const html = await res.text();
-
-        // 1. Locate the eval(function(p,a,c,k,e,d)... script block
-        const packedMatch = html.match(/eval\(function\(p,a,c,k,e,d\)[\s\S]*?\.split\('\|'\)\)\)/);
-        if (!packedMatch) return null;
-
-        const jsCode = packedMatch[0];
-
-        // 2. Clean and extract parameters safely
-        const cleaned = jsCode
-            .replace(/^eval\(function\([^\)]*\)\{[^\}]*\}\(/, '')
-            .replace(/\.split\('\|'\)\)\)$/, '');
-
-        const argsMatch = cleaned.match(/^['"]([\s\S]*)['"],\s*(\d+),\s*(\d+),\s*['"]([^'"]*)['"]/);
-        if (!argsMatch) return null;
-
-        const p = argsMatch[1];
-        const a = parseInt(argsMatch[2]);
-        const c = parseInt(argsMatch[3]);
-        const k = argsMatch[4].split('|');
-
-        // 3. Deobfuscate
-        const unpackedData = unpackJs(p, a, c, k);
-
-        // 4. Regex search for "hls2":"..."
-        const m3u8Match = unpackedData.match(/"hls2":"([^"]+)"/);
-        if (!m3u8Match) return null;
-
-        return m3u8Match[1];
-    } catch (e) {
-        console.warn('[Unpacker] Extraction failed:', e.message);
-        return null;
-    }
-}
-
-// --- MAIN MULTIMOVIES SOURCE ---
 async function fetchFromMultimovies(type, id, season, episode) {
     try {
         let apiUrl = `${MULTIMOVIES_API}?id=${encodeURIComponent(id)}&type=${type}`;
@@ -996,6 +940,7 @@ async function fetchFromMultimovies(type, id, season, episode) {
             apiUrl += `&s=${encodeURIComponent(season)}&e=${encodeURIComponent(episode)}`;
         }
 
+        // 1. Fetch JSON from API
         const r = await fetch(PROXY + encodeURIComponent(apiUrl), { cache: 'no-store' });
         if (!r.ok) return null;
 
@@ -1004,7 +949,7 @@ async function fetchFromMultimovies(type, id, season, episode) {
 
         let streamHgUrl = null;
 
-        // Target 'streamhg' embed URL inside debug structure
+        // 2. Isolate streamhg from debug array
         if (Array.isArray(data.debug)) {
             for (const entry of data.debug) {
                 if (!entry || typeof entry !== 'object') continue;
@@ -1016,7 +961,7 @@ async function fetchFromMultimovies(type, id, season, episode) {
             }
         }
 
-        // Fallback: search servers list
+        // Fallback search in servers list
         if (!streamHgUrl && Array.isArray(data.servers)) {
             for (const srv of data.servers) {
                 if (srv && typeof srv.src === 'string' && srv.src.includes('hanerix.com')) {
@@ -1027,24 +972,14 @@ async function fetchFromMultimovies(type, id, season, episode) {
         }
 
         if (!streamHgUrl) {
-            console.warn('[Multimovies] StreamHG URL not found.');
+            console.warn('[Multimovies] StreamHG URL not found in API.');
             return null;
         }
 
-        console.log('[Multimovies] Extracted StreamHG Host:', streamHgUrl);
+        console.log('[Multimovies] Extracted StreamHG Host URL:', streamHgUrl);
 
-        const rawM3u8 = await extractRawM3u8(streamHgUrl);
-        if (!rawM3u8) {
-            console.warn('[Multimovies] Failed to unpack raw M3U8 from host.');
-            return null;
-        }
-
-        const proxiedM3u8 = PROXY + encodeURIComponent(rawM3u8);
-
-        console.log('[Multimovies] Raw M3U8:', rawM3u8);
-        console.log('[Multimovies] Proxied Stream URL:', proxiedM3u8);
-
-        return proxiedM3u8;
+        // 3. Return proxied embed URL to pass directly into your python endpoint/script
+        return PROXY + encodeURIComponent(streamHgUrl);
 
     } catch (e) {
         console.warn('[Multimovies] Error:', e.message);
@@ -1066,8 +1001,6 @@ async function fetchStream(type, id, season, episode) {
 
     // Priority 2: GitHub Fallback
     console.warn('[fetchStream] Multimovies failed, trying GitHub...');
-    if (typeof _proxySubtitles !== 'undefined') _proxySubtitles = {};
-
     try {
         const ghUrl = type === 'movie'
             ? `https://raw.githubusercontent.com/Watchout2025/api/refs/heads/main/hls/movie/${id}`
@@ -1088,6 +1021,7 @@ async function fetchStream(type, id, season, episode) {
     
     return null;
 }
+
 
 /* =====================================================================
    TITLE FETCH
