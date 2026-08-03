@@ -926,70 +926,105 @@ function srtToVtt(srt){
 const MULTIMOVIES_API = 'https://hls-proxy.vercel.app/api';
 const PROXY = 'https://workingg.vercel.app/api/proxy?&url=';
 
-// Safely handle proxy subtitles variable
-if (typeof window !== 'undefined') {
-    window._proxySubtitles = window._proxySubtitles || {};
-} else if (typeof global !== 'undefined') {
-    global._proxySubtitles = global._proxySubtitles || {};
-}
+// UPDATE THIS with your actual Python extractor service URL
+const PYTHON_EXTRACTOR_API = 'https://YOUR-PYTHON-BACKEND.vercel.app/extract?url=';
 
 async function fetchFromMultimovies(type, id, season, episode) {
     try {
+        console.log('--- [STEP 1: INITIALIZING STREAM FETCH] ---');
+        console.log(`[Params] Type: ${type}, ID: ${id}, Season: ${season}, Episode: ${episode}`);
+
         let apiUrl = `${MULTIMOVIES_API}?id=${encodeURIComponent(id)}&type=${type}`;
         if (type === 'tv') {
             apiUrl += `&s=${encodeURIComponent(season)}&e=${encodeURIComponent(episode)}`;
         }
 
-        // 1. Fetch JSON from API
-        const r = await fetch(PROXY + encodeURIComponent(apiUrl), { cache: 'no-store' });
-        if (!r.ok) return null;
+        const proxiedApiUrl = PROXY + encodeURIComponent(apiUrl);
+        console.log('[STEP 1] Fetching Multimovies API via Proxy:', proxiedApiUrl);
+
+        // 1. Fetch Multimovies API JSON
+        const r = await fetch(proxiedApiUrl, { cache: 'no-store' });
+        if (!r.ok) {
+            console.error('[STEP 1 FAILED] Multimovies API responded with status:', r.status);
+            return null;
+        }
 
         const data = await r.json();
-        if (!data || typeof data !== 'object') return null;
+        console.log('[STEP 1 SUCCESS] API Payload Received:', data);
 
         let streamHgUrl = null;
 
-        // 2. Isolate streamhg from debug array
+        // 2. Search debug array for 'streamhg'
+        console.log('--- [STEP 2: EXTRACTING STREAMHG EMBED URL] ---');
         if (Array.isArray(data.debug)) {
+            console.log('[STEP 2] Inspecting debug array...');
             for (const entry of data.debug) {
                 if (!entry || typeof entry !== 'object') continue;
                 const embeds = entry.embed_urls || (entry.result && entry.result.embed_urls);
                 if (embeds && embeds.streamhg) {
                     streamHgUrl = embeds.streamhg;
+                    console.log('[STEP 2] Found StreamHG inside debug object:', streamHgUrl);
                     break;
                 }
             }
         }
 
-        // Fallback search in servers list
+        // Fallback: Check 'servers' for hanerix.com URL
         if (!streamHgUrl && Array.isArray(data.servers)) {
+            console.log('[STEP 2] Debug array missed. Searching servers array...');
             for (const srv of data.servers) {
                 if (srv && typeof srv.src === 'string' && srv.src.includes('hanerix.com')) {
                     streamHgUrl = srv.src;
+                    console.log('[STEP 2] Found Hanerix host URL inside servers array:', streamHgUrl);
                     break;
                 }
             }
         }
 
         if (!streamHgUrl) {
-            console.warn('[Multimovies] StreamHG URL not found in API.');
+            console.error('[STEP 2 FAILED] Could not find any StreamHG/Hanerix URL in API response.');
             return null;
         }
 
-        console.log('[Multimovies] Extracted StreamHG Host URL:', streamHgUrl);
+        // 3. Send StreamHG URL to Python service
+        console.log('--- [STEP 3: CALLING PYTHON EXTRACTOR] ---');
+        const pythonRequestUrl = PYTHON_EXTRACTOR_API + encodeURIComponent(streamHgUrl);
+        console.log('[STEP 3] Sending embed URL to Python backend:', pythonRequestUrl);
 
-        // 3. Return proxied embed URL to pass directly into your python endpoint/script
-        return PROXY + encodeURIComponent(streamHgUrl);
+        const pythonRes = await fetch(pythonRequestUrl);
+        if (!pythonRes.ok) {
+            console.error('[STEP 3 FAILED] Python Extractor returned error status:', pythonRes.status);
+            return null;
+        }
+
+        const result = await pythonRes.json();
+        console.log('[STEP 3] Python Response Payload:', result);
+
+        const rawM3u8 = result.m3u8_url;
+        if (!rawM3u8) {
+            console.error('[STEP 3 FAILED] Python extracted no m3u8_url:', result.error || 'Unknown error');
+            return null;
+        }
+
+        console.log('[STEP 3 SUCCESS] Raw M3U8 extracted by Python:', rawM3u8);
+
+        // 4. Wrap with proxy for playback
+        console.log('--- [STEP 4: FINALIZING PLAYBACK URL] ---');
+        const finalProxiedStream = PROXY + encodeURIComponent(rawM3u8);
+        console.log('[STEP 4 SUCCESS] Passing final proxied stream to Player:', finalProxiedStream);
+
+        return finalProxiedStream;
 
     } catch (e) {
-        console.warn('[Multimovies] Error:', e.message);
+        console.error('[EXTRACTION FATAL ERROR]:', e.message);
         return null;
     }
 }
 
-async function source_multimovies(type, id, season, episode) {
+async function fetchStream(type, id, season, episode) {
     return await fetchFromMultimovies(type, id, season, episode);
 }
+
 
 /* =====================================================================
    STREAM FETCHER — Multimovies first, GitHub fallback
