@@ -930,26 +930,28 @@ async function fetchFromMultimovies(type, id, season, episode) {
     try {
         console.log('--- [STEP 1: INITIALIZING STREAM FETCH] ---');
 
-        // Pass parameters cleanly to proxy without encoding
-        let proxiedApiUrl = `${PROXY}${MULTIMOVIES_API}&id=${id}&type=${type}`;
+        // Ensure the base target URL uses '?' for its first query parameter
+        let targetUrl = `${MULTIMOVIES_API}?id=${id}&type=${type}`;
         if (type === 'tv') {
-            proxiedApiUrl += `&s=${season}&e=${episode}`;
+            targetUrl += `&s=${season}&e=${episode}`;
         }
 
-        console.log('[STEP 1] Unencoded Proxy Fetch:', proxiedApiUrl);
+        // Pass targetUrl to proxy
+        const proxiedApiUrl = `${PROXY}${encodeURIComponent(targetUrl)}`;
+        console.log('[STEP 1] Proxied API Fetch:', proxiedApiUrl);
 
         const r = await fetch(proxiedApiUrl, { cache: 'no-store' });
         if (!r.ok) {
-            console.error('[STEP 1 FAILED] API status:', r.status);
+            console.error('[STEP 1 FAILED] Proxy/API Status:', r.status);
             return null;
         }
 
         const data = await r.json();
-        console.log('[STEP 1 SUCCESS] API Payload Received:', data);
+        console.log('[STEP 1 SUCCESS] API Data:', data);
 
         let streamHgUrl = null;
 
-        // Extract StreamHG embed URL
+        // Extract StreamHG/Hanerix embed link
         if (Array.isArray(data.debug)) {
             for (const entry of data.debug) {
                 if (!entry || typeof entry !== 'object') continue;
@@ -961,21 +963,36 @@ async function fetchFromMultimovies(type, id, season, episode) {
             }
         }
 
+        if (!streamHgUrl && Array.isArray(data.servers)) {
+            for (const srv of data.servers) {
+                if (srv && typeof srv.src === 'string' && srv.src.includes('hanerix.com')) {
+                    streamHgUrl = srv.src;
+                    break;
+                }
+            }
+        }
+
         if (!streamHgUrl) {
-            console.error('[STEP 2 FAILED] StreamHG URL not found.');
+            console.error('[STEP 2 FAILED] Could not extract StreamHG URL');
             return null;
         }
 
-        // Call local Vercel Python Function
-        const localPythonUrl = `/api/extract?url=${streamHgUrl}`;
-        const pyRes = await fetch(localPythonUrl);
-        if (!pyRes.ok) return null;
+        // Call Python Vercel function
+        console.log('--- [STEP 3: CALLING PYTHON EXTRACTOR] ---');
+        const pyRes = await fetch(`/api/extract?url=${encodeURIComponent(streamHgUrl)}`);
+        if (!pyRes.ok) {
+            console.error('[STEP 3 FAILED] Python Extractor Status:', pyRes.status);
+            return null;
+        }
 
         const pyData = await pyRes.json();
-        if (!pyData.m3u8_url) return null;
+        if (!pyData.m3u8_url) {
+            console.error('[STEP 3 FAILED] Extractor returned no m3u8');
+            return null;
+        }
 
-        // Return raw proxied stream
-        return `${PROXY}${pyData.m3u8_url}`;
+        console.log('[STEP 4 SUCCESS] Extracted M3U8:', pyData.m3u8_url);
+        return `${PROXY}${encodeURIComponent(pyData.m3u8_url)}`;
 
     } catch (e) {
         console.error('[FATAL ERROR]:', e.message);
@@ -983,24 +1000,20 @@ async function fetchFromMultimovies(type, id, season, episode) {
     }
 }
 
-/* =====================================================================
-   STREAM FETCHER — Multimovies first, GitHub fallback
-   ===================================================================== */
 async function source_multimovies(type, id, season, episode) {
     return await fetchFromMultimovies(type, id, season, episode);
 }
 
 async function fetchStream(type, id, season, episode) {
-    // Priority 1: Multimovies
     let url = await source_multimovies(type, id, season, episode);
     if (url) return url;
 }
 
-// Global exports for browser window
 if (typeof window !== 'undefined') {
     window.source_multimovies = source_multimovies;
     window.fetchStream = fetchStream;
 }
+
 
     // Priority 2: GitHub Fallback
     console.warn('[fetchStream] Multimovies failed, trying GitHub...');
