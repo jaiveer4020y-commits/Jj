@@ -986,10 +986,21 @@ async function fetchFromMultimovies(type, id, season, episode) {
 /* =====================================================================
    STREAM FETCHER — Multimovies first, GitHub fallback
    ===================================================================== */
+async function source_multimovies(type, id, season, episode) {
+    return await fetchFromMultimovies(type, id, season, episode);
+}
+
 async function fetchStream(type, id, season, episode) {
     // Priority 1: Multimovies
     let url = await source_multimovies(type, id, season, episode);
     if (url) return url;
+}
+
+// Global exports for browser window
+if (typeof window !== 'undefined') {
+    window.source_multimovies = source_multimovies;
+    window.fetchStream = fetchStream;
+}
 
     // Priority 2: GitHub Fallback
     console.warn('[fetchStream] Multimovies failed, trying GitHub...');
