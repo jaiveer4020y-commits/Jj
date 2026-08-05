@@ -20,7 +20,7 @@ def extract_m3u8(embed_url):
     default_domain = f"{parsed_url.scheme}://{parsed_url.netloc}/"
     headers = {
         'Referer': default_domain,
-        'User-Agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36'
+        'User-Agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36'
     }
 
     try:
@@ -28,7 +28,6 @@ def extract_m3u8(embed_url):
         soup = BeautifulSoup(response, 'html.parser')
         
         js_code = next((script.string for script in soup.find_all('script') if script.string and "eval(function(p,a,c,k,e,d)" in script.string), "")
-
         if not js_code:
             return None
 
@@ -37,7 +36,11 @@ def extract_m3u8(embed_url):
         p, a, c, k = data[0], int(data[1]), int(data[2]), data[3].split('|')
         decoded_data = unpack(p, a, c, k)
 
-        master_m3u8 = re.search(r'\"hls2\":"([^"]+)', decoded_data).group(1)
+        # Fix: Extract group(1) as a string, clean backslashes
+        match = re.search(r'\"hls2\":"([^"]+)', decoded_data)
+        if not match:
+            return None
+        master_m3u8 = match.group(1).replace('\\', '')
 
         playlist_response = requests.get(master_m3u8, headers=headers, timeout=10).text
         raw_m3u8_url = master_m3u8
@@ -49,10 +52,10 @@ def extract_m3u8(embed_url):
                 raw_m3u8_url = urljoin(master_m3u8, variants[-1])
 
         return raw_m3u8_url
-    except Exception:
+    except Exception as e:
+        print("Python Exception:", str(e))
         return None
 
-# --- VERCEL SERVERLESS HANDLER ---
 class handler(BaseHTTPRequestHandler):
     def do_GET(self):
         parsed_path = urlparse(self.path)
@@ -63,7 +66,7 @@ class handler(BaseHTTPRequestHandler):
             self.send_response(400)
             self.send_header('Content-Type', 'application/json')
             self.end_headers()
-            self.wfile.write(json.dumps({"error": "Missing 'url' parameter"}).encode('utf-8'))
+            self.wfile.write(json.dumps({"error": "Missing url"}).encode('utf-8'))
             return
 
         m3u8_url = extract_m3u8(embed_url)
@@ -77,4 +80,4 @@ class handler(BaseHTTPRequestHandler):
             self.send_response(500)
             self.send_header('Content-Type', 'application/json')
             self.end_headers()
-            self.wfile.write(json.dumps({"error": "Failed to extract M3U8"}).encode('utf-8'))
+            self.wfile.write(json.dumps({"error": "Extraction failed"}).encode('utf-8'))
