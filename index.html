@@ -926,6 +926,9 @@ function srtToVtt(srt){
 /* =====================================================================
    SOURCE — multimovies with hls-proxy, captures subtitle map
    ===================================================================== */
+/* =====================================================================
+   SOURCE — multimovies with hls-proxy, captures subtitle map
+   ===================================================================== */
 const MULTIMOVIES_API = 'https://hls-proxy.vercel.app/api';
 const PROXY = 'https://workingg.vercel.app/api/proxy?url=';
 
@@ -954,35 +957,37 @@ async function fetchFromMultimovies(type, id, season, episode) {
 
         let streamHgUrl = null;
 
-        // Extract StreamHG/Hanerix embed link
+        // Extract StreamHG/Hanerix embed link from debug.embed_urls.streamhg
         if (Array.isArray(data.debug)) {
             for (const entry of data.debug) {
                 if (!entry || typeof entry !== 'object') continue;
-                const embeds = entry.embed_urls || (entry.result && entry.result.embed_urls);
-                if (embeds && embeds.streamhg) {
-                    streamHgUrl = embeds.streamhg;
+                
+                // Check debug.embed_urls.streamhg
+                if (entry.embed_urls && entry.embed_urls.streamhg) {
+                    streamHgUrl = entry.embed_urls.streamhg;
+                    console.log('[STEP 2] Found StreamHG URL in debug.embed_urls:', streamHgUrl);
                     break;
                 }
-            }
-        }
-
-        if (!streamHgUrl && Array.isArray(data.servers)) {
-            for (const srv of data.servers) {
-                if (srv && typeof srv.src === 'string' && srv.src.includes('hanerix.com')) {
-                    streamHgUrl = srv.src;
+                
+                // Fallback: Check debug.result.embed_urls.streamhg
+                if (entry.result && entry.result.embed_urls && entry.result.embed_urls.streamhg) {
+                    streamHgUrl = entry.result.embed_urls.streamhg;
+                    console.log('[STEP 2] Found StreamHG URL in debug.result.embed_urls:', streamHgUrl);
                     break;
                 }
             }
         }
 
         if (!streamHgUrl) {
-            console.error('[STEP 2 FAILED] Could not extract StreamHG URL');
+            console.error('[STEP 2 FAILED] Could not extract StreamHG URL from debug');
             return null;
         }
 
-        // Call Python Vercel function
+        // Call Python Vercel function WITHOUT encoding the URL
         console.log('--- [STEP 3: CALLING PYTHON EXTRACTOR] ---');
-        const pyRes = await fetch(`/api/extract?url=${encodeURIComponent(streamHgUrl)}`);
+        console.log('[STEP 3] Sending to extract.py:', streamHgUrl);
+        
+        const pyRes = await fetch(`/api/extract?url=${streamHgUrl}`);
         if (!pyRes.ok) {
             console.error('[STEP 3 FAILED] Python Extractor Status:', pyRes.status);
             return null;
@@ -995,7 +1000,8 @@ async function fetchFromMultimovies(type, id, season, episode) {
         }
 
         console.log('[STEP 4 SUCCESS] Extracted M3U8:', pyData.m3u8_url);
-        return `${PROXY}${encodeURIComponent(pyData.m3u8_url)}`;
+        // Return M3U8 URL without encoding (pass through proxy if needed)
+        return pyData.m3u8_url;
 
     } catch (e) {
         console.error('[FATAL ERROR]:', e.message);
