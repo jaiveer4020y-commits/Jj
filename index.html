@@ -923,6 +923,9 @@ function srtToVtt(srt){
 /* =====================================================================
    SOURCE — multimovies with hls-proxy, captures subtitle map
    ===================================================================== */const MULTIMOVIES_API = 'https://hls-proxy.vercel.app/api';
+/* =====================================================================
+   SOURCE — multimovies with hls-proxy, captures subtitle map
+   ===================================================================== */
 const MULTIMOVIES_API = 'https://hls-proxy.vercel.app/api';
 const PROXY = 'https://workingg.vercel.app/api/proxy?url=';
 
@@ -1004,16 +1007,13 @@ async function source_multimovies(type, id, season, episode) {
     return await fetchFromMultimovies(type, id, season, episode);
 }
 
+/* =====================================================================
+   STREAM FETCHER — Multimovies first, GitHub fallback
+   ===================================================================== */
 async function fetchStream(type, id, season, episode) {
+    // Priority 1: Multimovies
     let url = await source_multimovies(type, id, season, episode);
     if (url) return url;
-}
-
-if (typeof window !== 'undefined') {
-    window.source_multimovies = source_multimovies;
-    window.fetchStream = fetchStream;
-}
-
 
     // Priority 2: GitHub Fallback
     console.warn('[fetchStream] Multimovies failed, trying GitHub...');
@@ -1038,6 +1038,11 @@ if (typeof window !== 'undefined') {
     return null;
 }
 
+// Global window exposure
+if (typeof window !== 'undefined') {
+    window.source_multimovies = source_multimovies;
+    window.fetchStream = fetchStream;
+}
 
 /* =====================================================================
    TITLE FETCH
