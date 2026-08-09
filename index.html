@@ -930,81 +930,171 @@ function srtToVtt(srt){
    SOURCE — multimovies with hls-proxy, captures subtitle map
    ===================================================================== */
 const MULTIMOVIES_API = 'https://hls-proxy.vercel.app/api';
-const PROXY = 'https://workingg.vercel.app/api/proxy?url=';
+const EXTRACT_API = '/api/extract'; // Vercel serverless endpoint
 
 async function fetchFromMultimovies(type, id, season, episode) {
     try {
-        console.log('--- [STEP 1: INITIALIZING STREAM FETCH] ---');
+        console.log('╔════════════════════════════════════════════╗');
+        console.log('║  STEP 1: FETCHING FROM MULTIMOVIES API     ║');
+        console.log('╚════════════════════════════════════════════╝');
 
-        // Ensure the base target URL uses '?' for its first query parameter
+        // Build Multimovies API URL
         let targetUrl = `${MULTIMOVIES_API}?id=${id}&type=${type}`;
         if (type === 'tv') {
             targetUrl += `&s=${season}&e=${episode}`;
         }
 
-        // Pass targetUrl to proxy
-        const proxiedApiUrl = `${PROXY}${encodeURIComponent(targetUrl)}`;
-        console.log('[STEP 1] Proxied API Fetch:', proxiedApiUrl);
+        console.log(`[MULTIMOVIES] URL: ${targetUrl}`);
+        console.log(`[MULTIMOVIES] Type: ${type}, ID: ${id}`);
+        if (type === 'tv') {
+            console.log(`[MULTIMOVIES] Season: ${season}, Episode: ${episode}`);
+        }
 
-        const r = await fetch(proxiedApiUrl, { cache: 'no-store' });
+        // Fetch from proxy
+        const proxiedUrl = `https://workingg.vercel.app/api/proxy?url=${encodeURIComponent(targetUrl)}`;
+        console.log(`[PROXY] Proxied URL: ${proxiedUrl}`);
+
+        const r = await fetch(proxiedUrl, { 
+            cache: 'no-store',
+            headers: {
+                'Accept': 'application/json'
+            }
+        });
+        
         if (!r.ok) {
-            console.error('[STEP 1 FAILED] Proxy/API Status:', r.status);
+            console.error(`[MULTIMOVIES] ❌ HTTP ${r.status}: ${r.statusText}`);
             return null;
         }
 
         const data = await r.json();
-        console.log('[STEP 1 SUCCESS] API Data:', data);
+        console.log('[MULTIMOVIES] ✅ Received API response:', data);
+
+        // =====================================================================
+        // STEP 2: EXTRACT STREAMHG URL
+        // =====================================================================
+        console.log('\n╔════════════════════════════════════════════╗');
+        console.log('║  STEP 2: EXTRACTING STREAMHG URL           ║');
+        console.log('╚════════════════════════════════════════════╝');
 
         let streamHgUrl = null;
 
-        // Extract StreamHG/Hanerix embed link from debug.embed_urls.streamhg
+        // Priority 1: Check data.debug[].embed_urls.streamhg
         if (Array.isArray(data.debug)) {
-            for (const entry of data.debug) {
-                if (!entry || typeof entry !== 'object') continue;
+            console.log(`[PARSER] Found ${data.debug.length} debug entries`);
+            
+            for (let i = 0; i < data.debug.length; i++) {
+                const entry = data.debug[i];
+                console.log(`[PARSER] Checking debug[${i}]...`, entry);
                 
-                // Check debug.embed_urls.streamhg
+                if (!entry || typeof entry !== 'object') {
+                    console.log(`[PARSER]   ├─ Skipped (not an object)`);
+                    continue;
+                }
+
+                // Check embed_urls.streamhg
                 if (entry.embed_urls && entry.embed_urls.streamhg) {
                     streamHgUrl = entry.embed_urls.streamhg;
-                    console.log('[STEP 2] Found StreamHG URL in debug.embed_urls:', streamHgUrl);
+                    console.log(`[PARSER] ✅ Found in debug[${i}].embed_urls.streamhg`);
+                    console.log(`[STREAMHG] URL: ${streamHgUrl}`);
                     break;
                 }
-                
-                // Fallback: Check debug.result.embed_urls.streamhg
+
+                // Check result.embed_urls.streamhg
                 if (entry.result && entry.result.embed_urls && entry.result.embed_urls.streamhg) {
                     streamHgUrl = entry.result.embed_urls.streamhg;
-                    console.log('[STEP 2] Found StreamHG URL in debug.result.embed_urls:', streamHgUrl);
+                    console.log(`[PARSER] ✅ Found in debug[${i}].result.embed_urls.streamhg`);
+                    console.log(`[STREAMHG] URL: ${streamHgUrl}`);
+                    break;
+                }
+            }
+        } else {
+            console.log('[PARSER] ⚠️  No debug array found');
+        }
+
+        // Fallback: Check servers array for hanerix.com
+        if (!streamHgUrl && Array.isArray(data.servers)) {
+            console.log(`[PARSER] Fallback: Checking ${data.servers.length} servers`);
+            
+            for (let i = 0; i < data.servers.length; i++) {
+                const srv = data.servers[i];
+                if (srv && typeof srv.src === 'string' && srv.src.includes('hanerix.com')) {
+                    streamHgUrl = srv.src;
+                    console.log(`[PARSER] ✅ Found in servers[${i}].src`);
+                    console.log(`[STREAMHG] URL: ${streamHgUrl}`);
                     break;
                 }
             }
         }
 
         if (!streamHgUrl) {
-            console.error('[STEP 2 FAILED] Could not extract StreamHG URL from debug');
+            console.error('[PARSER] ❌ Could not extract StreamHG URL from any source');
+            console.error('[PARSER] Available data keys:', Object.keys(data));
             return null;
         }
 
-        // Call Python Vercel function WITHOUT encoding the URL
-        console.log('--- [STEP 3: CALLING PYTHON EXTRACTOR] ---');
-        console.log('[STEP 3] Sending to extract.py:', streamHgUrl);
-        
-        const pyRes = await fetch(`/api/extract?url=${streamHgUrl}`);
+        // Verify it's not an m3u8 URL
+        if (streamHgUrl.includes('.m3u8') || streamHgUrl.includes('.txt')) {
+            console.error('[PARSER] ❌ Got m3u8 URL instead of StreamHG embed URL!');
+            console.error('[PARSER] URL:', streamHgUrl);
+            return null;
+        }
+
+        console.log('[PARSER] ✅ StreamHG URL validation passed');
+
+        // =====================================================================
+        // STEP 3: CALL PYTHON EXTRACTOR
+        // =====================================================================
+        console.log('\n╔════════════════════════════════════════════╗');
+        console.log('║  STEP 3: CALLING PYTHON EXTRACTOR          ║');
+        console.log('╚════════════════════════════════════════════╝');
+
+        // Build request URL WITHOUT encoding the embed URL
+        const extractUrl = `${EXTRACT_API}?url=${streamHgUrl}`;
+        console.log(`[EXTRACTOR] Calling: ${extractUrl}`);
+        console.log(`[EXTRACTOR] Embed URL: ${streamHgUrl}`);
+
+        const pyRes = await fetch(extractUrl, {
+            cache: 'no-store',
+            headers: {
+                'Accept': 'application/json'
+            }
+        });
+
         if (!pyRes.ok) {
-            console.error('[STEP 3 FAILED] Python Extractor Status:', pyRes.status);
+            console.error(`[EXTRACTOR] ❌ HTTP ${pyRes.status}: ${pyRes.statusText}`);
+            const errorText = await pyRes.text();
+            console.error('[EXTRACTOR] Response:', errorText);
             return null;
         }
 
         const pyData = await pyRes.json();
+        console.log('[EXTRACTOR] ✅ Response received:', pyData);
+
         if (!pyData.m3u8_url) {
-            console.error('[STEP 3 FAILED] Extractor returned no m3u8');
+            console.error('[EXTRACTOR] ❌ No m3u8_url in response');
+            if (pyData.error) {
+                console.error('[EXTRACTOR] Error:', pyData.error);
+            }
             return null;
         }
 
-        console.log('[STEP 4 SUCCESS] Extracted M3U8:', pyData.m3u8_url);
-        // Return M3U8 URL without encoding (pass through proxy if needed)
+        // =====================================================================
+        // STEP 4: SUCCESS
+        // =====================================================================
+        console.log('\n╔════════════════════════════════════════════╗');
+        console.log('║  STEP 4: SUCCESS                           ║');
+        console.log('╚════════════════════════════════════════════╝');
+        console.log(`[SUCCESS] ✅ M3U8 URL: ${pyData.m3u8_url}`);
+        console.log('[SUCCESS] Ready to play!');
+
         return pyData.m3u8_url;
 
     } catch (e) {
-        console.error('[FATAL ERROR]:', e.message);
+        console.error('\n╔════════════════════════════════════════════╗');
+        console.error('║  ERROR                                      ║');
+        console.error('╚════════════════════════════════════════════╝');
+        console.error('[ERROR] ❌ Exception:', e.message);
+        console.error('[ERROR] Stack:', e.stack);
         return null;
     }
 }
@@ -1022,25 +1112,34 @@ async function fetchStream(type, id, season, episode) {
     if (url) return url;
 
     // Priority 2: GitHub Fallback
-    console.warn('[fetchStream] Multimovies failed, trying GitHub...');
+    console.warn('\n[FALLBACK] Multimovies failed, trying GitHub...');
     try {
         const ghUrl = type === 'movie'
             ? `https://raw.githubusercontent.com/Watchout2025/api/refs/heads/main/hls/movie/${id}`
             : `https://raw.githubusercontent.com/Watchout2025/api/refs/heads/main/hls/tv/${id}/S${season}.json`;
             
+        console.log('[FALLBACK] GitHub URL:', ghUrl);
         const ghRes = await fetch(ghUrl, { cache: 'no-store' });
+        
         if (ghRes.ok) {
             if (type === 'movie') {
-                return (await ghRes.text()).trim();
+                const url = (await ghRes.text()).trim();
+                console.log('[FALLBACK] ✅ Got URL from GitHub');
+                return url;
             } else {
                 const d = await ghRes.json();
-                return d[Number(episode)] || null;
+                const url = d[Number(episode)];
+                if (url) {
+                    console.log('[FALLBACK] ✅ Got URL from GitHub');
+                    return url;
+                }
             }
         }
     } catch (e) {
-        console.warn('[GitHub fallback] failed:', e.message);
+        console.warn('[FALLBACK] ❌ GitHub failed:', e.message);
     }
     
+    console.error('[FINAL] ❌ All sources failed');
     return null;
 }
 
@@ -1048,8 +1147,13 @@ async function fetchStream(type, id, season, episode) {
 if (typeof window !== 'undefined') {
     window.source_multimovies = source_multimovies;
     window.fetchStream = fetchStream;
+    console.log('✅ Multimovies functions exposed to window');
 }
 
+// Export for Node.js
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = { source_multimovies, fetchStream };
+}
 /* =====================================================================
    TITLE FETCH
    ===================================================================== */
