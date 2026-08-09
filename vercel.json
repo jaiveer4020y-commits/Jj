@@ -1,8 +1,6 @@
 {
-  "buildCommand": "pip install requests beautifulsoup4",
-  "functions": {
-    "api/extract.py": {
-      "runtime": "python3.9"
-    }
+  "buildCommand": "pip install -r requirements.txt",
+  "env": {
+    "PYTHONUNBUFFERED": "1"
   }
 }
