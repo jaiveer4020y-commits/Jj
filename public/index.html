@@ -929,231 +929,395 @@ function srtToVtt(srt){
 /* =====================================================================
    SOURCE — multimovies with hls-proxy, captures subtitle map
    ===================================================================== */
-const MULTIMOVIES_API = 'https://hls-proxy.vercel.app/api';
-const EXTRACT_API = '/api/extract'; // Vercel serverless endpoint
+<script>
+/* ================================================================
+   ROZGARLELO DYNAMIC SOURCE
+   Movie:
+   /embed/imdb/movie?id=tt42346527
 
-async function fetchFromMultimovies(type, id, season, episode) {
+   TV:
+   /embed/tmdb/tv?id=1399&s=1&e=1
+
+   Extraction:
+   1. Fetch Rozgarlelo embed page through workingg proxy
+   2. Extract iframe src
+   3. Fetch iframe through workingg proxy
+   4. Extract `var src = "..."`
+   5. Resolve src against rozgarlelo.modiplay.xyz
+   6. Return playable URL
+   ================================================================ */
+
+const ROZGARLELO_BASE = 'https://rozgarlelo.modiplay.xyz';
+
+const STREAM_PROXY =
+    'https://workingg.vercel.app/api/proxy?url=';
+
+
+/* ================================================================
+   FETCH THROUGH WORKINGG PROXY
+   ================================================================ */
+
+async function rozgarleloProxyFetch(url, options = {}) {
+
+    const proxyUrl =
+        STREAM_PROXY + encodeURIComponent(url);
+
+    console.log('[ROZGARLELO] Proxy fetch:', url);
+
+    const response = await fetch(proxyUrl, {
+        method: 'GET',
+        cache: 'no-store',
+        credentials: 'omit',
+        ...options,
+        headers: {
+            'Accept': '*/*',
+            ...(options.headers || {})
+        }
+    });
+
+    if (!response.ok) {
+        throw new Error(
+            `Proxy HTTP ${response.status} for ${url}`
+        );
+    }
+
+    return response.text();
+}
+
+
+/* ================================================================
+   EXTRACT IFRAME SRC
+   ================================================================ */
+
+function extractIframeSrc(html) {
+
+    // Normal iframe:
+    // <iframe src="/proxy.php?...">
+
+    const match = html.match(
+        /<iframe\b[^>]*\bsrc\s*=\s*(["'])(.*?)\1/i
+    );
+
+    if (!match) {
+        throw new Error('Iframe src not found');
+    }
+
+    let src = match[2];
+
+    // HTML entities
+    src = src
+        .replace(/&amp;/gi, '&')
+        .replace(/&quot;/gi, '"')
+        .replace(/&#39;/gi, "'");
+
+    // Resolve relative URL
+    return new URL(src, ROZGARLELO_BASE).href;
+}
+
+
+/* ================================================================
+   EXTRACT `var src = "..."`
+   ================================================================ */
+
+function extractJavascriptSrc(html) {
+
+    /*
+        Handles:
+
+        var src="/proxy.php?...";
+
+        var src='/proxy.php?...';
+
+        var src = "\/proxy.php?...";
+    */
+
+    const match = html.match(
+        /\bvar\s+src\s*=\s*(["'])([\s\S]*?)\1\s*;/i
+    );
+
+    if (!match) {
+        throw new Error(
+            'Could not find `var src = ...` in iframe HTML'
+        );
+    }
+
+    let src = match[2];
+
+    /*
+       Decode JS escaping.
+    */
+
+    src = src
+        .replace(/\\\//g, '/')
+        .replace(/\\"/g, '"')
+        .replace(/\\'/g, "'")
+        .replace(/\\\\/g, '\\');
+
+    return src;
+}
+
+
+/* ================================================================
+   MAIN ROZGARLELO RESOLVER
+   ================================================================ */
+
+async function resolveRozgarlelo(
+    type,
+    id,
+    season = null,
+    episode = null
+) {
+
+    let embedUrl;
+
+    /* ------------------------------------------------------------
+       Build embed URL
+       ------------------------------------------------------------ */
+
+    if (type === 'movie') {
+
+        /*
+           Example:
+
+           https://rozgarlelo.modiplay.xyz/embed/imdb/movie?id=tt42346527
+        */
+
+        embedUrl =
+            `${ROZGARLELO_BASE}/embed/imdb/movie?id=${encodeURIComponent(id)}`;
+
+    } else if (type === 'tv') {
+
+        /*
+           Example:
+
+           https://rozgarlelo.modiplay.xyz/embed/tmdb/tv?id=1399&s=1&e=1
+        */
+
+        embedUrl =
+            `${ROZGARLELO_BASE}/embed/tmdb/tv?id=${encodeURIComponent(id)}` +
+            `&s=${encodeURIComponent(season)}` +
+            `&e=${encodeURIComponent(episode)}`;
+
+    } else {
+
+        throw new Error(
+            `Unsupported media type: ${type}`
+        );
+    }
+
+
+    console.log('');
+    console.log('============================================');
+    console.log('[ROZGARLELO] STEP 1');
+    console.log('============================================');
+    console.log('[ROZGARLELO] Embed URL:', embedUrl);
+
+
+    /* ------------------------------------------------------------
+       STEP 1
+       Fetch main embed page
+       ------------------------------------------------------------ */
+
+    const embedHtml =
+        await rozgarleloProxyFetch(embedUrl);
+
+    console.log(
+        '[ROZGARLELO] Embed HTML received:',
+        embedHtml.length,
+        'bytes'
+    );
+
+
+    /* ------------------------------------------------------------
+       STEP 2
+       Extract iframe
+       ------------------------------------------------------------ */
+
+    const iframeUrl =
+        extractIframeSrc(embedHtml);
+
+    console.log('');
+    console.log('============================================');
+    console.log('[ROZGARLELO] STEP 2');
+    console.log('============================================');
+    console.log('[ROZGARLELO] Iframe:', iframeUrl);
+
+
+    /* ------------------------------------------------------------
+       STEP 3
+       Fetch iframe HTML
+       ------------------------------------------------------------ */
+
+    const iframeHtml =
+        await rozgarleloProxyFetch(iframeUrl);
+
+    console.log(
+        '[ROZGARLELO] Iframe HTML received:',
+        iframeHtml.length,
+        'bytes'
+    );
+
+
+    /* ------------------------------------------------------------
+       STEP 4
+       Extract var src
+       ------------------------------------------------------------ */
+
+    const extractedSrc =
+        extractJavascriptSrc(iframeHtml);
+
+    console.log('');
+    console.log('============================================');
+    console.log('[ROZGARLELO] STEP 3');
+    console.log('============================================');
+    console.log('[ROZGARLELO] Extracted src:', extractedSrc);
+
+
+    /* ------------------------------------------------------------
+       STEP 5
+       Resolve relative URL
+       ------------------------------------------------------------ */
+
+    const finalUrl =
+        new URL(
+            extractedSrc,
+            ROZGARLELO_BASE
+        ).href;
+
+    console.log('');
+    console.log('============================================');
+    console.log('[ROZGARLELO] FINAL STREAM');
+    console.log('============================================');
+    console.log(finalUrl);
+    console.log('============================================');
+
+
+    return finalUrl;
+}
+
+
+/* ================================================================
+   SOURCE FUNCTION
+   ================================================================ */
+
+async function source_rozgarlelo(
+    type,
+    id,
+    season,
+    episode
+) {
+
     try {
-        console.log('╔════════════════════════════════════════════╗');
-        console.log('║  STEP 1: FETCHING FROM MULTIMOVIES API     ║');
-        console.log('╚════════════════════════════════════════════╝');
 
-        // Build Multimovies API URL
-        let targetUrl = `${MULTIMOVIES_API}?id=${id}&type=${type}`;
-        if (type === 'tv') {
-            targetUrl += `&s=${season}&e=${episode}`;
-        }
+        return await resolveRozgarlelo(
+            type,
+            id,
+            season,
+            episode
+        );
 
-        console.log(`[MULTIMOVIES] URL: ${targetUrl}`);
-        console.log(`[MULTIMOVIES] Type: ${type}, ID: ${id}`);
-        if (type === 'tv') {
-            console.log(`[MULTIMOVIES] Season: ${season}, Episode: ${episode}`);
-        }
+    } catch (error) {
 
-        // Fetch from proxy
-        const proxiedUrl = `https://workingg.vercel.app/api/proxy?url=${encodeURIComponent(targetUrl)}`;
-        console.log(`[PROXY] Proxied URL: ${proxiedUrl}`);
+        console.error(
+            '[ROZGARLELO] Extraction failed:',
+            error
+        );
 
-        const r = await fetch(proxiedUrl, { 
-            cache: 'no-store',
-            headers: {
-                'Accept': 'application/json'
-            }
-        });
-        
-        if (!r.ok) {
-            console.error(`[MULTIMOVIES] ❌ HTTP ${r.status}: ${r.statusText}`);
-            return null;
-        }
-
-        const data = await r.json();
-        console.log('[MULTIMOVIES] ✅ Received API response:', data);
-
-        // =====================================================================
-        // STEP 2: EXTRACT STREAMHG URL
-        // =====================================================================
-        console.log('\n╔════════════════════════════════════════════╗');
-        console.log('║  STEP 2: EXTRACTING STREAMHG URL           ║');
-        console.log('╚════════════════════════════════════════════╝');
-
-        let streamHgUrl = null;
-
-        // Priority 1: Check data.debug[].embed_urls.streamhg
-        if (Array.isArray(data.debug)) {
-            console.log(`[PARSER] Found ${data.debug.length} debug entries`);
-            
-            for (let i = 0; i < data.debug.length; i++) {
-                const entry = data.debug[i];
-                console.log(`[PARSER] Checking debug[${i}]...`, entry);
-                
-                if (!entry || typeof entry !== 'object') {
-                    console.log(`[PARSER]   ├─ Skipped (not an object)`);
-                    continue;
-                }
-
-                // Check embed_urls.streamhg
-                if (entry.embed_urls && entry.embed_urls.streamhg) {
-                    streamHgUrl = entry.embed_urls.streamhg;
-                    console.log(`[PARSER] ✅ Found in debug[${i}].embed_urls.streamhg`);
-                    console.log(`[STREAMHG] URL: ${streamHgUrl}`);
-                    break;
-                }
-
-                // Check result.embed_urls.streamhg
-                if (entry.result && entry.result.embed_urls && entry.result.embed_urls.streamhg) {
-                    streamHgUrl = entry.result.embed_urls.streamhg;
-                    console.log(`[PARSER] ✅ Found in debug[${i}].result.embed_urls.streamhg`);
-                    console.log(`[STREAMHG] URL: ${streamHgUrl}`);
-                    break;
-                }
-            }
-        } else {
-            console.log('[PARSER] ⚠️  No debug array found');
-        }
-
-        // Fallback: Check servers array for hanerix.com
-        if (!streamHgUrl && Array.isArray(data.servers)) {
-            console.log(`[PARSER] Fallback: Checking ${data.servers.length} servers`);
-            
-            for (let i = 0; i < data.servers.length; i++) {
-                const srv = data.servers[i];
-                if (srv && typeof srv.src === 'string' && srv.src.includes('hanerix.com')) {
-                    streamHgUrl = srv.src;
-                    console.log(`[PARSER] ✅ Found in servers[${i}].src`);
-                    console.log(`[STREAMHG] URL: ${streamHgUrl}`);
-                    break;
-                }
-            }
-        }
-
-        if (!streamHgUrl) {
-            console.error('[PARSER] ❌ Could not extract StreamHG URL from any source');
-            console.error('[PARSER] Available data keys:', Object.keys(data));
-            return null;
-        }
-
-        // Verify it's not an m3u8 URL
-        if (streamHgUrl.includes('.m3u8') || streamHgUrl.includes('.txt')) {
-            console.error('[PARSER] ❌ Got m3u8 URL instead of StreamHG embed URL!');
-            console.error('[PARSER] URL:', streamHgUrl);
-            return null;
-        }
-
-        console.log('[PARSER] ✅ StreamHG URL validation passed');
-
-        // =====================================================================
-        // STEP 3: CALL PYTHON EXTRACTOR
-        // =====================================================================
-        console.log('\n╔════════════════════════════════════════════╗');
-        console.log('║  STEP 3: CALLING PYTHON EXTRACTOR          ║');
-        console.log('╚════════════════════════════════════════════╝');
-
-        // Build request URL WITHOUT encoding the embed URL
-        const extractUrl = `${EXTRACT_API}?url=${streamHgUrl}`;
-        console.log(`[EXTRACTOR] Calling: ${extractUrl}`);
-        console.log(`[EXTRACTOR] Embed URL: ${streamHgUrl}`);
-
-        const pyRes = await fetch(extractUrl, {
-            cache: 'no-store',
-            headers: {
-                'Accept': 'application/json'
-            }
-        });
-
-        if (!pyRes.ok) {
-            console.error(`[EXTRACTOR] ❌ HTTP ${pyRes.status}: ${pyRes.statusText}`);
-            const errorText = await pyRes.text();
-            console.error('[EXTRACTOR] Response:', errorText);
-            return null;
-        }
-
-        const pyData = await pyRes.json();
-        console.log('[EXTRACTOR] ✅ Response received:', pyData);
-
-        if (!pyData.m3u8_url) {
-            console.error('[EXTRACTOR] ❌ No m3u8_url in response');
-            if (pyData.error) {
-                console.error('[EXTRACTOR] Error:', pyData.error);
-            }
-            return null;
-        }
-
-        // =====================================================================
-        // STEP 4: SUCCESS
-        // =====================================================================
-        console.log('\n╔════════════════════════════════════════════╗');
-        console.log('║  STEP 4: SUCCESS                           ║');
-        console.log('╚════════════════════════════════════════════╝');
-        console.log(`[SUCCESS] ✅ M3U8 URL: ${pyData.m3u8_url}`);
-        console.log('[SUCCESS] Ready to play!');
-
-        return pyData.m3u8_url;
-
-    } catch (e) {
-        console.error('\n╔════════════════════════════════════════════╗');
-        console.error('║  ERROR                                      ║');
-        console.error('╚════════════════════════════════════════════╝');
-        console.error('[ERROR] ❌ Exception:', e.message);
-        console.error('[ERROR] Stack:', e.stack);
         return null;
     }
 }
 
-async function source_multimovies(type, id, season, episode) {
-    return await fetchFromMultimovies(type, id, season, episode);
-}
 
-/* =====================================================================
-   STREAM FETCHER — Multimovies first, GitHub fallback
-   ===================================================================== */
-async function fetchStream(type, id, season, episode) {
-    // Priority 1: Multimovies
-    let url = await source_multimovies(type, id, season, episode);
-    if (url) return url;
+/* ================================================================
+   STREAM FETCHER
+   ================================================================ */
 
-    // Priority 2: GitHub Fallback
-    console.warn('\n[FALLBACK] Multimovies failed, trying GitHub...');
-    try {
-        const ghUrl = type === 'movie'
-            ? `https://raw.githubusercontent.com/Watchout2025/api/refs/heads/main/hls/movie/${id}`
-            : `https://raw.githubusercontent.com/Watchout2025/api/refs/heads/main/hls/tv/${id}/S${season}.json`;
-            
-        console.log('[FALLBACK] GitHub URL:', ghUrl);
-        const ghRes = await fetch(ghUrl, { cache: 'no-store' });
-        
-        if (ghRes.ok) {
-            if (type === 'movie') {
-                const url = (await ghRes.text()).trim();
-                console.log('[FALLBACK] ✅ Got URL from GitHub');
-                return url;
-            } else {
-                const d = await ghRes.json();
-                const url = d[Number(episode)];
-                if (url) {
-                    console.log('[FALLBACK] ✅ Got URL from GitHub');
-                    return url;
-                }
-            }
-        }
-    } catch (e) {
-        console.warn('[FALLBACK] ❌ GitHub failed:', e.message);
+async function fetchStream(
+    type,
+    id,
+    season,
+    episode
+) 
+{
+
+    console.log('');
+    console.log('╔══════════════════════════════════════════╗');
+    console.log('║       ROZGARLELO STREAM RESOLVER         ║');
+    console.log('╚══════════════════════════════════════════╝');
+
+    console.log(
+        '[STREAM] Type:',
+        type
+    );
+
+    console.log(
+        '[STREAM] ID:',
+        id
+    );
+
+    if (type === 'tv') {
+
+        console.log(
+            '[STREAM] Season:',
+            season
+        );
+
+        console.log(
+            '[STREAM] Episode:',
+            episode
+        );
     }
+
+
+    const url =
+        await source_rozgarlelo(
+            type,
+            id,
+            season,
+            episode
+        );
+
+
+    if (!url) {
+
+        console.error(
+            '[STREAM] No playable URL returned'
+        );
+
+        return null;
+    }
+
+
+    console.log('');
+    console.log('╔══════════════════════════════════════════╗');
+    console.log('║              STREAM READY                ║');
+    console.log('╚══════════════════════════════════════════╝');
+
+    console.log(
+        '[STREAM] URL:',
+        url
+    );
+
+
+    return url;
+}
+
+
+/* ================================================================
+   EXPOSE FUNCTIONS
+   ================================================================ */
+
+window.source_rozgarlelo =
+    source_rozgarlelo;
+
+window.resolveRozgarlelo =
+    resolveRozgarlelo;
+
+window.fetchStream =
+    fetchStream;
+
+<script>
     
-    console.error('[FINAL] ❌ All sources failed');
-    return null;
-}
-
-// Global window exposure
-if (typeof window !== 'undefined') {
-    window.source_multimovies = source_multimovies;
-    window.fetchStream = fetchStream;
-    console.log('✅ Multimovies functions exposed to window');
-}
-
-// Export for Node.js
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = { source_multimovies, fetchStream };
-}
 /* =====================================================================
    TITLE FETCH
    ===================================================================== */
@@ -1178,50 +1342,262 @@ async function fetchAndSetTitle(type,id,season,episode){
 /* =====================================================================
    ROUTER
    ===================================================================== */
-async function resolveAndPlay(){
-    const path=window.location.pathname;
-    const urlParams=new URLSearchParams(window.location.search);
-    const urlParam=urlParams.get('url');
+async function resolveAndPlay() {
 
-    // ?url= direct stream (e.g. .txt served as HLS manifest)
-    if(urlParam){
+    const path =
+        window.location.pathname;
+
+    const urlParams =
+        new URLSearchParams(
+            window.location.search
+        );
+
+    /* ============================================================
+       DIRECT ?url= SUPPORT
+       ============================================================ */
+
+    const urlParam =
+        urlParams.get('url');
+
+    if (urlParam) {
+
         showLoader();
+
         revokeAllSubtitleBlobs();
-        _proxySubtitles={};
+
+        _proxySubtitles = {};
+
         initHlsPlayer(urlParam);
+
         return;
     }
 
-    const mv=path.match(/\/movie\/(\d+)/i);
-    if(mv){
-        const id=mv[1];showLoader();
-        const streamUrl=await fetchStream('movie',id,null,null);
-        if(streamUrl){
+
+    /* ============================================================
+       MOVIE ROUTES
+       
+       Example:
+       /movie/tt42346527
+
+       Also accepts:
+       /movie/1399
+       ============================================================ */
+
+    const movieMatch =
+        path.match(
+            /\/movie\/([^/?#]+)/i
+        );
+
+
+    if (movieMatch) {
+
+        const id =
+            movieMatch[1];
+
+        console.log(
+            '[ROUTER] Movie:',
+            id
+        );
+
+        showLoader();
+
+        try {
+
+            const streamUrl =
+                await fetchStream(
+                    'movie',
+                    id,
+                    null,
+                    null
+                );
+
+
+            if (!streamUrl) {
+
+                hideLoader();
+
+                displayError(
+                    'Could not resolve movie stream.'
+                );
+
+                return;
+            }
+
+
             revokeAllSubtitleBlobs();
-            initHlsPlayer(streamUrl);
-            fetchAndSetTitle('movie',id);
-            _pendingSubtitleArgs={type:'movie',tmdbId:id,season:null,episode:null};
-        }else{hideLoader();displayError('Could not load movie. Please try again later.');}
+
+            _proxySubtitles = {};
+
+            /*
+               Start existing HLS player
+            */
+
+            initHlsPlayer(
+                streamUrl
+            );
+
+
+            /*
+               Existing title system
+            */
+
+            fetchAndSetTitle(
+                'movie',
+                id
+            );
+
+
+            _pendingSubtitleArgs = {
+                type: 'movie',
+                tmdbId: id,
+                season: null,
+                episode: null
+            };
+
+
+        } catch (error) {
+
+            console.error(
+                '[ROUTER] Movie error:',
+                error
+            );
+
+            hideLoader();
+
+            displayError(
+                'Failed to resolve movie stream.'
+            );
+        }
+
         return;
     }
 
-    const tv=path.match(/\/tv\/(\d+)\/S(\d+)\/E(\d+)/i);
-    if(tv){
-        const[,id,season,episode]=tv;showLoader();
-        const streamUrl=await fetchStream('tv',id,season,episode);
-        if(streamUrl){
+
+    /* ============================================================
+       TV ROUTE
+
+       Example:
+       /tv/1399/S1/E1
+       ============================================================ */
+
+    const tvMatch =
+        path.match(
+            /\/tv\/([^/]+)\/S(\d+)\/E(\d+)/i
+        );
+
+
+    if (tvMatch) {
+
+        const id =
+            tvMatch[1];
+
+        const season =
+            parseInt(
+                tvMatch[2],
+                10
+            );
+
+        const episode =
+            parseInt(
+                tvMatch[3],
+                10
+            );
+
+
+        console.log(
+            '[ROUTER] TV:',
+            id,
+            'S' + season,
+            'E' + episode
+        );
+
+
+        showLoader();
+
+
+        try {
+
+            const streamUrl =
+                await fetchStream(
+                    'tv',
+                    id,
+                    season,
+                    episode
+                );
+
+
+            if (!streamUrl) {
+
+                hideLoader();
+
+                displayError(
+                    'Could not resolve episode stream.'
+                );
+
+                return;
+            }
+
+
             revokeAllSubtitleBlobs();
-            initHlsPlayer(streamUrl);
-            fetchAndSetTitle('tv',id,season,episode);
-            _pendingSubtitleArgs={type:'tv',tmdbId:id,season,episode};
-        }else{hideLoader();displayError('Could not load episode. Please try again later.');}
+
+            _proxySubtitles = {};
+
+
+            /*
+               Start existing HLS player
+            */
+
+            initHlsPlayer(
+                streamUrl
+            );
+
+
+            /*
+               Existing title handling
+            */
+
+            fetchAndSetTitle(
+                'tv',
+                id,
+                season,
+                episode
+            );
+
+
+            _pendingSubtitleArgs = {
+                type: 'tv',
+                tmdbId: id,
+                season: season,
+                episode: episode
+            };
+
+
+        } catch (error) {
+
+            console.error(
+                '[ROUTER] TV error:',
+                error
+            );
+
+            hideLoader();
+
+            displayError(
+                'Failed to resolve episode stream.'
+            );
+        }
+
         return;
     }
 
-    // Default fallback
-    initHlsPlayer('https://vidmmo.com/hls/ZDBtrL1WMPQipj3EubEdG6tAKeYJ0Nt3/master.m3u8');
+
+    /* ============================================================
+       DEFAULT
+       ============================================================ */
+
+    displayError(
+        'Invalid player URL.'
+    );
 }
-
 /* =====================================================================
    UI BINDINGS
    ===================================================================== */
